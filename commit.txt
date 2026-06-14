@@ -1,0 +1,27 @@
+Initial implementation of ig-pulse information propagation observatory (2026-06-14)
+
+New repo: ~/imsgct/ig-pulse/
+
+Captures and analyzes the coupling structure between the 10 domain streams used
+by synfin — solar (NASA DONKI CME/flares), geomagnetic (NOAA Kp), seismic (USGS),
+tidal (NOAA), air quality, mempool, onchain (blockchain.info), global market
+(coingecko), fear/greed, and HN sentiment — via the 12 IG primitives as common
+vocabulary. The grammar sees these as different registers of the same information
+wave; this repo makes the propagation structure explicit and empirically measurable.
+
+Modules:
+  schema.py    — Snapshot dataclass + JSONL serialization; snapshot_from_domain_signal()
+  collector.py — collect_once() + run(interval); appends to data/snapshots.jsonl
+  coupler.py   — Pearson cross-correlation with lag detection across (stream, primitive)
+                 pairs; CouplingEdge(source, target, lag_hours, strength_r, p_value)
+  grapher.py   — NetworkX directed graph builder; ASCII coupling matrix; DOT output
+  reporter.py  — B-state event anatomy: reconstruct propagation sequence from window
+  cli.py       — `ig-pulse collect|couple|map|report`
+
+First snapshot collected at 2026-06-14T22:39:57Z:
+  B-state ×1.50 | 12 alerts | 27 readings across 10 streams
+  ⊙:2 Φ:1 Þ:2 ɢ:2 Σ:2 Ω:2 Ħ:1
+
+Meaningful coupling analysis requires ~2 weeks of hourly snapshots (336 data points).
+Physical priors to validate: CME→Kp lag 18-72h, Kp→fear_greed lag 24-48h,
+mempool↔global_market lag ~0h.
