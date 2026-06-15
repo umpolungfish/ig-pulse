@@ -25,14 +25,14 @@ def find_snapshot(snaps: List[Snapshot], ts_str: str) -> Optional[Snapshot]:
 def reconstruct_propagation(
     snaps: List[Snapshot],
     event_ts: str,
-    lookback_hours: int = 72,
+    lookback_seconds: int = 259200,
 ) -> None:
     target = _parse_ts(event_ts)
-    cutoff = target - timedelta(hours=lookback_hours)
+    cutoff = target - timedelta(seconds=lookback_seconds)
 
     window = [s for s in snaps if cutoff <= _parse_ts(s.ts) <= target]
     if not window:
-        print(f"  No snapshots found in {lookback_hours}h window before {event_ts}")
+        print(f"  No snapshots found in {lookback_seconds}s window before {event_ts}")
         return
 
     # Find first activation of each (stream, primitive) in the window
@@ -52,13 +52,13 @@ def reconstruct_propagation(
     # Sort by first activation time
     ordered = sorted(first_seen.items(), key=lambda x: x[1])
 
-    print(f"\nPropagation anatomy — {lookback_hours}h window before {event_ts}")
+    print(f"\nPropagation anatomy — {lookback_seconds}s window before {event_ts}")
     print("=" * 60)
     t0 = ordered[0][1]
     for (stream, prim), ts in ordered:
-        delta_h = (ts - t0).total_seconds() / 3600
+        delta_s = int((ts - t0).total_seconds())
         sym = PRIM_SYMBOL.get(prim, prim)
-        print(f"  T+{delta_h:5.1f}h  {stream:<20} {sym} ({prim})")
+        print(f"  T+{delta_s:7d}s  {stream:<20} {sym} ({prim})")
 
     # Check if this was a B-state event
     event_snap = find_snapshot(snaps, event_ts)
@@ -80,10 +80,11 @@ def compare_to_coupling(
         tgt_ts = next((ts for k, ts in propagation_order if k == tgt), None)
         if src_ts and tgt_ts:
             observed_lag = (tgt_ts - src_ts).total_seconds() / 3600
-            predicted_lag = edge.lag_hours
-            match = "✓" if abs(observed_lag - predicted_lag) < 6 else "✗"
+            predicted_lag = edge.lag_seconds
+            observed_lag_s = int((tgt_ts - src_ts).total_seconds())
+            match = "✓" if abs(observed_lag_s - predicted_lag) < 21600 else "✗"
             print(
                 f"  {match} {edge.source_stream}:{PRIM_SYMBOL.get(edge.source_primitive,'?')} "
                 f"→ {edge.target_stream}:{PRIM_SYMBOL.get(edge.target_primitive,'?')} "
-                f"predicted={predicted_lag}h observed={observed_lag:.1f}h"
+                f"predicted={predicted_lag}s observed={observed_lag_s}s"
             )

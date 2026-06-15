@@ -22,7 +22,7 @@ def cmd_couple(args) -> None:
     from .coupler import analyze, save_coupling
     snaps = load_snapshots(SNAPSHOTS_PATH)
     print(f"  Loaded {len(snaps)} snapshots from {SNAPSHOTS_PATH}")
-    edges = analyze(snaps, max_lag_hours=args.max_lag, min_r=args.min_r, max_p=args.max_p)
+    edges = analyze(snaps, max_lag_seconds=args.max_lag, min_r=args.min_r, max_p=args.max_p)
     print(f"  Found {len(edges)} coupling edges (|r|≥{args.min_r}, p≤{args.max_p})")
     for e in edges[:20]:
         print(f"    {e.label()}")
@@ -56,7 +56,7 @@ def cmd_report(args) -> None:
         print("  No snapshots found. Run `ig-pulse collect` first.")
         return
     ts = args.ts or snaps[-1].ts
-    reconstruct_propagation(snaps, ts, lookback_hours=args.lookback)
+    reconstruct_propagation(snaps, ts, lookback_seconds=args.lookback)
 
 
 def main() -> None:
@@ -68,7 +68,7 @@ def main() -> None:
     p_collect.add_argument("--interval", type=int, default=3600, help="Poll interval in seconds (default 3600)")
 
     p_couple = sub.add_parser("couple", help="Compute cross-stream coupling from snapshots")
-    p_couple.add_argument("--max-lag", type=int, default=72, help="Maximum lag to test in hours")
+    p_couple.add_argument("--max-lag", type=int, default=259200, help="Maximum lag to test in seconds (default 259200 = 72h)")
     p_couple.add_argument("--min-r", type=float, default=0.3, help="Minimum |Pearson r| to include")
     p_couple.add_argument("--max-p", type=float, default=0.05, help="Maximum p-value to include")
 
@@ -77,7 +77,7 @@ def main() -> None:
 
     p_report = sub.add_parser("report", help="Reconstruct propagation anatomy for a B-state event")
     p_report.add_argument("--ts", type=str, default=None, help="Event timestamp (ISO 8601). Defaults to latest snapshot.")
-    p_report.add_argument("--lookback", type=int, default=72, help="Hours to look back (default 72)")
+    p_report.add_argument("--lookback", type=int, default=259200, help="Seconds to look back (default 259200 = 72h)")
 
     args = parser.parse_args()
     if args.command == "collect":

@@ -1,0 +1,56 @@
+[
+  {
+    "source_stream": "fear_greed",
+    "source_primitive": "criticality",
+    "target_stream": "fear_greed",
+    "target_primitive": "parity",
+    "lag_seconds": 0,
+    "strength_r": 1.0,
+    "p_value": 0.0
+  },
+  {
+    "source_stream": "fear_greed",
+    "source_primitive": "criticality",
+    "target_stream": "ozone",
+    "target_primitive": "stoichiometry",
+    "lag_seconds": 0,
+    "strength_r": 1.0,
+    "p_value": 0.0
+  },
+  {
+    "source_stream": "fear_greed",
+    "source_primitive": "parity",
+    "target_stream": "fear_greed",
+    "target_primitive": "criticality",
+    "lag_seconds": 0,
+    "strength_r": 1.0,
+    "p_value": 0.0
+  },
+  {
+    "source_stream": "fear_greed",
+    "source_primitive": "parity",
+    "target_stream": "ozone",
+    "target_primitive": "stoichiometry",
+    "lag_seconds": 0,
+    "strength_r": 1.0,
+    "p_value": 0.0
+  },
+  {
+    "source_stream": "ozone",
+    "source_primitive": "stoichiometry",
+    "target_stream": "fear_greed",
+    "target_primitive": "criticality",
+    "lag_seconds": 0,
+    "strength_r": 1.0,
+    "p_value": 0.0
+  },
+  {
+    "source_stream": "ozone",
+    "source_primitive": "stoichiometry",
+    "target_stream": "fear_greed",
+    "target_primitive": "parity",
+    "lag_seconds": 0,
+    "strength_r": 1.0,
+    "p_value": 0.0
+  }
+]

@@ -22,7 +22,7 @@ def build_graph(edges: List[CouplingEdge]) -> dict:
         {
             "from": f"{e.source_stream}:{e.source_primitive}",
             "to": f"{e.target_stream}:{e.target_primitive}",
-            "lag_hours": e.lag_hours,
+            "lag_seconds": e.lag_seconds,
             "strength_r": e.strength_r,
             "p_value": e.p_value,
         }
@@ -80,6 +80,6 @@ def print_dot(edges: List[CouplingEdge]) -> None:
     for e in edges:
         src = f'"{e.source_stream}\\n{PRIM_SYMBOL.get(e.source_primitive, e.source_primitive)}"'
         tgt = f'"{e.target_stream}\\n{PRIM_SYMBOL.get(e.target_primitive, e.target_primitive)}"'
-        label = f'"{e.lag_hours}h r={e.strength_r:.2f}"'
+        label = f'"{e.lag_seconds}s r={e.strength_r:.2f}"'
         print(f'  {src} -> {tgt} [label={label}];')
     print("}")
