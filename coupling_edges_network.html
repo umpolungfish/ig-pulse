@@ -1,0 +1,239 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { margin: 0; font-family: var(--font-sans, sans-serif); background: transparent; }
+  canvas { display: block; width: 100%; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 8px 16px 12px; font-size: 12px; color: var(--color-text-secondary); align-items: center; }
+  .leg-item { display: flex; align-items: center; gap: 6px; }
+  .leg-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .info { padding: 4px 16px 0; font-size: 11px; color: var(--color-text-tertiary); }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="info">Hover over a node or edge for details</div>
+<div class="legend">
+  <div class="leg-item"><div class="leg-dot" style="background:#534AB7"></div>fear_greed</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#0F6E56"></div>ozone</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#993C1D"></div>seismic</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#854F0B"></div>mempool</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#185FA5"></div>mktcap_chg</div>
+  <div class="leg-item" style="margin-left:auto">— positive&nbsp;&nbsp;– – negative</div>
+  <div class="leg-item">edge opacity = lag (lighter = longer)</div>
+</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+const edges_raw = [
+  {src:'seismic_energy:topology',tgt:'ozone:stoichiometry',lag:585,r:-1},
+  {src:'fear_greed:criticality',tgt:'fear_greed:parity',lag:0,r:1},
+  {src:'fear_greed:criticality',tgt:'ozone:stoichiometry',lag:15522,r:-1},
+  {src:'fear_greed:parity',tgt:'fear_greed:criticality',lag:0,r:1},
+  {src:'fear_greed:parity',tgt:'ozone:stoichiometry',lag:15522,r:-1},
+  {src:'seismic_major:winding',tgt:'ozone:stoichiometry',lag:585,r:-1},
+  {src:'seismic_energy:topology',tgt:'seismic_major:winding',lag:0,r:1},
+  {src:'seismic_major:winding',tgt:'seismic_energy:topology',lag:0,r:1},
+  {src:'fear_greed:criticality',tgt:'mempool_low_fee:coupling',lag:16536,r:1},
+  {src:'fear_greed:parity',tgt:'mempool_low_fee:coupling',lag:16536,r:1},
+  {src:'ozone:stoichiometry',tgt:'mempool_low_fee:coupling',lag:16536,r:1},
+  {src:'fear_greed:parity',tgt:'seismic_major:winding',lag:14937,r:1},
+  {src:'fear_greed:criticality',tgt:'seismic_major:winding',lag:14937,r:1},
+  {src:'fear_greed:parity',tgt:'seismic_energy:topology',lag:14937,r:1},
+  {src:'ozone:stoichiometry',tgt:'seismic_major:winding',lag:14937,r:1},
+  {src:'fear_greed:criticality',tgt:'seismic_energy:topology',lag:14937,r:1},
+  {src:'fear_greed:criticality',tgt:'mktcap_chg:stoichiometry',lag:15444,r:1},
+  {src:'fear_greed:parity',tgt:'mktcap_chg:stoichiometry',lag:15444,r:1},
+  {src:'ozone:stoichiometry',tgt:'seismic_energy:topology',lag:14937,r:1},
+  {src:'ozone:stoichiometry',tgt:'mktcap_chg:stoichiometry',lag:15444,r:1},
+];
+
+const GROUP_COLOR = {
+  'fear_greed': '#534AB7',
+  'ozone':      '#0F6E56',
+  'seismic_energy': '#993C1D',
+  'seismic_major':  '#B04020',
+  'mempool_low_fee':'#854F0B',
+  'mktcap_chg': '#185FA5',
+};
+
+function groupOf(id) { return id.split(':')[0]; }
+
+const nodeIds = [...new Set(edges_raw.flatMap(e=>[e.src,e.tgt]))];
+
+// Layout: manual positions in a circle-ish arrangement
+// 8 unique nodes
+const positions = {
+  'fear_greed:criticality':  {x:0.25, y:0.18},
+  'fear_greed:parity':       {x:0.50, y:0.10},
+  'ozone:stoichiometry':     {x:0.77, y:0.20},
+  'seismic_energy:topology': {x:0.22, y:0.55},
+  'seismic_major:winding':   {x:0.50, y:0.72},
+  'mempool_low_fee:coupling':{x:0.78, y:0.72},
+  'mktcap_chg:stoichiometry':{x:0.78, y:0.45},
+  // fallback
+};
+
+const maxLag = Math.max(...edges_raw.map(e=>e.lag));
+
+let W, H, hovered_node=null, hovered_edge=null, mouse={x:-999,y:-999};
+
+function resize(){
+  const dpr = window.devicePixelRatio||1;
+  const cw = canvas.parentElement.clientWidth;
+  W = cw; H = Math.min(cw*0.7, 480);
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  ctx.scale(dpr,dpr);
+  draw();
+}
+
+function nodePos(id){
+  const p = positions[id]||{x:0.5,y:0.5};
+  return {x: 60 + p.x*(W-120), y: 40 + p.y*(H-80)};
+}
+
+function nodeColor(id){ return GROUP_COLOR[groupOf(id)]||'#888'; }
+
+const NODE_R = 28;
+
+function drawArrow(x1,y1,x2,y2,color,dashed,alpha,thick){
+  const dx=x2-x1, dy=y2-y1, dist=Math.sqrt(dx*dx+dy*dy);
+  if(dist<1) return;
+  const nx=dx/dist, ny=dy/dist;
+  const sx=x1+nx*NODE_R, sy=y1+ny*NODE_R;
+  const ex=x2-nx*(NODE_R+10), ey=y2-ny*(NODE_R+10);
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  ctx.strokeStyle=color;
+  ctx.lineWidth=thick;
+  if(dashed) ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(ex,ey); ctx.stroke();
+  ctx.setLineDash([]);
+  // arrowhead
+  const angle=Math.atan2(ey-sy,ex-sx);
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  ctx.moveTo(ex,ey);
+  ctx.lineTo(ex-10*Math.cos(angle-0.38),ey-10*Math.sin(angle-0.38));
+  ctx.lineTo(ex-10*Math.cos(angle+0.38),ey-10*Math.sin(angle+0.38));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function edgeAlpha(lag){ return 0.15 + 0.75*(1 - lag/maxLag); }
+
+function edgePts(e){
+  const s=nodePos(e.src), t=nodePos(e.tgt);
+  return {sx:s.x,sy:s.y,tx:t.x,ty:t.y};
+}
+
+function edgeMidDist(e, mx, my){
+  const {sx,sy,tx,ty}=edgePts(e);
+  const ex=(sx+tx)/2, ey=(sy+ty)/2;
+  return Math.sqrt((mx-ex)**2+(my-ey)**2);
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const dark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const textPrimary = dark ? '#e8e6dc' : '#2c2c2a';
+  const textSec = dark ? '#9c9a92' : '#73726c';
+
+  // edges
+  edges_raw.forEach((e,i)=>{
+    const {sx,sy,tx,ty}=edgePts(e);
+    const neg = e.r < 0;
+    const color = neg ? '#E24B4A' : '#3B8BD4';
+    const isHov = hovered_edge===i;
+    const alpha = isHov ? 0.95 : edgeAlpha(e.lag)*(hovered_node?0.15:1);
+    const srcHov = hovered_node===e.src, tgtHov = hovered_node===e.tgt;
+    const highlight = isHov||srcHov||tgtHov;
+    drawArrow(sx,sy,tx,ty,color,neg,highlight?Math.min(alpha*2.5,0.95):alpha,highlight?2.2:1.2);
+  });
+
+  // nodes
+  nodeIds.forEach(id=>{
+    const {x,y}=nodePos(id);
+    const col=nodeColor(id);
+    const isHov=hovered_node===id;
+    ctx.save();
+    ctx.shadowColor=col;
+    ctx.shadowBlur=isHov?18:0;
+    ctx.beginPath();
+    ctx.arc(x,y,NODE_R+(isHov?3:0),0,Math.PI*2);
+    ctx.fillStyle=col+'33';
+    ctx.fill();
+    ctx.strokeStyle=col;
+    ctx.lineWidth=isHov?2.5:1.5;
+    ctx.stroke();
+    ctx.restore();
+    // label
+    const parts = id.split(':');
+    ctx.fillStyle=textPrimary;
+    ctx.font=`500 11px var(--font-sans,sans-serif)`;
+    ctx.textAlign='center';
+    ctx.fillText(parts[0], x, y-2);
+    ctx.fillStyle=textSec;
+    ctx.font=`10px var(--font-sans,sans-serif)`;
+    ctx.fillText(':'+parts[1], x, y+11);
+  });
+
+  // tooltip for hovered edge
+  if(hovered_edge!==null){
+    const e=edges_raw[hovered_edge];
+    const {sx,sy,tx,ty}=edgePts(e);
+    const mx=(sx+tx)/2, my=(sy+ty)/2;
+    const txt=`r=${e.r>0?'+':''}${e.r.toFixed(3)}  lag=${e.lag}s  p=0.000`;
+    ctx.font='11px var(--font-sans,sans-serif)';
+    const tw=ctx.measureText(txt).width;
+    const bx=Math.min(Math.max(mx-tw/2-8,4),W-tw-20);
+    const by=my-32;
+    ctx.fillStyle=dark?'#2c2c2a':'#f1efe8';
+    ctx.strokeStyle=dark?'#444441':'#b4b2a9';
+    ctx.lineWidth=0.8;
+    ctx.beginPath(); roundRect(ctx,bx,by,tw+16,24,5); ctx.fill(); ctx.stroke();
+    ctx.fillStyle=textPrimary;
+    ctx.fillText(txt,bx+8,by+15);
+  }
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+}
+
+function onMove(ev){
+  const rect=canvas.getBoundingClientRect();
+  const mx=(ev.clientX-rect.left)*(W/rect.width);
+  const my=(ev.clientY-rect.top)*(H/rect.height);
+  mouse={x:mx,y:my};
+  hovered_node=null; hovered_edge=null;
+  // check nodes first
+  for(const id of nodeIds){
+    const {x,y}=nodePos(id);
+    if(Math.sqrt((mx-x)**2+(my-y)**2)<NODE_R+4){ hovered_node=id; break; }
+  }
+  if(!hovered_node){
+    let minD=30, bestE=null;
+    edges_raw.forEach((e,i)=>{
+      const d=edgeMidDist(e,mx,my);
+      if(d<minD){ minD=d; bestE=i; }
+    });
+    hovered_edge=bestE;
+  }
+  canvas.style.cursor=(hovered_node||hovered_edge!==null)?'pointer':'default';
+  draw();
+}
+
+canvas.addEventListener('mousemove',onMove);
+canvas.addEventListener('mouseleave',()=>{ hovered_node=null; hovered_edge=null; draw(); });
+window.addEventListener('resize',resize);
+resize();
+</script>
+</body>
+</html>
