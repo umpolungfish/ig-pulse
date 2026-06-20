@@ -38,24 +38,59 @@
   ],
   "edges": [
     {
-      "from": "fear_greed:criticality",
-      "to": "seismic_energy:topology",
-      "lag_seconds": 15320,
-      "strength_r": 1.0,
+      "from": "seismic_major:winding",
+      "to": "fear_greed:criticality",
+      "lag_seconds": 2960,
+      "strength_r": -1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "seismic_major:winding",
+      "to": "fear_greed:parity",
+      "lag_seconds": 2960,
+      "strength_r": -1.0,
       "p_value": 0.0
     },
     {
       "from": "fear_greed:criticality",
-      "to": "mktcap_chg:stoichiometry",
-      "lag_seconds": 19960,
+      "to": "fear_greed:parity",
+      "lag_seconds": 0,
       "strength_r": 1.0,
       "p_value": 0.0
     },
     {
-      "from": "fear_greed:criticality",
-      "to": "seismic_major:winding",
-      "lag_seconds": 15320,
+      "from": "fear_greed:parity",
+      "to": "fear_greed:criticality",
+      "lag_seconds": 0,
       "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "seismic_energy:topology",
+      "to": "fear_greed:criticality",
+      "lag_seconds": 2960,
+      "strength_r": -1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "seismic_energy:topology",
+      "to": "fear_greed:parity",
+      "lag_seconds": 2960,
+      "strength_r": -1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "ozone:stoichiometry",
+      "to": "fear_greed:criticality",
+      "lag_seconds": 18280,
+      "strength_r": -1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "ozone:stoichiometry",
+      "to": "fear_greed:parity",
+      "lag_seconds": 18280,
+      "strength_r": -1.0,
       "p_value": 0.0
     },
     {
@@ -67,99 +102,71 @@
     },
     {
       "from": "fear_greed:parity",
-      "to": "seismic_energy:topology",
-      "lag_seconds": 15320,
-      "strength_r": 1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:parity",
-      "to": "mktcap_chg:stoichiometry",
-      "lag_seconds": 19960,
-      "strength_r": 1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:parity",
-      "to": "seismic_major:winding",
-      "lag_seconds": 15320,
-      "strength_r": 1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "seismic_major:winding",
-      "to": "fear_greed:parity",
-      "lag_seconds": 2960,
-      "strength_r": -1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "ozone:stoichiometry",
-      "to": "seismic_energy:topology",
-      "lag_seconds": 15320,
-      "strength_r": 1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "ozone:stoichiometry",
-      "to": "mktcap_chg:stoichiometry",
-      "lag_seconds": 19960,
-      "strength_r": 1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "ozone:stoichiometry",
-      "to": "seismic_major:winding",
-      "lag_seconds": 15320,
-      "strength_r": 1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:parity",
       "to": "ozone:stoichiometry",
       "lag_seconds": 20880,
       "strength_r": 1.0,
       "p_value": 0.0
     },
     {
-      "from": "seismic_energy:topology",
-      "to": "fear_greed:parity",
-      "lag_seconds": 2960,
-      "strength_r": -1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "seismic_major:winding",
-      "to": "fear_greed:criticality",
-      "lag_seconds": 2960,
-      "strength_r": -1.0,
+      "from": "ozone:stoichiometry",
+      "to": "mktcap_chg:stoichiometry",
+      "lag_seconds": 19960,
+      "strength_r": 1.0,
       "p_value": 0.0
     },
     {
       "from": "fear_greed:criticality",
-      "to": "fear_greed:parity",
-      "lag_seconds": 18280,
-      "strength_r": -1.0,
+      "to": "mktcap_chg:stoichiometry",
+      "lag_seconds": 19960,
+      "strength_r": 1.0,
       "p_value": 0.0
     },
     {
       "from": "fear_greed:parity",
-      "to": "fear_greed:criticality",
-      "lag_seconds": 18280,
-      "strength_r": -1.0,
+      "to": "mktcap_chg:stoichiometry",
+      "lag_seconds": 19960,
+      "strength_r": 1.0,
       "p_value": 0.0
     },
     {
-      "from": "seismic_energy:topology",
-      "to": "fear_greed:criticality",
-      "lag_seconds": 2960,
-      "strength_r": -1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "seismic_energy:topology",
+      "from": "ozone:stoichiometry",
       "to": "seismic_major:winding",
-      "lag_seconds": 0,
+      "lag_seconds": 15320,
+      "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "ozone:stoichiometry",
+      "to": "seismic_energy:topology",
+      "lag_seconds": 15320,
+      "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:criticality",
+      "to": "seismic_major:winding",
+      "lag_seconds": 15320,
+      "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:criticality",
+      "to": "seismic_energy:topology",
+      "lag_seconds": 15320,
+      "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:parity",
+      "to": "seismic_major:winding",
+      "lag_seconds": 15320,
+      "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:parity",
+      "to": "seismic_energy:topology",
+      "lag_seconds": 15320,
       "strength_r": 1.0,
       "p_value": 0.0
     },
@@ -171,80 +178,73 @@
       "p_value": 0.0
     },
     {
-      "from": "ozone:stoichiometry",
-      "to": "fear_greed:criticality",
-      "lag_seconds": 18280,
-      "strength_r": -1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "ozone:stoichiometry",
-      "to": "fear_greed:parity",
-      "lag_seconds": 18280,
-      "strength_r": -1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "mempool_low_fee:coupling",
-      "to": "fear_greed:criticality",
-      "lag_seconds": 17560,
-      "strength_r": 0.9011,
-      "p_value": 0.0
-    },
-    {
-      "from": "mempool_low_fee:coupling",
-      "to": "fear_greed:parity",
-      "lag_seconds": 17560,
-      "strength_r": 0.9011,
-      "p_value": 0.0
-    },
-    {
       "from": "seismic_energy:topology",
-      "to": "ozone:stoichiometry",
-      "lag_seconds": 600,
-      "strength_r": -0.888,
+      "to": "seismic_major:winding",
+      "lag_seconds": 0,
+      "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "mempool_low_fee:coupling",
+      "to": "fear_greed:criticality",
+      "lag_seconds": 17560,
+      "strength_r": 0.9013,
+      "p_value": 0.0
+    },
+    {
+      "from": "mempool_low_fee:coupling",
+      "to": "fear_greed:parity",
+      "lag_seconds": 17560,
+      "strength_r": 0.9013,
       "p_value": 0.0
     },
     {
       "from": "seismic_major:winding",
       "to": "ozone:stoichiometry",
       "lag_seconds": 600,
-      "strength_r": -0.888,
+      "strength_r": -0.8837,
+      "p_value": 0.0
+    },
+    {
+      "from": "seismic_energy:topology",
+      "to": "ozone:stoichiometry",
+      "lag_seconds": 600,
+      "strength_r": -0.8837,
       "p_value": 0.0
     },
     {
       "from": "mempool_low_fee:coupling",
       "to": "ozone:stoichiometry",
       "lag_seconds": 20160,
-      "strength_r": -0.8421,
-      "p_value": 0.0
-    },
-    {
-      "from": "mempool_low_fee:coupling",
-      "to": "seismic_energy:topology",
-      "lag_seconds": 14600,
-      "strength_r": -0.6803,
+      "strength_r": -0.846,
       "p_value": 0.0
     },
     {
       "from": "mempool_low_fee:coupling",
       "to": "seismic_major:winding",
       "lag_seconds": 14600,
-      "strength_r": -0.6803,
+      "strength_r": -0.6645,
+      "p_value": 0.0
+    },
+    {
+      "from": "mempool_low_fee:coupling",
+      "to": "seismic_energy:topology",
+      "lag_seconds": 14600,
+      "strength_r": -0.6645,
       "p_value": 0.0
     },
     {
       "from": "mempool_low_fee:coupling",
       "to": "mktcap_chg:stoichiometry",
       "lag_seconds": 19600,
-      "strength_r": -0.6344,
+      "strength_r": -0.6362,
       "p_value": 0.0
     },
     {
       "from": "mktcap_chg:stoichiometry",
       "to": "ozone:stoichiometry",
       "lag_seconds": 400,
-      "strength_r": 0.3314,
+      "strength_r": 0.3315,
       "p_value": 0.0
     }
   ]
