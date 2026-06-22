@@ -51,6 +51,20 @@
     },
     {
       "from": "fear_greed:criticality",
+      "to": "mktcap_chg:stoichiometry",
+      "lag_seconds": 21457,
+      "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:criticality",
+      "to": "seismic_energy:topology",
+      "lag_seconds": 16469,
+      "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:criticality",
       "to": "mempool_low_fee:coupling",
       "lag_seconds": 30100,
       "strength_r": -1.0,
@@ -64,16 +78,16 @@
       "p_value": 0.0
     },
     {
-      "from": "fear_greed:criticality",
-      "to": "seismic_energy:topology",
-      "lag_seconds": 16469,
+      "from": "fear_greed:parity",
+      "to": "mktcap_chg:stoichiometry",
+      "lag_seconds": 21457,
       "strength_r": 1.0,
       "p_value": 0.0
     },
     {
-      "from": "fear_greed:criticality",
-      "to": "mktcap_chg:stoichiometry",
-      "lag_seconds": 21457,
+      "from": "fear_greed:parity",
+      "to": "seismic_energy:topology",
+      "lag_seconds": 16469,
       "strength_r": 1.0,
       "p_value": 0.0
     },
@@ -92,16 +106,16 @@
       "p_value": 0.0
     },
     {
-      "from": "fear_greed:parity",
-      "to": "seismic_energy:topology",
-      "lag_seconds": 16469,
+      "from": "ozone:stoichiometry",
+      "to": "mktcap_chg:stoichiometry",
+      "lag_seconds": 21457,
       "strength_r": 1.0,
       "p_value": 0.0
     },
     {
-      "from": "fear_greed:parity",
-      "to": "mktcap_chg:stoichiometry",
-      "lag_seconds": 21457,
+      "from": "ozone:stoichiometry",
+      "to": "seismic_energy:topology",
+      "lag_seconds": 16469,
       "strength_r": 1.0,
       "p_value": 0.0
     },
@@ -116,34 +130,6 @@
       "from": "ozone:stoichiometry",
       "to": "seismic_major:winding",
       "lag_seconds": 16469,
-      "strength_r": 1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "ozone:stoichiometry",
-      "to": "seismic_energy:topology",
-      "lag_seconds": 16469,
-      "strength_r": 1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "ozone:stoichiometry",
-      "to": "mktcap_chg:stoichiometry",
-      "lag_seconds": 21457,
-      "strength_r": 1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:criticality",
-      "to": "fear_greed:parity",
-      "lag_seconds": 23177,
-      "strength_r": 1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:parity",
-      "to": "fear_greed:criticality",
-      "lag_seconds": 23177,
       "strength_r": 1.0,
       "p_value": 0.0
     },
@@ -155,6 +141,20 @@
       "p_value": 0.0
     },
     {
+      "from": "fear_greed:criticality",
+      "to": "fear_greed:parity",
+      "lag_seconds": 23177,
+      "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:parity",
+      "to": "fear_greed:criticality",
+      "lag_seconds": 23177,
+      "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
       "from": "ozone:stoichiometry",
       "to": "fear_greed:criticality",
       "lag_seconds": 23177,
@@ -169,15 +169,15 @@
       "p_value": 0.0
     },
     {
-      "from": "seismic_major:winding",
-      "to": "seismic_energy:topology",
+      "from": "seismic_energy:topology",
+      "to": "seismic_major:winding",
       "lag_seconds": 0,
       "strength_r": 1.0,
       "p_value": 0.0
     },
     {
-      "from": "seismic_energy:topology",
-      "to": "seismic_major:winding",
+      "from": "seismic_major:winding",
+      "to": "seismic_energy:topology",
       "lag_seconds": 0,
       "strength_r": 1.0,
       "p_value": 0.0
@@ -261,14 +261,14 @@
     },
     {
       "from": "solar_flare_M:parity",
-      "to": "seismic_major:winding",
+      "to": "seismic_energy:topology",
       "lag_seconds": 0,
       "strength_r": -0.5755,
       "p_value": 0.0
     },
     {
       "from": "solar_flare_M:parity",
-      "to": "seismic_energy:topology",
+      "to": "seismic_major:winding",
       "lag_seconds": 0,
       "strength_r": -0.5755,
       "p_value": 0.0
@@ -281,28 +281,28 @@
       "p_value": 0.0
     },
     {
-      "from": "seismic_major:winding",
+      "from": "seismic_energy:topology",
       "to": "fear_greed:criticality",
       "lag_seconds": 3182,
       "strength_r": -0.4722,
       "p_value": 0.0
     },
     {
-      "from": "seismic_major:winding",
+      "from": "seismic_energy:topology",
       "to": "fear_greed:parity",
       "lag_seconds": 3182,
       "strength_r": -0.4722,
       "p_value": 0.0
     },
     {
-      "from": "seismic_energy:topology",
+      "from": "seismic_major:winding",
       "to": "fear_greed:criticality",
       "lag_seconds": 3182,
       "strength_r": -0.4722,
       "p_value": 0.0
     },
     {
-      "from": "seismic_energy:topology",
+      "from": "seismic_major:winding",
       "to": "fear_greed:parity",
       "lag_seconds": 3182,
       "strength_r": -0.4722,

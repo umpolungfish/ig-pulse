@@ -1,7 +1,7 @@
 """
 domain_streams.py — Free cross-domain data stream aggregator for synfin.
 
-10 streams, no API keys required:
+15 streams, no API keys required:
   1. Fear & Greed Index    (alternative.me)                   → ⊙ Criticality, Φ Parity
   2. Mempool state         (mempool.space)                    → Ç Kinetics, Þ Topology, ɢ Coupling
   3. Global market         (coingecko.com)                    → Ð Dimensionality, Σ Stoichiometry, Γ Granularity
@@ -12,6 +12,11 @@ domain_streams.py — Free cross-domain data stream aggregator for synfin.
   8. Seismic energy        (earthquake.usgs.gov)              → Þ Topology, Ω Winding
   9. Geomagnetic Kp        (services.swpc.noaa.gov)           → Φ Parity, ⊙ Criticality
  10. HN crypto sentiment   (hn.algolia.com)                   → Ř Recognition, ɢ Coupling
+ 11. Solar wind / IMF Bz   (services.swpc.noaa.gov RTSW)      → Ħ Chirality, Ω Winding
+ 12. Lightning Network     (mempool.space/api/v1/lightning)   → ɢ Coupling, Ð Dimensionality
+ 13. Wikipedia attention   (wikimedia.org pageviews)          → Ř Recognition
+ 14. Open-Meteo weather    (api.open-meteo.com)               → ƒ Fidelity, Ω Winding
+ 15. Alt/BTC ratios        (coingecko.com)                    → Γ Granularity, ƒ Fidelity
 
 Multiplier schedule:
   0 alerts → 1.00×
@@ -474,6 +479,209 @@ def _stream_hn(sig: DomainSignal) -> None:
         sig.errors.append(f"hn_sentiment: {e}")
 
 
+# ── Stream 11: NOAA RTSW solar wind + IMF Bz ─────────────────────────────────
+
+def _stream_solar_wind(sig: DomainSignal) -> None:
+    mag  = _json("https://services.swpc.noaa.gov/json/rtsw/rtsw_mag_1m.json")
+    wind = _json("https://services.swpc.noaa.gov/json/rtsw/rtsw_wind_1m.json")
+
+    if isinstance(mag, list):
+        try:
+            vals = [float(d["bz_gsm"]) for d in mag[-30:]
+                    if d.get("bz_gsm") is not None and d.get("overall_quality") == 0]
+            if vals:
+                bz_min = min(vals)
+                bz_now = vals[-1]
+                # Negative Bz = southward IMF = chiral coupling with Earth's field
+                if bz_min < -20:
+                    sig._set("chirality", 2, "imf_bz", bz_min, "nT")
+                elif bz_min < -10:
+                    sig._set("chirality", 1, "imf_bz", bz_min, "nT")
+                else:
+                    sig._nom("chirality", "imf_bz", bz_now, "nT")
+        except Exception as e:
+            sig.errors.append(f"noaa_imf_bz: {e}")
+    else:
+        sig.errors.append("noaa_imf_bz: no data")
+
+    if isinstance(wind, list):
+        try:
+            speeds = [float(d["proton_speed"]) for d in wind[-30:]
+                      if d.get("proton_speed") is not None]
+            if speeds:
+                spd_max = max(speeds)
+                if spd_max > 700:
+                    sig._set("winding", 2, "solar_wind_speed", spd_max, "km/s")
+                elif spd_max > 500:
+                    sig._set("winding", 1, "solar_wind_speed", spd_max, "km/s")
+                else:
+                    sig._nom("winding", "solar_wind_speed", spd_max, "km/s")
+        except Exception as e:
+            sig.errors.append(f"noaa_wind_speed: {e}")
+    else:
+        sig.errors.append("noaa_wind_speed: no data")
+
+
+# ── Stream 12: Lightning Network stats ───────────────────────────────────────
+
+def _stream_lightning(sig: DomainSignal) -> None:
+    data = _json("https://mempool.space/api/v1/lightning/statistics/latest")
+    if not data or "latest" not in data:
+        sig.errors.append("lightning: no data"); return
+    try:
+        d = data["latest"]
+        nodes    = d.get("node_count", 0) or 0
+        channels = d.get("channel_count", 0) or 0
+        capacity = (d.get("total_capacity", 0) or 0) / 1e8  # sats → BTC
+
+        if nodes > 0:
+            density = channels / nodes
+            if density > 12:
+                sig._set("coupling", 2, "ln_density", density, "ch/node")
+            elif density > 8:
+                sig._set("coupling", 1, "ln_density", density, "ch/node")
+            else:
+                sig._nom("coupling", "ln_density", density, "ch/node")
+
+        if capacity > 6000:
+            sig._set("dimensionality", 2, "ln_capacity", capacity, "BTC")
+        elif capacity > 4000:
+            sig._set("dimensionality", 1, "ln_capacity", capacity, "BTC")
+        else:
+            sig._nom("dimensionality", "ln_capacity", capacity, "BTC")
+    except Exception as e:
+        sig.errors.append(f"lightning: {e}")
+
+
+# ── Stream 13: Wikipedia daily attention ─────────────────────────────────────
+
+_WIKI_CRYPTO_TERMS = {
+    "bitcoin", "ethereum", "cryptocurrency", "crypto", "blockchain",
+    "solana", "ripple", "defi", "nft", "binance", "coinbase",
+}
+_WIKI_TECH_TERMS = {
+    "artificial_intelligence", "openai", "chatgpt", "quantum", "spacex",
+    "tesla", "nvidia", "semiconductor", "computer", "internet",
+}
+
+
+def _stream_wikipedia(sig: DomainSignal) -> None:
+    yesterday = (date.today() - timedelta(days=1)).strftime("%Y/%m/%d")
+    url = (
+        f"https://wikimedia.org/api/rest_v1/metrics/pageviews/top/"
+        f"en.wikipedia/all-access/{yesterday}"
+    )
+    data = _json(url, timeout=12)
+    if not data or "items" not in data:
+        sig.errors.append("wikipedia: no data"); return
+    try:
+        articles = data["items"][0]["articles"][:100]
+        crypto_hits = sum(
+            1 for a in articles
+            if any(t in a["article"].lower() for t in _WIKI_CRYPTO_TERMS)
+        )
+        tech_total = sum(
+            1 for a in articles
+            if any(t in a["article"].lower() for t in _WIKI_TECH_TERMS | _WIKI_CRYPTO_TERMS)
+        )
+        # Crypto/tech topics in top-100 = recognition signal
+        if crypto_hits >= 3:
+            sig._set("recognition", 2, "wiki_crypto", crypto_hits, "top-100 articles")
+        elif crypto_hits >= 1:
+            sig._set("recognition", 1, "wiki_crypto", crypto_hits, "top-100 articles")
+        elif tech_total >= 5:
+            sig._set("recognition", 1, "wiki_tech", tech_total, "top-100 articles")
+        else:
+            sig._nom("recognition", "wiki_attention", tech_total, "top-100 articles")
+    except Exception as e:
+        sig.errors.append(f"wikipedia: {e}")
+
+
+# ── Stream 14: Open-Meteo current weather ────────────────────────────────────
+
+def _stream_weather(sig: DomainSignal, lat: float = 40.71, lon: float = -74.01) -> None:
+    url = (
+        "https://api.open-meteo.com/v1/forecast"
+        f"?latitude={lat}&longitude={lon}"
+        "&current=wind_speed_10m,precipitation"
+        "&daily=temperature_2m_max,temperature_2m_min"
+        "&forecast_days=1"
+    )
+    data = _json(url, timeout=12)
+    if not data:
+        sig.errors.append("open_meteo: no data"); return
+    try:
+        daily = data.get("daily", {})
+        tmax_list = daily.get("temperature_2m_max") or []
+        tmin_list = daily.get("temperature_2m_min") or []
+        if tmax_list and tmin_list and tmax_list[0] is not None and tmin_list[0] is not None:
+            swing = tmax_list[0] - tmin_list[0]
+            # Large daily swing = thermodynamic fidelity breakdown
+            if swing > 22:
+                sig._set("fidelity", 2, "temp_swing", swing, "°C")
+            elif swing > 14:
+                sig._set("fidelity", 1, "temp_swing", swing, "°C")
+            else:
+                sig._nom("fidelity", "temp_swing", swing, "°C")
+
+        current = data.get("current", {})
+        wind = current.get("wind_speed_10m") or 0
+        if wind > 60:
+            sig._set("winding", 2, "surface_wind", wind, "km/h")
+        elif wind > 35:
+            sig._set("winding", 1, "surface_wind", wind, "km/h")
+        else:
+            sig._nom("winding", "surface_wind", wind, "km/h")
+    except Exception as e:
+        sig.errors.append(f"open_meteo: {e}")
+
+
+# ── Stream 15: CoinGecko alt/BTC ratios ──────────────────────────────────────
+
+def _stream_coingecko_alts(sig: DomainSignal) -> None:
+    data = _json(
+        "https://api.coingecko.com/api/v3/simple/price"
+        "?ids=ethereum,solana,polkadot,near-protocol"
+        "&vs_currencies=btc&include_24hr_change=true",
+        timeout=12,
+    )
+    if not data:
+        sig.errors.append("coingecko_alts: no data"); return
+    try:
+        changes = [
+            v.get("btc_24h_change", 0) or 0
+            for v in data.values()
+            if isinstance(v, dict) and v.get("btc_24h_change") is not None
+        ]
+        if not changes:
+            return
+
+        avg = sum(changes) / len(changes)
+        # Alt outperformance vs BTC = granularity (fine-grained market structure)
+        if avg > 5:
+            sig._set("granularity", 2, "alt_outperform", avg, "%/24h vs BTC")
+        elif avg > 2:
+            sig._set("granularity", 1, "alt_outperform", avg, "%/24h vs BTC")
+        elif avg < -5:
+            sig._set("granularity", 2, "btc_dominance_surge", avg, "%/24h vs BTC")
+        elif avg < -2:
+            sig._set("granularity", 1, "btc_dominance_surge", avg, "%/24h vs BTC")
+        else:
+            sig._nom("granularity", "alt_btc_ratio", avg, "%/24h vs BTC")
+
+        # Cross-alt divergence = fidelity (coherent vs fragmented alt market)
+        if len(changes) >= 2:
+            divergence = max(changes) - min(changes)
+            if divergence > 10:
+                sig._set("fidelity", 2, "alt_divergence", divergence, "%")
+            elif divergence > 5:
+                sig._set("fidelity", 1, "alt_divergence", divergence, "%")
+            else:
+                sig._nom("fidelity", "alt_divergence", divergence, "%")
+    except Exception as e:
+        sig.errors.append(f"coingecko_alts: {e}")
+
+
 # ── Aggregator ────────────────────────────────────────────────────────────────
 
 _ALL_STREAMS = [
@@ -485,14 +693,19 @@ _ALL_STREAMS = [
     ("air_quality",  _stream_air_quality),
     ("donki",        _stream_donki),
     ("seismic",      _stream_seismic),
-    ("kp_index",     _stream_kp),
-    ("hn_sentiment", _stream_hn),
+    ("kp_index",        _stream_kp),
+    ("hn_sentiment",    _stream_hn),
+    ("solar_wind",      _stream_solar_wind),
+    ("lightning",       _stream_lightning),
+    ("wikipedia",       _stream_wikipedia),
+    ("weather",         _stream_weather),
+    ("coingecko_alts",  _stream_coingecko_alts),
 ]
 
 
 class DomainStreamAggregator:
     """
-    Fetches all 10 domain streams and returns a DomainSignal.
+    Fetches all 15 domain streams and returns a DomainSignal.
     Refreshes every `refresh_interval` seconds (default: 3600 = hourly).
     Network errors degrade gracefully — a failed stream contributes no alerts.
     """
