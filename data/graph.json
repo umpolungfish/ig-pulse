@@ -34,139 +34,137 @@
       "stream": "seismic_major",
       "primitive": "winding",
       "symbol": "\u03a9"
+    },
+    {
+      "stream": "solar_flare_M",
+      "primitive": "parity",
+      "symbol": "\u03a6"
     }
   ],
   "edges": [
     {
       "from": "seismic_major:winding",
-      "to": "fear_greed:criticality",
-      "lag_seconds": 2960,
-      "strength_r": -1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "seismic_major:winding",
-      "to": "fear_greed:parity",
-      "lag_seconds": 2960,
+      "to": "solar_flare_M:parity",
+      "lag_seconds": 7353,
       "strength_r": -1.0,
       "p_value": 0.0
     },
     {
       "from": "fear_greed:criticality",
+      "to": "mempool_low_fee:coupling",
+      "lag_seconds": 30100,
+      "strength_r": -1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:criticality",
+      "to": "seismic_major:winding",
+      "lag_seconds": 16469,
+      "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:criticality",
+      "to": "seismic_energy:topology",
+      "lag_seconds": 16469,
+      "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:criticality",
+      "to": "mktcap_chg:stoichiometry",
+      "lag_seconds": 21457,
+      "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:parity",
+      "to": "mempool_low_fee:coupling",
+      "lag_seconds": 30100,
+      "strength_r": -1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:parity",
+      "to": "seismic_major:winding",
+      "lag_seconds": 16469,
+      "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:parity",
+      "to": "seismic_energy:topology",
+      "lag_seconds": 16469,
+      "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:parity",
+      "to": "mktcap_chg:stoichiometry",
+      "lag_seconds": 21457,
+      "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "ozone:stoichiometry",
+      "to": "mempool_low_fee:coupling",
+      "lag_seconds": 30100,
+      "strength_r": -1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "ozone:stoichiometry",
+      "to": "seismic_major:winding",
+      "lag_seconds": 16469,
+      "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "ozone:stoichiometry",
+      "to": "seismic_energy:topology",
+      "lag_seconds": 16469,
+      "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "ozone:stoichiometry",
+      "to": "mktcap_chg:stoichiometry",
+      "lag_seconds": 21457,
+      "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:criticality",
       "to": "fear_greed:parity",
-      "lag_seconds": 0,
+      "lag_seconds": 23177,
       "strength_r": 1.0,
       "p_value": 0.0
     },
     {
       "from": "fear_greed:parity",
       "to": "fear_greed:criticality",
-      "lag_seconds": 0,
+      "lag_seconds": 23177,
       "strength_r": 1.0,
       "p_value": 0.0
     },
     {
       "from": "seismic_energy:topology",
-      "to": "fear_greed:criticality",
-      "lag_seconds": 2960,
-      "strength_r": -1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "seismic_energy:topology",
-      "to": "fear_greed:parity",
-      "lag_seconds": 2960,
+      "to": "solar_flare_M:parity",
+      "lag_seconds": 7353,
       "strength_r": -1.0,
       "p_value": 0.0
     },
     {
       "from": "ozone:stoichiometry",
       "to": "fear_greed:criticality",
-      "lag_seconds": 18280,
-      "strength_r": -1.0,
+      "lag_seconds": 23177,
+      "strength_r": 1.0,
       "p_value": 0.0
     },
     {
       "from": "ozone:stoichiometry",
       "to": "fear_greed:parity",
-      "lag_seconds": 18280,
-      "strength_r": -1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:criticality",
-      "to": "ozone:stoichiometry",
-      "lag_seconds": 20880,
-      "strength_r": 1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:parity",
-      "to": "ozone:stoichiometry",
-      "lag_seconds": 20880,
-      "strength_r": 1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "ozone:stoichiometry",
-      "to": "mktcap_chg:stoichiometry",
-      "lag_seconds": 19960,
-      "strength_r": 1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:criticality",
-      "to": "mktcap_chg:stoichiometry",
-      "lag_seconds": 19960,
-      "strength_r": 1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:parity",
-      "to": "mktcap_chg:stoichiometry",
-      "lag_seconds": 19960,
-      "strength_r": 1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "ozone:stoichiometry",
-      "to": "seismic_major:winding",
-      "lag_seconds": 15320,
-      "strength_r": 1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "ozone:stoichiometry",
-      "to": "seismic_energy:topology",
-      "lag_seconds": 15320,
-      "strength_r": 1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:criticality",
-      "to": "seismic_major:winding",
-      "lag_seconds": 15320,
-      "strength_r": 1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:criticality",
-      "to": "seismic_energy:topology",
-      "lag_seconds": 15320,
-      "strength_r": 1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:parity",
-      "to": "seismic_major:winding",
-      "lag_seconds": 15320,
-      "strength_r": 1.0,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:parity",
-      "to": "seismic_energy:topology",
-      "lag_seconds": 15320,
+      "lag_seconds": 23177,
       "strength_r": 1.0,
       "p_value": 0.0
     },
@@ -185,66 +183,150 @@
       "p_value": 0.0
     },
     {
-      "from": "mempool_low_fee:coupling",
-      "to": "fear_greed:criticality",
-      "lag_seconds": 17560,
-      "strength_r": 0.9013,
+      "from": "fear_greed:criticality",
+      "to": "solar_flare_M:parity",
+      "lag_seconds": 23822,
+      "strength_r": -1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "ozone:stoichiometry",
+      "to": "solar_flare_M:parity",
+      "lag_seconds": 23822,
+      "strength_r": -1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:parity",
+      "to": "solar_flare_M:parity",
+      "lag_seconds": 23822,
+      "strength_r": -1.0,
       "p_value": 0.0
     },
     {
       "from": "mempool_low_fee:coupling",
-      "to": "fear_greed:parity",
-      "lag_seconds": 17560,
-      "strength_r": 0.9013,
-      "p_value": 0.0
-    },
-    {
-      "from": "seismic_major:winding",
       "to": "ozone:stoichiometry",
-      "lag_seconds": 600,
-      "strength_r": -0.8837,
+      "lag_seconds": 27606,
+      "strength_r": 0.8607,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:criticality",
+      "to": "ozone:stoichiometry",
+      "lag_seconds": 28380,
+      "strength_r": -0.7001,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:parity",
+      "to": "ozone:stoichiometry",
+      "lag_seconds": 28380,
+      "strength_r": -0.7001,
+      "p_value": 0.0
+    },
+    {
+      "from": "mempool_low_fee:coupling",
+      "to": "solar_flare_M:parity",
+      "lag_seconds": 23048,
+      "strength_r": 0.6496,
       "p_value": 0.0
     },
     {
       "from": "seismic_energy:topology",
       "to": "ozone:stoichiometry",
-      "lag_seconds": 600,
-      "strength_r": -0.8837,
+      "lag_seconds": 645,
+      "strength_r": -0.6217,
       "p_value": 0.0
     },
     {
-      "from": "mempool_low_fee:coupling",
+      "from": "seismic_major:winding",
       "to": "ozone:stoichiometry",
-      "lag_seconds": 20160,
-      "strength_r": -0.846,
+      "lag_seconds": 645,
+      "strength_r": -0.6217,
       "p_value": 0.0
     },
     {
       "from": "mempool_low_fee:coupling",
+      "to": "fear_greed:criticality",
+      "lag_seconds": 22403,
+      "strength_r": -0.5884,
+      "p_value": 0.0
+    },
+    {
+      "from": "mempool_low_fee:coupling",
+      "to": "fear_greed:parity",
+      "lag_seconds": 22403,
+      "strength_r": -0.5884,
+      "p_value": 0.0
+    },
+    {
+      "from": "solar_flare_M:parity",
       "to": "seismic_major:winding",
-      "lag_seconds": 14600,
-      "strength_r": -0.6645,
+      "lag_seconds": 0,
+      "strength_r": -0.5755,
       "p_value": 0.0
     },
     {
-      "from": "mempool_low_fee:coupling",
+      "from": "solar_flare_M:parity",
       "to": "seismic_energy:topology",
-      "lag_seconds": 14600,
-      "strength_r": -0.6645,
+      "lag_seconds": 0,
+      "strength_r": -0.5755,
+      "p_value": 0.0
+    },
+    {
+      "from": "solar_flare_M:parity",
+      "to": "ozone:stoichiometry",
+      "lag_seconds": 4558,
+      "strength_r": 0.4782,
+      "p_value": 0.0
+    },
+    {
+      "from": "seismic_major:winding",
+      "to": "fear_greed:criticality",
+      "lag_seconds": 3182,
+      "strength_r": -0.4722,
+      "p_value": 0.0
+    },
+    {
+      "from": "seismic_major:winding",
+      "to": "fear_greed:parity",
+      "lag_seconds": 3182,
+      "strength_r": -0.4722,
+      "p_value": 0.0
+    },
+    {
+      "from": "seismic_energy:topology",
+      "to": "fear_greed:criticality",
+      "lag_seconds": 3182,
+      "strength_r": -0.4722,
+      "p_value": 0.0
+    },
+    {
+      "from": "seismic_energy:topology",
+      "to": "fear_greed:parity",
+      "lag_seconds": 3182,
+      "strength_r": -0.4722,
       "p_value": 0.0
     },
     {
       "from": "mempool_low_fee:coupling",
       "to": "mktcap_chg:stoichiometry",
-      "lag_seconds": 19600,
-      "strength_r": -0.6362,
+      "lag_seconds": 21070,
+      "strength_r": -0.4627,
       "p_value": 0.0
     },
     {
-      "from": "mktcap_chg:stoichiometry",
-      "to": "ozone:stoichiometry",
-      "lag_seconds": 400,
-      "strength_r": 0.3315,
+      "from": "mempool_low_fee:coupling",
+      "to": "seismic_energy:topology",
+      "lag_seconds": 3612,
+      "strength_r": 0.3524,
+      "p_value": 0.0
+    },
+    {
+      "from": "mempool_low_fee:coupling",
+      "to": "seismic_major:winding",
+      "lag_seconds": 3612,
+      "strength_r": 0.3524,
       "p_value": 0.0
     }
   ]
