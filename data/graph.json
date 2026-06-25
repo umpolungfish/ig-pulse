@@ -6,12 +6,27 @@
       "symbol": "\u0393"
     },
     {
+      "stream": "cme_speed",
+      "primitive": "chirality",
+      "symbol": "\u0126"
+    },
+    {
       "stream": "fear_greed",
       "primitive": "criticality",
       "symbol": "\u2299"
     },
     {
       "stream": "fear_greed",
+      "primitive": "parity",
+      "symbol": "\u03a6"
+    },
+    {
+      "stream": "kp_index",
+      "primitive": "criticality",
+      "symbol": "\u2299"
+    },
+    {
+      "stream": "kp_index",
       "primitive": "parity",
       "symbol": "\u03a6"
     },
@@ -24,6 +39,11 @@
       "stream": "mempool_low_fee",
       "primitive": "coupling",
       "symbol": "\u0262"
+    },
+    {
+      "stream": "mktcap_chg",
+      "primitive": "stoichiometry",
+      "symbol": "\u03a3"
     },
     {
       "stream": "ozone",
@@ -44,28 +64,73 @@
       "stream": "solar_flare_M",
       "primitive": "parity",
       "symbol": "\u03a6"
+    },
+    {
+      "stream": "solar_wind_speed",
+      "primitive": "winding",
+      "symbol": "\u03a9"
+    },
+    {
+      "stream": "tide_range",
+      "primitive": "winding",
+      "symbol": "\u03a9"
     }
   ],
   "edges": [
     {
+      "from": "cme_speed:chirality",
+      "to": "solar_wind_speed:winding",
+      "lag_seconds": 94657,
+      "strength_r": -1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "ln_capacity:dimensionality",
+      "to": "tide_range:winding",
+      "lag_seconds": 212289,
+      "strength_r": -1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "kp_index:criticality",
+      "to": "solar_wind_speed:winding",
+      "lag_seconds": 14704,
+      "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
       "from": "seismic_energy:topology",
       "to": "solar_flare_M:parity",
-      "lag_seconds": 155781,
+      "lag_seconds": 157149,
       "strength_r": -1.0,
       "p_value": 0.0
     },
     {
       "from": "seismic_major:winding",
       "to": "solar_flare_M:parity",
-      "lag_seconds": 155781,
+      "lag_seconds": 157149,
+      "strength_r": -1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "kp_index:parity",
+      "to": "tide_range:winding",
+      "lag_seconds": 46869,
       "strength_r": -1.0,
       "p_value": 0.0
     },
     {
       "from": "solar_flare_M:parity",
       "to": "ln_capacity:dimensionality",
-      "lag_seconds": 143027,
+      "lag_seconds": 144283,
       "strength_r": 1.0,
+      "p_value": 0.0
+    },
+    {
+      "from": "btc_dominance_surge:granularity",
+      "to": "tide_range:winding",
+      "lag_seconds": 137850,
+      "strength_r": -1.0,
       "p_value": 0.0
     },
     {
@@ -86,357 +151,497 @@
       "from": "seismic_energy:topology",
       "to": "seismic_major:winding",
       "lag_seconds": 0,
-      "strength_r": 1.0,
+      "strength_r": 0.9978,
       "p_value": 0.0
     },
     {
       "from": "seismic_major:winding",
       "to": "seismic_energy:topology",
       "lag_seconds": 0,
-      "strength_r": 1.0,
+      "strength_r": 0.9978,
       "p_value": 0.0
     },
     {
       "from": "seismic_energy:topology",
       "to": "ln_capacity:dimensionality",
-      "lag_seconds": 258724,
-      "strength_r": -0.8377,
+      "lag_seconds": 259158,
+      "strength_r": -0.8636,
       "p_value": 0.0
     },
     {
       "from": "seismic_major:winding",
       "to": "ln_capacity:dimensionality",
-      "lag_seconds": 258724,
-      "strength_r": -0.8377,
+      "lag_seconds": 259158,
+      "strength_r": -0.8636,
+      "p_value": 0.0
+    },
+    {
+      "from": "btc_dominance_surge:granularity",
+      "to": "kp_index:parity",
+      "lag_seconds": 111199,
+      "strength_r": 0.8516,
+      "p_value": 0.0
+    },
+    {
+      "from": "ln_capacity:dimensionality",
+      "to": "kp_index:parity",
+      "lag_seconds": 185638,
+      "strength_r": 0.8509,
+      "p_value": 0.0
+    },
+    {
+      "from": "btc_dominance_surge:granularity",
+      "to": "kp_index:criticality",
+      "lag_seconds": 125903,
+      "strength_r": 0.8169,
+      "p_value": 0.0
+    },
+    {
+      "from": "ln_capacity:dimensionality",
+      "to": "kp_index:criticality",
+      "lag_seconds": 200342,
+      "strength_r": 0.8166,
+      "p_value": 0.0
+    },
+    {
+      "from": "kp_index:criticality",
+      "to": "tide_range:winding",
+      "lag_seconds": 11947,
+      "strength_r": -0.8161,
+      "p_value": 0.0
+    },
+    {
+      "from": "solar_wind_speed:winding",
+      "to": "tide_range:winding",
+      "lag_seconds": 0,
+      "strength_r": -0.7067,
+      "p_value": 0.0
+    },
+    {
+      "from": "tide_range:winding",
+      "to": "solar_wind_speed:winding",
+      "lag_seconds": 0,
+      "strength_r": -0.7067,
+      "p_value": 0.0
+    },
+    {
+      "from": "kp_index:parity",
+      "to": "solar_wind_speed:winding",
+      "lag_seconds": 46869,
+      "strength_r": 0.7067,
+      "p_value": 0.0
+    },
+    {
+      "from": "cme_speed:chirality",
+      "to": "tide_range:winding",
+      "lag_seconds": 94657,
+      "strength_r": 0.7067,
+      "p_value": 0.0
+    },
+    {
+      "from": "btc_dominance_surge:granularity",
+      "to": "solar_wind_speed:winding",
+      "lag_seconds": 137850,
+      "strength_r": 0.7067,
+      "p_value": 0.0
+    },
+    {
+      "from": "ln_capacity:dimensionality",
+      "to": "solar_wind_speed:winding",
+      "lag_seconds": 212289,
+      "strength_r": 0.7066,
+      "p_value": 0.0
+    },
+    {
+      "from": "kp_index:parity",
+      "to": "kp_index:criticality",
+      "lag_seconds": 9190,
+      "strength_r": 0.6879,
+      "p_value": 0.0
+    },
+    {
+      "from": "solar_flare_M:parity",
+      "to": "seismic_major:winding",
+      "lag_seconds": 0,
+      "strength_r": -0.6878,
+      "p_value": 0.0
+    },
+    {
+      "from": "solar_flare_M:parity",
+      "to": "seismic_energy:topology",
+      "lag_seconds": 0,
+      "strength_r": -0.6877,
+      "p_value": 0.0
+    },
+    {
+      "from": "ln_capacity:dimensionality",
+      "to": "solar_flare_M:parity",
+      "lag_seconds": 0,
+      "strength_r": 0.6824,
+      "p_value": 0.0
+    },
+    {
+      "from": "ln_capacity:dimensionality",
+      "to": "fear_greed:criticality",
+      "lag_seconds": 135093,
+      "strength_r": 0.673,
+      "p_value": 0.0
+    },
+    {
+      "from": "ln_capacity:dimensionality",
+      "to": "fear_greed:parity",
+      "lag_seconds": 135093,
+      "strength_r": 0.673,
+      "p_value": 0.0
+    },
+    {
+      "from": "kp_index:criticality",
+      "to": "kp_index:parity",
+      "lag_seconds": 0,
+      "strength_r": 0.6058,
+      "p_value": 0.0
+    },
+    {
+      "from": "solar_flare_M:parity",
+      "to": "fear_greed:criticality",
+      "lag_seconds": 259158,
+      "strength_r": 0.5506,
+      "p_value": 0.0
+    },
+    {
+      "from": "solar_flare_M:parity",
+      "to": "fear_greed:parity",
+      "lag_seconds": 259158,
+      "strength_r": 0.5506,
+      "p_value": 0.0
+    },
+    {
+      "from": "btc_dominance_surge:granularity",
+      "to": "ozone:stoichiometry",
+      "lag_seconds": 18380,
+      "strength_r": -0.5333,
+      "p_value": 0.0
+    },
+    {
+      "from": "ozone:stoichiometry",
+      "to": "solar_flare_M:parity",
+      "lag_seconds": 143364,
+      "strength_r": 0.5199,
       "p_value": 0.0
     },
     {
       "from": "ln_capacity:dimensionality",
       "to": "btc_dominance_surge:granularity",
-      "lag_seconds": 73791,
-      "strength_r": 0.7566,
+      "lag_seconds": 74439,
+      "strength_r": 0.5132,
+      "p_value": 0.0
+    },
+    {
+      "from": "solar_flare_M:parity",
+      "to": "kp_index:parity",
+      "lag_seconds": 259158,
+      "strength_r": 0.5105,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:criticality",
+      "to": "ln_capacity:dimensionality",
+      "lag_seconds": 233426,
+      "strength_r": 0.5086,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:parity",
+      "to": "ln_capacity:dimensionality",
+      "lag_seconds": 233426,
+      "strength_r": 0.5086,
       "p_value": 0.0
     },
     {
       "from": "solar_flare_M:parity",
       "to": "btc_dominance_surge:granularity",
-      "lag_seconds": 216818,
-      "strength_r": 0.7522,
+      "lag_seconds": 218722,
+      "strength_r": 0.5041,
+      "p_value": 0.0
+    },
+    {
+      "from": "btc_dominance_surge:granularity",
+      "to": "fear_greed:parity",
+      "lag_seconds": 60654,
+      "strength_r": 0.4834,
+      "p_value": 0.0
+    },
+    {
+      "from": "btc_dominance_surge:granularity",
+      "to": "fear_greed:criticality",
+      "lag_seconds": 60654,
+      "strength_r": 0.4834,
+      "p_value": 0.0
+    },
+    {
+      "from": "ozone:stoichiometry",
+      "to": "btc_dominance_surge:granularity",
+      "lag_seconds": 121308,
+      "strength_r": 0.4681,
+      "p_value": 0.0
+    },
+    {
+      "from": "ln_capacity:dimensionality",
+      "to": "seismic_energy:topology",
+      "lag_seconds": 0,
+      "strength_r": -0.4673,
+      "p_value": 0.0
+    },
+    {
+      "from": "ln_capacity:dimensionality",
+      "to": "seismic_major:winding",
+      "lag_seconds": 0,
+      "strength_r": -0.4654,
+      "p_value": 0.0
+    },
+    {
+      "from": "ozone:stoichiometry",
+      "to": "kp_index:parity",
+      "lag_seconds": 79034,
+      "strength_r": -0.4559,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:criticality",
+      "to": "kp_index:parity",
+      "lag_seconds": 30327,
+      "strength_r": 0.4555,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:parity",
+      "to": "kp_index:parity",
+      "lag_seconds": 30327,
+      "strength_r": 0.4555,
+      "p_value": 0.0
+    },
+    {
+      "from": "seismic_energy:topology",
+      "to": "fear_greed:criticality",
+      "lag_seconds": 68006,
+      "strength_r": -0.4341,
+      "p_value": 0.0
+    },
+    {
+      "from": "seismic_major:winding",
+      "to": "fear_greed:criticality",
+      "lag_seconds": 68006,
+      "strength_r": -0.4341,
+      "p_value": 0.0
+    },
+    {
+      "from": "seismic_major:winding",
+      "to": "fear_greed:parity",
+      "lag_seconds": 68006,
+      "strength_r": -0.4341,
+      "p_value": 0.0
+    },
+    {
+      "from": "seismic_energy:topology",
+      "to": "fear_greed:parity",
+      "lag_seconds": 68006,
+      "strength_r": -0.4341,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:criticality",
+      "to": "btc_dominance_surge:granularity",
+      "lag_seconds": 259158,
+      "strength_r": 0.4169,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:parity",
+      "to": "btc_dominance_surge:granularity",
+      "lag_seconds": 259158,
+      "strength_r": 0.4169,
+      "p_value": 0.0
+    },
+    {
+      "from": "kp_index:parity",
+      "to": "fear_greed:criticality",
+      "lag_seconds": 0,
+      "strength_r": 0.4012,
+      "p_value": 0.0
+    },
+    {
+      "from": "kp_index:parity",
+      "to": "fear_greed:parity",
+      "lag_seconds": 0,
+      "strength_r": 0.4012,
+      "p_value": 0.0
+    },
+    {
+      "from": "btc_dominance_surge:granularity",
+      "to": "ln_capacity:dimensionality",
+      "lag_seconds": 0,
+      "strength_r": 0.3954,
+      "p_value": 0.0
+    },
+    {
+      "from": "ozone:stoichiometry",
+      "to": "fear_greed:criticality",
+      "lag_seconds": 0,
+      "strength_r": 0.3892,
+      "p_value": 0.0
+    },
+    {
+      "from": "ozone:stoichiometry",
+      "to": "fear_greed:parity",
+      "lag_seconds": 0,
+      "strength_r": 0.3892,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:criticality",
+      "to": "ozone:stoichiometry",
+      "lag_seconds": 0,
+      "strength_r": 0.3892,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:parity",
+      "to": "ozone:stoichiometry",
+      "lag_seconds": 0,
+      "strength_r": 0.3892,
+      "p_value": 0.0
+    },
+    {
+      "from": "ozone:stoichiometry",
+      "to": "ln_capacity:dimensionality",
+      "lag_seconds": 259158,
+      "strength_r": 0.376,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:parity",
+      "to": "seismic_energy:topology",
+      "lag_seconds": 0,
+      "strength_r": -0.3741,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:criticality",
+      "to": "seismic_energy:topology",
+      "lag_seconds": 0,
+      "strength_r": -0.3741,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:criticality",
+      "to": "seismic_major:winding",
+      "lag_seconds": 0,
+      "strength_r": -0.3709,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:parity",
+      "to": "seismic_major:winding",
+      "lag_seconds": 0,
+      "strength_r": -0.3709,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:parity",
+      "to": "solar_flare_M:parity",
+      "lag_seconds": 89143,
+      "strength_r": 0.349,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:criticality",
+      "to": "solar_flare_M:parity",
+      "lag_seconds": 89143,
+      "strength_r": 0.349,
       "p_value": 0.0
     },
     {
       "from": "solar_flare_M:parity",
+      "to": "ozone:stoichiometry",
+      "lag_seconds": 143364,
+      "strength_r": -0.3466,
+      "p_value": 0.0
+    },
+    {
+      "from": "ozone:stoichiometry",
+      "to": "seismic_major:winding",
+      "lag_seconds": 125903,
+      "strength_r": -0.3409,
+      "p_value": 0.0
+    },
+    {
+      "from": "ozone:stoichiometry",
       "to": "seismic_energy:topology",
+      "lag_seconds": 125903,
+      "strength_r": -0.338,
+      "p_value": 0.0
+    },
+    {
+      "from": "mktcap_chg:stoichiometry",
+      "to": "tide_range:winding",
+      "lag_seconds": 114875,
+      "strength_r": -0.3301,
+      "p_value": 0.0
+    },
+    {
+      "from": "ozone:stoichiometry",
+      "to": "kp_index:criticality",
+      "lag_seconds": 111199,
+      "strength_r": -0.3274,
+      "p_value": 0.0
+    },
+    {
+      "from": "kp_index:parity",
+      "to": "ln_capacity:dimensionality",
       "lag_seconds": 0,
-      "strength_r": -0.6697,
+      "strength_r": 0.3273,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:criticality",
+      "to": "kp_index:criticality",
+      "lag_seconds": 62492,
+      "strength_r": 0.3265,
+      "p_value": 0.0
+    },
+    {
+      "from": "fear_greed:parity",
+      "to": "kp_index:criticality",
+      "lag_seconds": 62492,
+      "strength_r": 0.3265,
+      "p_value": 0.0
+    },
+    {
+      "from": "seismic_energy:topology",
+      "to": "btc_dominance_surge:granularity",
+      "lag_seconds": 259158,
+      "strength_r": -0.3203,
+      "p_value": 0.0
+    },
+    {
+      "from": "seismic_major:winding",
+      "to": "btc_dominance_surge:granularity",
+      "lag_seconds": 259158,
+      "strength_r": -0.3203,
       "p_value": 0.0
     },
     {
       "from": "solar_flare_M:parity",
-      "to": "seismic_major:winding",
-      "lag_seconds": 0,
-      "strength_r": -0.6697,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:criticality",
-      "to": "ln_capacity:dimensionality",
-      "lag_seconds": 231394,
-      "strength_r": 0.661,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:parity",
-      "to": "ln_capacity:dimensionality",
-      "lag_seconds": 231394,
-      "strength_r": 0.661,
-      "p_value": 0.0
-    },
-    {
-      "from": "ln_capacity:dimensionality",
-      "to": "solar_flare_M:parity",
-      "lag_seconds": 0,
-      "strength_r": 0.6253,
-      "p_value": 0.0
-    },
-    {
-      "from": "ozone:stoichiometry",
-      "to": "solar_flare_M:parity",
-      "lag_seconds": 142116,
-      "strength_r": 0.6176,
-      "p_value": 0.0
-    },
-    {
-      "from": "solar_flare_M:parity",
-      "to": "ozone:stoichiometry",
-      "lag_seconds": 228661,
-      "strength_r": -0.6063,
-      "p_value": 0.0
-    },
-    {
-      "from": "ln_capacity:dimensionality",
-      "to": "ozone:stoichiometry",
-      "lag_seconds": 85634,
-      "strength_r": -0.5712,
-      "p_value": 0.0
-    },
-    {
-      "from": "btc_dominance_surge:granularity",
-      "to": "ozone:stoichiometry",
-      "lag_seconds": 18220,
-      "strength_r": -0.5528,
-      "p_value": 0.0
-    },
-    {
-      "from": "ozone:stoichiometry",
-      "to": "ln_capacity:dimensionality",
-      "lag_seconds": 258724,
-      "strength_r": 0.5388,
-      "p_value": 0.0
-    },
-    {
-      "from": "btc_dominance_surge:granularity",
-      "to": "ln_capacity:dimensionality",
-      "lag_seconds": 0,
-      "strength_r": 0.5016,
-      "p_value": 0.0
-    },
-    {
-      "from": "ozone:stoichiometry",
-      "to": "fear_greed:parity",
-      "lag_seconds": 58304,
-      "strength_r": 0.4839,
-      "p_value": 0.0
-    },
-    {
-      "from": "ozone:stoichiometry",
-      "to": "fear_greed:criticality",
-      "lag_seconds": 58304,
-      "strength_r": 0.4839,
-      "p_value": 0.0
-    },
-    {
-      "from": "ozone:stoichiometry",
-      "to": "btc_dominance_surge:granularity",
-      "lag_seconds": 116608,
-      "strength_r": 0.4752,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:criticality",
-      "to": "btc_dominance_surge:granularity",
-      "lag_seconds": 258724,
-      "strength_r": 0.4455,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:parity",
-      "to": "btc_dominance_surge:granularity",
-      "lag_seconds": 258724,
-      "strength_r": 0.4455,
-      "p_value": 0.0
-    },
-    {
-      "from": "ln_capacity:dimensionality",
-      "to": "seismic_energy:topology",
-      "lag_seconds": 0,
-      "strength_r": -0.4187,
-      "p_value": 0.0
-    },
-    {
-      "from": "ln_capacity:dimensionality",
-      "to": "seismic_major:winding",
-      "lag_seconds": 0,
-      "strength_r": -0.4187,
-      "p_value": 0.0
-    },
-    {
-      "from": "ozone:stoichiometry",
-      "to": "seismic_energy:topology",
-      "lag_seconds": 58304,
-      "strength_r": -0.4101,
-      "p_value": 0.0
-    },
-    {
-      "from": "ozone:stoichiometry",
-      "to": "seismic_major:winding",
-      "lag_seconds": 58304,
-      "strength_r": -0.4101,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:criticality",
-      "to": "solar_flare_M:parity",
-      "lag_seconds": 88367,
-      "strength_r": 0.4097,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:parity",
-      "to": "solar_flare_M:parity",
-      "lag_seconds": 88367,
-      "strength_r": 0.4097,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:criticality",
-      "to": "ozone:stoichiometry",
-      "lag_seconds": 0,
-      "strength_r": 0.4079,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:parity",
-      "to": "ozone:stoichiometry",
-      "lag_seconds": 0,
-      "strength_r": 0.4079,
-      "p_value": 0.0
-    },
-    {
-      "from": "seismic_energy:topology",
-      "to": "btc_dominance_surge:granularity",
-      "lag_seconds": 258724,
-      "strength_r": -0.4024,
-      "p_value": 0.0
-    },
-    {
-      "from": "seismic_major:winding",
-      "to": "btc_dominance_surge:granularity",
-      "lag_seconds": 258724,
-      "strength_r": -0.4024,
+      "to": "kp_index:criticality",
+      "lag_seconds": 259158,
+      "strength_r": 0.3078,
       "p_value": 0.0
     },
     {
       "from": "mempool_low_fee:coupling",
       "to": "solar_flare_M:parity",
-      "lag_seconds": 232305,
-      "strength_r": -0.3519,
-      "p_value": 0.0
-    },
-    {
-      "from": "seismic_major:winding",
-      "to": "fear_greed:parity",
-      "lag_seconds": 67414,
-      "strength_r": -0.3511,
-      "p_value": 0.0
-    },
-    {
-      "from": "seismic_energy:topology",
-      "to": "fear_greed:parity",
-      "lag_seconds": 67414,
-      "strength_r": -0.3511,
-      "p_value": 0.0
-    },
-    {
-      "from": "seismic_major:winding",
-      "to": "fear_greed:criticality",
-      "lag_seconds": 67414,
-      "strength_r": -0.3511,
-      "p_value": 0.0
-    },
-    {
-      "from": "seismic_energy:topology",
-      "to": "fear_greed:criticality",
-      "lag_seconds": 67414,
-      "strength_r": -0.3511,
-      "p_value": 0.0
-    },
-    {
-      "from": "mempool_low_fee:coupling",
-      "to": "fear_greed:criticality",
-      "lag_seconds": 144849,
-      "strength_r": -0.3428,
-      "p_value": 0.0
-    },
-    {
-      "from": "mempool_low_fee:coupling",
-      "to": "fear_greed:parity",
-      "lag_seconds": 144849,
-      "strength_r": -0.3428,
-      "p_value": 0.0
-    },
-    {
-      "from": "btc_dominance_surge:granularity",
-      "to": "fear_greed:criticality",
-      "lag_seconds": 60126,
-      "strength_r": 0.3257,
-      "p_value": 0.0
-    },
-    {
-      "from": "btc_dominance_surge:granularity",
-      "to": "fear_greed:parity",
-      "lag_seconds": 60126,
-      "strength_r": 0.3257,
-      "p_value": 0.0
-    },
-    {
-      "from": "ln_capacity:dimensionality",
-      "to": "fear_greed:criticality",
-      "lag_seconds": 133917,
-      "strength_r": 0.3235,
-      "p_value": 0.0
-    },
-    {
-      "from": "ln_capacity:dimensionality",
-      "to": "fear_greed:parity",
-      "lag_seconds": 133917,
-      "strength_r": 0.3235,
-      "p_value": 0.0
-    },
-    {
-      "from": "btc_dominance_surge:granularity",
-      "to": "solar_flare_M:parity",
-      "lag_seconds": 0,
-      "strength_r": 0.3136,
-      "p_value": 0.0
-    },
-    {
-      "from": "seismic_energy:topology",
-      "to": "ozone:stoichiometry",
-      "lag_seconds": 258724,
-      "strength_r": 0.3046,
-      "p_value": 0.0
-    },
-    {
-      "from": "seismic_major:winding",
-      "to": "ozone:stoichiometry",
-      "lag_seconds": 258724,
-      "strength_r": 0.3046,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:criticality",
-      "to": "seismic_energy:topology",
-      "lag_seconds": 0,
-      "strength_r": -0.3019,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:criticality",
-      "to": "seismic_major:winding",
-      "lag_seconds": 0,
-      "strength_r": -0.3019,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:parity",
-      "to": "seismic_energy:topology",
-      "lag_seconds": 0,
-      "strength_r": -0.3019,
-      "p_value": 0.0
-    },
-    {
-      "from": "fear_greed:parity",
-      "to": "seismic_major:winding",
-      "lag_seconds": 0,
-      "strength_r": -0.3019,
-      "p_value": 0.0
-    },
-    {
-      "from": "mempool_low_fee:coupling",
-      "to": "ozone:stoichiometry",
-      "lag_seconds": 69236,
-      "strength_r": -0.3017,
+      "lag_seconds": 234345,
+      "strength_r": -0.3021,
       "p_value": 0.0
     }
   ]
