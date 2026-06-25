@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datanado — Geographic Signal Propagation</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'JetBrains Mono', 'Fira Code', monospace; background: #0a0a0f; overflow: hidden; }
+#map { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+.leaflet-tile-pane { filter: brightness(0.6) saturate(0.3) hue-rotate(180deg); }
+
+#panel {
+  position: absolute; top: 10px; right: 10px; z-index: 1000;
+  background: rgba(10, 10, 15, 0.92); border: 1px solid #1e293b;
+  border-radius: 12px; padding: 16px 20px; color: #e2e8f0;
+  font-size: 0.78rem; min-width: 280px; backdrop-filter: blur(12px);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+}
+#panel h1 { font-size: 1.1rem; font-weight: 700; color: #fbbf24; margin-bottom: 4px; letter-spacing: 0.02em; }
+#panel .sub { font-size: 0.68rem; color: #64748b; margin-bottom: 12px; }
+#panel .row { display: flex; justify-content: space-between; margin: 3px 0; }
+#panel .row .k { color: #94a3b8; }
+#panel .row .v { color: #e2e8f0; font-weight: 600; }
+#panel .tick { color: #fbbf24; font-size: 0.85rem; }
+#panel .alive { display: inline-block; width: 8px; height: 8px; background: #22c55e; border-radius: 50%;
+  margin-right: 4px; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+#legend {
+  position: absolute; bottom: 30px; right: 10px; z-index: 1000;
+  background: rgba(10, 10, 15, 0.9); border: 1px solid #1e293b;
+  border-radius: 8px; padding: 10px 14px; color: #94a3b8; font-size: 0.7rem;
+}
+#legend .item { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+#legend .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+#tickbar {
+  position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 1000;
+  background: rgba(10, 10, 15, 0.9); border: 1px solid #1e293b;
+  border-radius: 8px; padding: 8px 16px; color: #fbbf24; font-size: 0.72rem;
+  display: flex; gap: 12px; align-items: center;
+}
+#tickbar .bar-bg { width: 180px; height: 6px; background: #1e293b; border-radius: 3px; overflow: hidden; }
+#tickbar .bar-fg { height: 100%; background: linear-gradient(90deg, #3b82f6, #fbbf24, #ef4444);
+  transition: width 0.5s linear; border-radius: 3px; }
+.leaflet-popup { font-family: monospace; font-size: 0.72rem; }
+.leaflet-popup-content { margin: 6px 10px; }
+.leaflet-popup-content strong { color: #fbbf24; }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div id="panel">
+  <h1>🌍 DATANADO</h1>
+  <div class="sub">Geographic Signal Propagation</div>
+  <div class="row"><span class="k"><span class="alive"></span>Snapshot</span><span class="v" id="snapshot_ts">—</span></div>
+  <div class="row"><span class="k">Geo Nodes</span><span class="v" id="geo_nodes">—</span></div>
+  <div class="row"><span class="k">Active Alerts</span><span class="v" id="active_alerts">—</span></div>
+  <div class="row"><span class="k">Propagation Edges</span><span class="v" id="prop_edges">—</span></div>
+  <div class="row"><span class="k">Spectral Radius ρ</span><span class="v" id="spec_rad">—</span></div>
+  <div class="row"><span class="k">Universal Tick</span><span class="v tick" id="tick_val">—</span></div>
+</div>
+
+<div id="legend">
+  <div class="item"><span class="dot" style="background:#ef4444"></span> Alert 2 — Critical</div>
+  <div class="item"><span class="dot" style="background:#facc15"></span> Alert 1 — Elevated</div>
+  <div class="item"><span class="dot" style="background:#4ade80"></span> Alert 0 — Baseline</div>
+  <div class="item" style="margin-top:4px;font-size:0.65rem;color:#64748b">Arc color: blue (cold) → red (hot)</div>
+</div>
+
+<div id="tickbar">
+  <span>⏱ TICK</span>
+  <div class="bar-bg"><div class="bar-fg" id="tick_progress" style="width:0%"></div></div>
+  <span id="tick_pct">0%</span>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script>
+// ── Map Setup ────────────────────────────────────────────────────────────────
+const map = L.map('map', {
+  center: [20, 0],
+  zoom: 3,
+  minZoom: 2,
+  maxZoom: 10,
+  worldCopyJump: true,
+  zoomControl: true,
+});
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+  subdomains: 'abcd',
+  maxZoom: 10,
+  noWrap: true,
+}).addTo(map);
+
+// ── Layer Groups ─────────────────────────────────────────────────────────────
+const edgeLayer = L.layerGroup().addTo(map);
+const nodeLayer = L.layerGroup().addTo(map);
+const spaceLayer = L.layerGroup().addTo(map);
+let heatLayer = null;
+
+// ── Space Icons ──────────────────────────────────────────────────────────────
+const spaceIcons = {
+  satellite: L.divIcon({
+    className: 'space-icon',
+    html: '<div style="background:#fbbf24;width:18px;height:18px;border-radius:50%;border:2px solid #f59e0b;box-shadow:0 0 12px #fbbf24;display:flex;align-items:center;justify-content:center;font-size:10px;">🛰</div>',
+    iconSize: [18, 18], iconAnchor: [9, 9],
+  }),
+  sun: L.divIcon({
+    className: 'space-icon',
+    html: '<div style="background:#ff6b00;width:24px;height:24px;border-radius:50%;border:2px solid #ff8c00;box-shadow:0 0 20px #ff6b00,0 0 40px #ff8c00;display:flex;align-items:center;justify-content:center;font-size:14px;">☀</div>',
+    iconSize: [24, 24], iconAnchor: [12, 12],
+  }),
+  magnet: L.divIcon({
+    className: 'space-icon',
+    html: '<div style="background:#8b5cf6;width:16px;height:16px;border-radius:50%;border:2px solid #7c3aed;box-shadow:0 0 10px #8b5cf6;display:flex;align-items:center;justify-content:center;font-size:9px;">🧲</div>',
+    iconSize: [16, 16], iconAnchor: [8, 8],
+  }),
+};
+
+// ── State ────────────────────────────────────────────────────────────────────
+let currentEdges = [];
+let tickDuration = 49 * 3600; // 49 hours default
+// tickStart is Unix epoch (1970-01-01) — tick phase is purely a function of wall-clock time.
+// Same phase at same wall-clock time everywhere; no reset on refresh.
+let tickStart = 0;  // Unix epoch — cycle is modulo tickDuration
+
+// ── Data Fetch ───────────────────────────────────────────────────────────────
+async function fetchData() {
+  try {
+    const resp = await fetch('/api/all');
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    return await resp.json();
+  } catch (e) {
+    console.warn('fetch failed:', e.message);
+    return null;
+  }
+}
+
+// ── Render Nodes ─────────────────────────────────────────────────────────────
+function renderNodes(nodesGeoJSON) {
+  nodeLayer.clearLayers();
+  if (!nodesGeoJSON || !nodesGeoJSON.features) return;
+
+  const features = nodesGeoJSON.features;
+  for (const f of features) {
+    const p = f.properties;
+    const coords = f.geometry.coordinates;
+
+    const size = 5 + p.alert * 4;
+    const color = p.color;
+    const glow = p.alert >= 2
+      ? `box-shadow: 0 0 ${10 + p.alert * 4}px ${color};`
+      : '';
+
+    const icon = L.divIcon({
+      className: 'signal-node',
+      html: `<div style="background:${color};width:${size}px;height:${size}px;border-radius:50%;border:2px solid rgba(255,255,255,0.5);${glow}"></div>`,
+      iconSize: [size + 4, size + 4],
+      iconAnchor: [size / 2 + 2, size / 2 + 2],
+    });
+
+    const marker = L.marker([coords[1], coords[0]], { icon });
+    marker.bindPopup(`
+      <strong>${p.stream}</strong><br>
+      Primitive: ${p.primitive}<br>
+      Value: ${p.value.toFixed(3)}<br>
+      Alert: ${'🔴🟡🟢'.charAt(p.alert) || '⚪'} L${p.alert}<br>
+      Type: ${p.origin_type}
+    `);
+    marker.addTo(nodeLayer);
+  }
+}
+
+// ── Render Edges (Propagation Arcs) ─────────────────────────────────────────
+function renderEdges(edgesGeoJSON) {
+  edgeLayer.clearLayers();
+  if (!edgesGeoJSON || !edgesGeoJSON.features) return;
+
+  const features = edgesGeoJSON.features;
+  currentEdges = features;
+
+  for (const f of features) {
+    const p = f.properties;
+    const coords = f.geometry.coordinates;
+
+    // Create a curved polyline
+    const latlngs = coords.map(c => [c[1], c[0]]);
+    const line = L.polyline(latlngs, {
+      color: p.color,
+      weight: p.width,
+      opacity: p.opacity * 0.6,
+      dashArray: p.lag_seconds > 3600 ? '8, 8' : null,
+      className: 'propagation-arc',
+    });
+
+    line.bindPopup(`
+      <strong>${p.source} → ${p.target}</strong><br>
+      r = ${p.strength_r.toFixed(3)}<br>
+      p = ${p.p_value.toFixed(3)}<br>
+      lag = ${(p.lag_seconds / 3600).toFixed(1)}h
+    `);
+    line.addTo(edgeLayer);
+  }
+}
+
+// ── Render Space Layer ───────────────────────────────────────────────────────
+function renderSpace(spaceGeoJSON) {
+  spaceLayer.clearLayers();
+  if (!spaceGeoJSON || !spaceGeoJSON.features) return;
+
+  for (const f of spaceGeoJSON.features) {
+    const p = f.properties;
+    const coords = f.geometry.coordinates;
+
+    const icon = spaceIcons[p.icon] || spaceIcons.satellite;
+    const marker = L.marker([coords[1], coords[0]], { icon });
+
+    marker.bindPopup(`
+      <strong>${p.name}</strong><br>
+      ${p.description}<br>
+      Altitude: ${(p.alt_km / 1000).toLocaleString()} km<br>
+      Instrument: ${p.instrument}
+    `);
+    marker.addTo(spaceLayer);
+  }
+}
+
+// ── Render Heatmap ───────────────────────────────────────────────────────────
+function renderHeatmap(heatData) {
+  if (heatLayer) map.removeLayer(heatLayer);
+  if (!heatData || heatData.length === 0) return;
+
+  heatLayer = L.heatLayer(heatData.map(d => [d[0], d[1], d[2] * 0.8]), {
+    radius: 25,
+    blur: 15,
+    maxZoom: 8,
+    max: 1.0,
+    gradient: { 0.0: '#4ade80', 0.3: '#facc15', 0.7: '#f97316', 1.0: '#ef4444' },
+  }).addTo(map);
+}
+
+// ── Update Panel ─────────────────────────────────────────────────────────────
+function updatePanel(stats) {
+  document.getElementById('snapshot_ts').textContent =
+    stats.snapshot_ts ? new Date(stats.snapshot_ts).toLocaleTimeString() : '—';
+  document.getElementById('geo_nodes').textContent = stats.total_nodes || '—';
+  document.getElementById('active_alerts').textContent = stats.active_alerts || '—';
+  document.getElementById('prop_edges').textContent = stats.total_edges || '—';
+  document.getElementById('spec_rad').textContent =
+    stats.spectral_radius ? stats.spectral_radius.toFixed(4) : '—';
+
+  const tickH = stats.tick_hours || 49;
+  tickDuration = tickH * 3600;
+  const days = tickH / 24;
+  document.getElementById('tick_val').textContent =
+    `${tickH.toFixed(1)}h (${days.toFixed(2)}d)`;
+}
+
+// ── Tick Animation ───────────────────────────────────────────────────────────
+function updateTick() {
+  // Wall-clock anchored: progress = (unix_time % tickDuration) / tickDuration
+  // Same phase everywhere, never resets on refresh
+  const elapsed = Date.now() / 1000; // seconds since Unix epoch
+  const progress = (elapsed % tickDuration) / tickDuration;
+  const pct = Math.round(progress * 100);
+  document.getElementById('tick_progress').style.width = pct + '%';
+  document.getElementById('tick_pct').textContent = pct + '%';
+
+  // Flash edges based on their lag relative to current tick phase
+  const tickPhase = progress; // 0..1 within current tick
+  for (const f of currentEdges) {
+    const p = f.properties;
+    const edgePhase = (p.lag_seconds / tickDuration) % 1.0;
+    // Edge is "active" when tick phase passes through its lag window
+    const dist = Math.abs(tickPhase - edgePhase);
+    const active = dist < 0.08; // ~4h window around lag time
+    // (animation applied via opacity in the edge render, but we could animate here)
+  }
+}
+
+// ── Main Refresh Loop ────────────────────────────────────────────────────────
+async function refresh() {
+  const data = await fetchData();
+  if (!data) return;
+
+  if (data.nodes) renderNodes(data.nodes);
+  if (data.edges) renderEdges(data.edges);
+  if (data.space) renderSpace(data.space);
+  if (data.heatmap) renderHeatmap(data.heatmap);
+  if (data.stats) updatePanel(data.stats);
+}
+
+// ── Bootstrap ────────────────────────────────────────────────────────────────
+refresh();
+setInterval(refresh, 5000);   // Poll every 5 seconds
+setInterval(updateTick, 1000); // Animate tick every second
+
+// ── Navigation Buttons ───────────────────────────────────────────────────────
+// Add zoom-to-fit button
+L.Control.FitBounds = L.Control.extend({
+  onAdd: function() {
+    const btn = L.DomUtil.create('button');
+    btn.innerHTML = '⊞';
+    btn.title = 'Fit all signals';
+    btn.style.cssText = 'background:rgba(10,10,15,0.9);color:#fbbf24;border:1px solid #1e293b;' +
+      'border-radius:6px;padding:6px 10px;font-size:16px;cursor:pointer;margin-top:60px;';
+    btn.onclick = function() {
+      const bounds = [];
+      nodeLayer.eachLayer(m => bounds.push(m.getLatLng()));
+      spaceLayer.eachLayer(m => bounds.push(m.getLatLng()));
+      if (bounds.length > 0) {
+        map.fitBounds(L.latLngBounds(bounds).pad(0.2));
+      }
+    };
+    return btn;
+  }
+});
+new L.Control.FitBounds({ position: 'topleft' }).addTo(map);
+
+// Add toggle layers
+const overlayControls = {
+  'Propagation Arcs': edgeLayer,
+  'Signal Nodes': nodeLayer,
+  'Space Layer': spaceLayer,
+};
+L.control.layers(null, overlayControls, { position: 'bottomleft', collapsed: true }).addTo(map);
+</script>
+</body>
+</html>

@@ -49,6 +49,7 @@ class StreamValue:
     value:     float
     unit:      str
     alert:     int   # 0=nominal, 1=mild, 2=strong
+    origin:    dict = field(default_factory=dict)  # {"type": "seismic", "lat": ..., "lon": ...}
 
 
 @dataclass
@@ -79,14 +80,14 @@ class DomainSignal:
         "chirality": "Ħ", "recognition": "Ř", "fidelity": "ƒ",
     }
 
-    def _set(self, primitive: str, level: int, stream: str, value: float, unit: str) -> None:
+    def _set(self, primitive: str, level: int, stream: str, value: float, unit: str, origin: dict = None) -> None:
         current = getattr(self, primitive, 0)
         setattr(self, primitive, max(current, level))
-        self.readings.append(StreamValue(stream, primitive, value, unit, level))
+        self.readings.append(StreamValue(stream, primitive, value, unit, level, origin or {}))
 
-    def _nom(self, primitive: str, stream: str, value: float, unit: str) -> None:
+    def _nom(self, primitive: str, stream: str, value: float, unit: str, origin: dict = None) -> None:
         """Record a nominal (no-alert) reading."""
-        self.readings.append(StreamValue(stream, primitive, value, unit, 0))
+        self.readings.append(StreamValue(stream, primitive, value, unit, 0, origin or {}))
 
     @property
     def total_alerts(self) -> int:
@@ -171,23 +172,24 @@ def _stream_fear_greed(sig: DomainSignal) -> None:
     try:
         entries = data["data"]
         v = int(entries[0]["value"])
+        origin = {"type": "market", "source": "alternative.me"}
         if v < 20:
-            sig._set("criticality", 2, "fear_greed", v, "index")
-            sig._set("parity",      1, "fear_greed", v, "index")
+            sig._set("criticality", 2, "fear_greed", v, "index", origin)
+            sig._set("parity",      1, "fear_greed", v, "index", origin)
         elif v < 30:
-            sig._set("criticality", 1, "fear_greed", v, "index")
+            sig._set("criticality", 1, "fear_greed", v, "index", origin)
         elif v > 80:
-            sig._set("criticality", 2, "fear_greed", v, "index")
-            sig._set("parity",      1, "fear_greed", v, "index")
+            sig._set("criticality", 2, "fear_greed", v, "index", origin)
+            sig._set("parity",      1, "fear_greed", v, "index", origin)
         elif v > 70:
-            sig._set("criticality", 1, "fear_greed", v, "index")
+            sig._set("criticality", 1, "fear_greed", v, "index", origin)
         else:
-            sig._nom("criticality", "fear_greed", v, "index")
+            sig._nom("criticality", "fear_greed", v, "index", origin)
         # Parity inversion: value crossed 50 since yesterday
         if len(entries) >= 2:
             prev = int(entries[1]["value"])
             if (prev < 50) != (v < 50):
-                sig._set("parity", 2, "fear_greed_cross", v - prev, "delta")
+                sig._set("parity", 2, "fear_greed_cross", v - prev, "delta", origin)
     except Exception as e:
         sig.errors.append(f"fear_greed: {e}")
 
@@ -200,25 +202,26 @@ def _stream_mempool(sig: DomainSignal) -> None:
 
     if fees:
         f = fees.get("fastestFee", 0)
+        origin = {"type": "network", "source": "mempool.space"}
         if f > 100:
-            sig._set("kinetics", 2, "mempool_fee", f, "sat/vB")
+            sig._set("kinetics", 2, "mempool_fee", f, "sat/vB", origin)
         elif f > 40:
-            sig._set("kinetics", 1, "mempool_fee", f, "sat/vB")
+            sig._set("kinetics", 1, "mempool_fee", f, "sat/vB", origin)
         elif f < 3:
-            sig._set("coupling", 1, "mempool_low_fee", f, "sat/vB")
+            sig._set("coupling", 1, "mempool_low_fee", f, "sat/vB", origin)
         else:
-            sig._nom("kinetics", "mempool_fee", f, "sat/vB")
+            sig._nom("kinetics", "mempool_fee", f, "sat/vB", origin)
     else:
         sig.errors.append("mempool_fees: no data")
 
     if pool:
         c = pool.get("count", 0)
         if c > 150_000:
-            sig._set("topology", 2, "mempool_count", c, "tx")
+            sig._set("topology", 2, "mempool_count", c, "tx", origin)
         elif c > 80_000:
-            sig._set("topology", 1, "mempool_count", c, "tx")
+            sig._set("topology", 1, "mempool_count", c, "tx", origin)
         else:
-            sig._nom("topology", "mempool_count", c, "tx")
+            sig._nom("topology", "mempool_count", c, "tx", origin)
     else:
         sig.errors.append("mempool_pool: no data")
 
@@ -231,25 +234,26 @@ def _stream_coingecko(sig: DomainSignal) -> None:
         sig.errors.append("coingecko: no data"); return
     try:
         d = data["data"]
+        origin = {"type": "market", "source": "coingecko.com"}
         dom = d.get("market_cap_percentage", {}).get("bitcoin", 50.0)
         if dom > 62:
-            sig._set("dimensionality", 2, "btc_dom", dom, "%")
+            sig._set("dimensionality", 2, "btc_dom", dom, "%", origin)
         elif dom > 56:
-            sig._set("dimensionality", 1, "btc_dom", dom, "%")
+            sig._set("dimensionality", 1, "btc_dom", dom, "%", origin)
         elif dom < 38:
-            sig._set("granularity", 2, "btc_dom_low", dom, "%")
+            sig._set("granularity", 2, "btc_dom_low", dom, "%", origin)
         elif dom < 44:
-            sig._set("granularity", 1, "btc_dom_low", dom, "%")
+            sig._set("granularity", 1, "btc_dom_low", dom, "%", origin)
         else:
-            sig._nom("dimensionality", "btc_dom", dom, "%")
+            sig._nom("dimensionality", "btc_dom", dom, "%", origin)
 
         chg = d.get("market_cap_change_percentage_24h_usd", 0.0) or 0.0
         if abs(chg) > 8:
-            sig._set("stoichiometry", 2, "mktcap_chg", chg, "%/24h")
+            sig._set("stoichiometry", 2, "mktcap_chg", chg, "%/24h", origin)
         elif abs(chg) > 4:
-            sig._set("stoichiometry", 1, "mktcap_chg", chg, "%/24h")
+            sig._set("stoichiometry", 1, "mktcap_chg", chg, "%/24h", origin)
         else:
-            sig._nom("stoichiometry", "mktcap_chg", chg, "%/24h")
+            sig._nom("stoichiometry", "mktcap_chg", chg, "%/24h", origin)
     except Exception as e:
         sig.errors.append(f"coingecko: {e}")
 
@@ -266,24 +270,25 @@ def _stream_onchain(sig: DomainSignal) -> None:
         hr  = data.get("hash_rate", 0) or 0
 
         # Block time deviation from 10-min target
+        origin = {"type": "network", "source": "blockchain.info"}
         if mbb > 18:
-            sig._set("kinetics", 2, "block_time", mbb, "min")
+            sig._set("kinetics", 2, "block_time", mbb, "min", origin)
         elif mbb > 13:
-            sig._set("kinetics", 1, "block_time", mbb, "min")
+            sig._set("kinetics", 1, "block_time", mbb, "min", origin)
         elif mbb < 6:
-            sig._set("criticality", 1, "block_time_fast", mbb, "min")
+            sig._set("criticality", 1, "block_time_fast", mbb, "min", origin)
         else:
-            sig._nom("kinetics", "block_time", mbb, "min")
+            sig._nom("kinetics", "block_time", mbb, "min", origin)
 
         # Transaction throughput
         if ntx > 600_000:
-            sig._set("coupling", 2, "n_tx", ntx, "tx/day")
+            sig._set("coupling", 2, "n_tx", ntx, "tx/day", origin)
         elif ntx > 400_000:
-            sig._set("coupling", 1, "n_tx", ntx, "tx/day")
+            sig._set("coupling", 1, "n_tx", ntx, "tx/day", origin)
         elif ntx < 150_000:
-            sig._set("coupling", 1, "n_tx_low", ntx, "tx/day")
+            sig._set("coupling", 1, "n_tx_low", ntx, "tx/day", origin)
         else:
-            sig._nom("coupling", "n_tx", ntx, "tx/day")
+            sig._nom("coupling", "n_tx", ntx, "tx/day", origin)
     except Exception as e:
         sig.errors.append(f"blockchain_info: {e}")
 
@@ -307,12 +312,13 @@ def _stream_tides(sig: DomainSignal, station: str = "8518750") -> None:
         if not levels:
             return
         rng = max(levels) - min(levels)
+        origin = {"type": "ocean", "station": station, "lat": 40.700, "lon": -74.014}
         if rng > 1.5:
-            sig._set("winding", 2, "tide_range", rng, "m")
+            sig._set("winding", 2, "tide_range", rng, "m", origin)
         elif rng > 1.0:
-            sig._set("winding", 1, "tide_range", rng, "m")
+            sig._set("winding", 1, "tide_range", rng, "m", origin)
         else:
-            sig._nom("winding", "tide_range", rng, "m")
+            sig._nom("winding", "tide_range", rng, "m", origin)
     except Exception as e:
         sig.errors.append(f"noaa_tides: {e}")
 
@@ -331,25 +337,26 @@ def _stream_air_quality(sig: DomainSignal, lat: float = 40.71, lon: float = -74.
     try:
         h = data["hourly"]
 
+        origin = {"type": "atmosphere", "lat": lat, "lon": lon}
         pm = [v for v in h.get("pm2_5", []) if v is not None]
         if pm:
             v = pm[-1]
             if v > 55:
-                sig._set("kinetics", 2, "pm2_5", v, "µg/m³")
+                sig._set("kinetics", 2, "pm2_5", v, "µg/m³", origin)
             elif v > 25:
-                sig._set("kinetics", 1, "pm2_5", v, "µg/m³")
+                sig._set("kinetics", 1, "pm2_5", v, "µg/m³", origin)
             else:
-                sig._nom("kinetics", "pm2_5", v, "µg/m³")
+                sig._nom("kinetics", "pm2_5", v, "µg/m³", origin)
 
         o3 = [v for v in h.get("ozone", []) if v is not None]
         if o3:
             v = o3[-1]
             if v > 100:
-                sig._set("stoichiometry", 2, "ozone", v, "µg/m³")
+                sig._set("stoichiometry", 2, "ozone", v, "µg/m³", origin)
             elif v > 60:
-                sig._set("stoichiometry", 1, "ozone", v, "µg/m³")
+                sig._set("stoichiometry", 1, "ozone", v, "µg/m³", origin)
             else:
-                sig._nom("stoichiometry", "ozone", v, "µg/m³")
+                sig._nom("stoichiometry", "ozone", v, "µg/m³", origin)
     except Exception as e:
         sig.errors.append(f"air_quality: {e}")
 
@@ -371,12 +378,14 @@ def _stream_donki(sig: DomainSignal) -> None:
                     intensity = float(cls[1:]) if len(cls) > 1 else 1.0
                 except ValueError:
                     intensity = 1.0
+                origin = {"type": "space", "source": "sun", "instrument": "DONKI/FLR", "flare_class": cls}
                 level = 2 if intensity >= 3 else 1
-                sig._set("parity", level, "solar_flare_X", intensity, "X-class")
+                sig._set("parity", level, "solar_flare_X", intensity, "X-class", origin)
                 if intensity >= 3:
-                    sig._set("criticality", 1, "solar_flare_X3", intensity, "X-class")
+                    sig._set("criticality", 1, "solar_flare_X3", intensity, "X-class", origin)
             elif cls.startswith("M"):
-                sig._set("parity", 1, "solar_flare_M", 1.0, "M-class")
+                origin = {"type": "space", "source": "sun", "instrument": "DONKI/FLR", "flare_class": cls}
+                sig._set("parity", 1, "solar_flare_M", 1.0, "M-class", origin)
     else:
         sig.errors.append("donki_flares: no data")
 
@@ -386,10 +395,11 @@ def _stream_donki(sig: DomainSignal) -> None:
         for cme in cmes:
             for analysis in (cme.get("cmeAnalyses") or []):
                 speed = analysis.get("speed") or 0
+                origin = {"type": "space", "source": "sun", "instrument": "DONKI/CME"}
                 if speed > 1500:
-                    sig._set("chirality", 2, "cme_speed", speed, "km/s")
+                    sig._set("chirality", 2, "cme_speed", speed, "km/s", origin)
                 elif speed > 800:
-                    sig._set("chirality", 1, "cme_speed", speed, "km/s")
+                    sig._set("chirality", 1, "cme_speed", speed, "km/s", origin)
     else:
         sig.errors.append("donki_cme: no data")
 
@@ -406,21 +416,35 @@ def _stream_seismic(sig: DomainSignal) -> None:
     if not data or "features" not in data:
         sig.errors.append("usgs_seismic: no data"); return
     try:
-        mags = [f["properties"].get("mag", 0) or 0 for f in data["features"]]
+        mags = []
+        origins_by_mag = {}  # mag -> origin dict
+        for f in data["features"]:
+            m = f["properties"].get("mag", 0) or 0
+            if m > 0:
+                mags.append(m)
+                coords = f.get("geometry", {}).get("coordinates", [0, 0, 0])
+                place = f["properties"].get("place", "unknown")
+                origins_by_mag[m] = {
+                    "type": "seismic",
+                    "lat": coords[1], "lon": coords[0],
+                    "depth_km": coords[2], "mag": m,
+                    "place": place,
+                }
         if not mags:
             sig._nom("topology", "seismic_energy", 0.0, "index"); return
 
         energy = sum(10 ** (1.5 * m) for m in mags if m > 0)
         energy_index = min(1.0, energy / 10 ** (1.5 * 8.0))
         max_mag = max(mags)
+        quake_origin = origins_by_mag.get(max_mag, {"type": "seismic"})
 
         if energy_index > 0.7 or max_mag >= 7.5:
-            sig._set("topology", 2, "seismic_energy", energy_index, "index")
-            sig._set("winding",  1, "seismic_major",  max_mag,       "M")
+            sig._set("topology", 2, "seismic_energy", energy_index, "index", quake_origin)
+            sig._set("winding",  1, "seismic_major",  max_mag,       "M", quake_origin)
         elif energy_index > 0.35 or max_mag >= 6.5:
-            sig._set("topology", 1, "seismic_energy", energy_index, "index")
+            sig._set("topology", 1, "seismic_energy", energy_index, "index", quake_origin)
         else:
-            sig._nom("topology", "seismic_energy", energy_index, "index")
+            sig._nom("topology", "seismic_energy", energy_index, "index", quake_origin)
     except Exception as e:
         sig.errors.append(f"usgs_seismic: {e}")
 
@@ -437,16 +461,17 @@ def _stream_kp(sig: DomainSignal) -> None:
             return
         kp_max = max(vals)
         kp_now = vals[-1]
+        origin = {"type": "space", "source": "earth_magnetosphere", "instrument": "NOAA_SWPC"}
         if kp_max >= 6:
-            sig._set("parity",      2, "kp_index", kp_max, "Kp")
-            sig._set("criticality", 1, "kp_index", kp_max, "Kp")
+            sig._set("parity",      2, "kp_index", kp_max, "Kp", origin)
+            sig._set("criticality", 1, "kp_index", kp_max, "Kp", origin)
         elif kp_max >= 5:
-            sig._set("parity",      1, "kp_index", kp_max, "Kp")
-            sig._set("criticality", 1, "kp_index", kp_max, "Kp")
+            sig._set("parity",      1, "kp_index", kp_max, "Kp", origin)
+            sig._set("criticality", 1, "kp_index", kp_max, "Kp", origin)
         elif kp_max >= 4:
-            sig._set("parity", 1, "kp_index", kp_max, "Kp")
+            sig._set("parity", 1, "kp_index", kp_max, "Kp", origin)
         else:
-            sig._nom("parity", "kp_index", kp_now, "Kp")
+            sig._nom("parity", "kp_index", kp_now, "Kp", origin)
     except Exception as e:
         sig.errors.append(f"noaa_kp: {e}")
 
@@ -467,14 +492,15 @@ def _stream_hn(sig: DomainSignal) -> None:
         sig.errors.append("hn_sentiment: no data"); return
     try:
         n = data.get("nbHits", 0)
+        origin = {"type": "social", "source": "news.ycombinator.com"}
         if n > 30:
-            sig._set("recognition", 2, "hn_stories", n, "stories/24h")
+            sig._set("recognition", 2, "hn_stories", n, "stories/24h", origin)
         elif n > 10:
-            sig._set("recognition", 1, "hn_stories", n, "stories/24h")
+            sig._set("recognition", 1, "hn_stories", n, "stories/24h", origin)
         elif n == 0:
-            sig._set("coupling", 1, "hn_silence", 0, "stories/24h")
+            sig._set("coupling", 1, "hn_silence", 0, "stories/24h", origin)
         else:
-            sig._nom("recognition", "hn_stories", n, "stories/24h")
+            sig._nom("recognition", "hn_stories", n, "stories/24h", origin)
     except Exception as e:
         sig.errors.append(f"hn_sentiment: {e}")
 
@@ -492,13 +518,14 @@ def _stream_solar_wind(sig: DomainSignal) -> None:
             if vals:
                 bz_min = min(vals)
                 bz_now = vals[-1]
+                origin = {"type": "space", "source": "L1_lagrange", "instrument": "DSCOVR"}
                 # Negative Bz = southward IMF = chiral coupling with Earth's field
                 if bz_min < -20:
-                    sig._set("chirality", 2, "imf_bz", bz_min, "nT")
+                    sig._set("chirality", 2, "imf_bz", bz_min, "nT", origin)
                 elif bz_min < -10:
-                    sig._set("chirality", 1, "imf_bz", bz_min, "nT")
+                    sig._set("chirality", 1, "imf_bz", bz_min, "nT", origin)
                 else:
-                    sig._nom("chirality", "imf_bz", bz_now, "nT")
+                    sig._nom("chirality", "imf_bz", bz_now, "nT", origin)
         except Exception as e:
             sig.errors.append(f"noaa_imf_bz: {e}")
     else:
@@ -510,12 +537,13 @@ def _stream_solar_wind(sig: DomainSignal) -> None:
                       if d.get("proton_speed") is not None]
             if speeds:
                 spd_max = max(speeds)
+                origin = {"type": "space", "source": "L1_lagrange", "instrument": "DSCOVR"}
                 if spd_max > 700:
-                    sig._set("winding", 2, "solar_wind_speed", spd_max, "km/s")
+                    sig._set("winding", 2, "solar_wind_speed", spd_max, "km/s", origin)
                 elif spd_max > 500:
-                    sig._set("winding", 1, "solar_wind_speed", spd_max, "km/s")
+                    sig._set("winding", 1, "solar_wind_speed", spd_max, "km/s", origin)
                 else:
-                    sig._nom("winding", "solar_wind_speed", spd_max, "km/s")
+                    sig._nom("winding", "solar_wind_speed", spd_max, "km/s", origin)
         except Exception as e:
             sig.errors.append(f"noaa_wind_speed: {e}")
     else:
@@ -534,21 +562,22 @@ def _stream_lightning(sig: DomainSignal) -> None:
         channels = d.get("channel_count", 0) or 0
         capacity = (d.get("total_capacity", 0) or 0) / 1e8  # sats → BTC
 
+        origin = {"type": "network", "source": "mempool.space/lightning"}
         if nodes > 0:
             density = channels / nodes
             if density > 12:
-                sig._set("coupling", 2, "ln_density", density, "ch/node")
+                sig._set("coupling", 2, "ln_density", density, "ch/node", origin)
             elif density > 8:
-                sig._set("coupling", 1, "ln_density", density, "ch/node")
+                sig._set("coupling", 1, "ln_density", density, "ch/node", origin)
             else:
-                sig._nom("coupling", "ln_density", density, "ch/node")
+                sig._nom("coupling", "ln_density", density, "ch/node", origin)
 
         if capacity > 6000:
-            sig._set("dimensionality", 2, "ln_capacity", capacity, "BTC")
+            sig._set("dimensionality", 2, "ln_capacity", capacity, "BTC", origin)
         elif capacity > 4000:
-            sig._set("dimensionality", 1, "ln_capacity", capacity, "BTC")
+            sig._set("dimensionality", 1, "ln_capacity", capacity, "BTC", origin)
         else:
-            sig._nom("dimensionality", "ln_capacity", capacity, "BTC")
+            sig._nom("dimensionality", "ln_capacity", capacity, "BTC", origin)
     except Exception as e:
         sig.errors.append(f"lightning: {e}")
 
@@ -585,14 +614,15 @@ def _stream_wikipedia(sig: DomainSignal) -> None:
             if any(t in a["article"].lower() for t in _WIKI_TECH_TERMS | _WIKI_CRYPTO_TERMS)
         )
         # Crypto/tech topics in top-100 = recognition signal
+        origin = {"type": "social", "source": "wikipedia.org"}
         if crypto_hits >= 3:
-            sig._set("recognition", 2, "wiki_crypto", crypto_hits, "top-100 articles")
+            sig._set("recognition", 2, "wiki_crypto", crypto_hits, "top-100 articles", origin)
         elif crypto_hits >= 1:
-            sig._set("recognition", 1, "wiki_crypto", crypto_hits, "top-100 articles")
+            sig._set("recognition", 1, "wiki_crypto", crypto_hits, "top-100 articles", origin)
         elif tech_total >= 5:
-            sig._set("recognition", 1, "wiki_tech", tech_total, "top-100 articles")
+            sig._set("recognition", 1, "wiki_tech", tech_total, "top-100 articles", origin)
         else:
-            sig._nom("recognition", "wiki_attention", tech_total, "top-100 articles")
+            sig._nom("recognition", "wiki_attention", tech_total, "top-100 articles", origin)
     except Exception as e:
         sig.errors.append(f"wikipedia: {e}")
 
@@ -614,24 +644,25 @@ def _stream_weather(sig: DomainSignal, lat: float = 40.71, lon: float = -74.01) 
         daily = data.get("daily", {})
         tmax_list = daily.get("temperature_2m_max") or []
         tmin_list = daily.get("temperature_2m_min") or []
+        origin = {"type": "atmosphere", "lat": lat, "lon": lon}
         if tmax_list and tmin_list and tmax_list[0] is not None and tmin_list[0] is not None:
             swing = tmax_list[0] - tmin_list[0]
             # Large daily swing = thermodynamic fidelity breakdown
             if swing > 22:
-                sig._set("fidelity", 2, "temp_swing", swing, "°C")
+                sig._set("fidelity", 2, "temp_swing", swing, "°C", origin)
             elif swing > 14:
-                sig._set("fidelity", 1, "temp_swing", swing, "°C")
+                sig._set("fidelity", 1, "temp_swing", swing, "°C", origin)
             else:
-                sig._nom("fidelity", "temp_swing", swing, "°C")
+                sig._nom("fidelity", "temp_swing", swing, "°C", origin)
 
         current = data.get("current", {})
         wind = current.get("wind_speed_10m") or 0
         if wind > 60:
-            sig._set("winding", 2, "surface_wind", wind, "km/h")
+            sig._set("winding", 2, "surface_wind", wind, "km/h", origin)
         elif wind > 35:
-            sig._set("winding", 1, "surface_wind", wind, "km/h")
+            sig._set("winding", 1, "surface_wind", wind, "km/h", origin)
         else:
-            sig._nom("winding", "surface_wind", wind, "km/h")
+            sig._nom("winding", "surface_wind", wind, "km/h", origin)
     except Exception as e:
         sig.errors.append(f"open_meteo: {e}")
 
@@ -658,26 +689,27 @@ def _stream_coingecko_alts(sig: DomainSignal) -> None:
 
         avg = sum(changes) / len(changes)
         # Alt outperformance vs BTC = granularity (fine-grained market structure)
+        origin = {"type": "market", "source": "coingecko.com"}
         if avg > 5:
-            sig._set("granularity", 2, "alt_outperform", avg, "%/24h vs BTC")
+            sig._set("granularity", 2, "alt_outperform", avg, "%/24h vs BTC", origin)
         elif avg > 2:
-            sig._set("granularity", 1, "alt_outperform", avg, "%/24h vs BTC")
+            sig._set("granularity", 1, "alt_outperform", avg, "%/24h vs BTC", origin)
         elif avg < -5:
-            sig._set("granularity", 2, "btc_dominance_surge", avg, "%/24h vs BTC")
+            sig._set("granularity", 2, "btc_dominance_surge", avg, "%/24h vs BTC", origin)
         elif avg < -2:
-            sig._set("granularity", 1, "btc_dominance_surge", avg, "%/24h vs BTC")
+            sig._set("granularity", 1, "btc_dominance_surge", avg, "%/24h vs BTC", origin)
         else:
-            sig._nom("granularity", "alt_btc_ratio", avg, "%/24h vs BTC")
+            sig._nom("granularity", "alt_btc_ratio", avg, "%/24h vs BTC", origin)
 
         # Cross-alt divergence = fidelity (coherent vs fragmented alt market)
         if len(changes) >= 2:
             divergence = max(changes) - min(changes)
             if divergence > 10:
-                sig._set("fidelity", 2, "alt_divergence", divergence, "%")
+                sig._set("fidelity", 2, "alt_divergence", divergence, "%", origin)
             elif divergence > 5:
-                sig._set("fidelity", 1, "alt_divergence", divergence, "%")
+                sig._set("fidelity", 1, "alt_divergence", divergence, "%", origin)
             else:
-                sig._nom("fidelity", "alt_divergence", divergence, "%")
+                sig._nom("fidelity", "alt_divergence", divergence, "%", origin)
     except Exception as e:
         sig.errors.append(f"coingecko_alts: {e}")
 

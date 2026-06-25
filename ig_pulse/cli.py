@@ -59,6 +59,19 @@ def cmd_report(args) -> None:
     reconstruct_propagation(snaps, ts, lookback_seconds=args.lookback)
 
 
+def cmd_geo_viz(args) -> None:
+    """Launch the geographic visualization dashboard."""
+    from .geo_viz import create_app
+    data_dir = args.data_dir or str(DATA_DIR)
+    app = create_app(data_dir=data_dir)
+    print(f"🌍 Datanado Geo-Viz Dashboard")
+    print(f"   Data: {data_dir}")
+    print(f"   Map:  http://{args.host}:{args.port}")
+    print(f"   API:  http://{args.host}:{args.port}/api/all")
+    print(f"   Press Ctrl+C to stop.")
+    app.run(host=args.host, port=args.port, debug=args.debug)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="ig-pulse", description="Information propagation observatory")
     sub = parser.add_subparsers(dest="command")
@@ -79,6 +92,12 @@ def main() -> None:
     p_report.add_argument("--ts", type=str, default=None, help="Event timestamp (ISO 8601). Defaults to latest snapshot.")
     p_report.add_argument("--lookback", type=int, default=259200, help="Seconds to look back (default 259200 = 72h)")
 
+    p_geo = sub.add_parser("geo-viz", help="Launch geographic visualization dashboard")
+    p_geo.add_argument("--data-dir", default=None, help="Path to ig-pulse data directory")
+    p_geo.add_argument("--host", default="0.0.0.0", help="Bind host (default 0.0.0.0)")
+    p_geo.add_argument("--port", type=int, default=5050, help="Port (default 5050)")
+    p_geo.add_argument("--debug", action="store_true", help="Debug mode")
+
     args = parser.parse_args()
     if args.command == "collect":
         cmd_collect(args)
@@ -88,6 +107,8 @@ def main() -> None:
         cmd_map(args)
     elif args.command == "report":
         cmd_report(args)
+    elif args.command == "geo-viz":
+        cmd_geo_viz(args)
     else:
         parser.print_help()
 

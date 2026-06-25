@@ -13,6 +13,7 @@ class ReadingRecord:
     value: float
     unit: str
     alert: int
+    origin: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -66,6 +67,7 @@ def snapshot_from_domain_signal(sig) -> Snapshot:
             value=float(r.value),
             unit=r.unit,
             alert=r.alert,
+            origin=getattr(r, "origin", {}),
         )
         for r in sig.readings
     ]
