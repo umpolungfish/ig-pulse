@@ -120,7 +120,9 @@ def analyze(
                     lag_seconds=lag_idx * interval_seconds,
                     strength_r=r, p_value=p,
                 ))
-    edges.sort(key=lambda e: -abs(e.strength_r))
+    # Primary: strongest |r|. Secondary: longest lag (so r=1.0 at 241266s
+    # beats r=1.0 at 0s — long-lag causal leads surface before batch artifacts).
+    edges.sort(key=lambda e: (-abs(e.strength_r), -e.lag_seconds))
     return edges
 
 

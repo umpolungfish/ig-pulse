@@ -1,16 +1,62 @@
-Add 5 new domain streams (10→15), plugging all primitive coverage gaps (2026-06-21)
+ig-pulse: fix 7 failing streams + remove 805 lines of dead code — 2026-06-27
 
-Updated: ig_pulse/domain_streams.py
+## Dead code removal
 
-New streams:
-  11. solar_wind      — NOAA RTSW mag+wind; Bz_gsm → Ħ Chirality, proton speed → Ω Winding
-  12. lightning       — mempool.space LN stats; channel density → ɢ Coupling, capacity → Ð Dimensionality
-  13. wikipedia       — Wikimedia pageviews top-100; crypto/tech hits → Ř Recognition
-  14. weather         — Open-Meteo daily forecast; temp swing → ƒ Fidelity, surface wind → Ω Winding
-  15. coingecko_alts  — ETH/SOL/DOT/NEAR vs BTC 24h; avg → Γ Granularity, spread → ƒ Fidelity
+The earlier extreme→base merge left 7 function definitions duplicated (Python
+runs the last definition, so lines 717–1521 were entirely dead). Removed:
+  - Dead copies of: _stream_arxiv_bio, _stream_openfda_enforcement,
+    _stream_stereo_cosmic_rays, _stream_ace_epam, _stream_goes_cosmic_ray,
+    _stream_dscovr_helicity, _stream_stereo_sept
+  - Stale _WIKI_CHIRAL_ARTICLES and _ARXIV_BIO_CATS constants (redefined later)
+  - Old _SEPT_BASE constant (moved to just before _sept_fetch_latest)
+  - Misleading "# ── Aggregator ──" comment mid-file
+File: 2954 → 2207 lines (-747 lines); all 7 unique functions now at correct
+positions, all 33 streams confirmed working.
 
-Coverage before: ƒ Fidelity = 0 sources, Ř Recognition = 1, Ħ Chirality = CME-only (rare)
-Coverage after: all 12 primitives have at least 1 live stream; ƒ Fidelity now has 2
+## Stream data source fixes (7 of 7)
 
-Synfin synced: synfin/synfin/domain_streams.py updated to match.
-Live test: 15 streams fetching, B-state ×1.50, 10 alerts, 0 errors.
+1. deribit_options — "insufficient data"
+   Root cause: API no longer returns option_type field.
+   Fix: parse from instrument_name suffix (-P = put, -C = call).
+
+2. yield_curve — "no data"
+   Root cause: Treasury fiscaldata filter query has spaces in URL (URL encoding
+   issue) AND the security_desc values ("Treasury Notes 2-year") don't exist in
+   the API — only "Treasury Notes" as one combined category.
+   Fix: FRED T10Y2Y CSV (fred.stlouisfed.org) — returns 10Y−2Y spread directly.
+   Note: FRED requires plain urllib (no custom User-Agent); _text() blocked.
+
+3. vix — "no data"
+   Root cause: CBOE cdn.cboe.com/api/... returns HTTP 403.
+   Fix: Yahoo Finance chart API for ^VIX with Mozilla User-Agent.
+
+4. shipping — "no data"
+   Root cause: VesselFinder API returns HTML (requires paid API key).
+   Fix: Yahoo Finance BDRY ETF (Breakwave Dry Bulk Shipping) — 5-day close
+   series; day-over-day % change → Γ granularity / Σ stoichiometry signal.
+
+5. power_grid — "no data"
+   Root cause: EIA API v2 requires registration; api_key=public returns 403.
+   Fix: CAISO OASIS (oasis.caiso.com) — free, no key, ZIP CSV of RTM 5-min
+   load forecast. Sums MW across all 37 reporting areas → Ç kinetics signal.
+
+6. gdelt — "no data"
+   Root cause: GDELT doc API (api.gdeltproject.org/api/v2/doc/) rate-limits
+   aggressively (HTTP 429 on every real collect).
+   Fix: GDELT v2 raw 15-min event export via data.gdeltproject.org/gdeltv2/
+   lastupdate.txt → ZIP CSV. 740 events per 15-min window, columns 26 (Goldstein
+   scale) and 30 (AvgTone) used for coupling/granularity signals.
+
+7. stereo_cr — "magnetic-only (no recent particle data)"
+   Root cause: During quiet heliosphere, STEREO IMPACT particle channels are
+   null — this is expected, not an error. Stream was still producing valid
+   magnetic helicity readings (winding, chirality) and appending to errors.
+   Fix: Removed the erroneous sig.errors.append(); stream now silently uses
+   magnetic data when particle data is absent.
+
+## Verification
+
+collect --once (2 passes):
+  Pass 1: 0 errors (stereo transient hiccup in one earlier run — not reproducible)
+  Pass 2: 0 errors
+  alerts=18, ×1.50, B-state active; Ç kinetics now contributing from CAISO grid.

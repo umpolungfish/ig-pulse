@@ -24,10 +24,33 @@ def cmd_couple(args) -> None:
     print(f"  Loaded {len(snaps)} snapshots from {SNAPSHOTS_PATH}")
     edges = analyze(snaps, max_lag_seconds=args.max_lag, min_r=args.min_r, max_p=args.max_p)
     print(f"  Found {len(edges)} coupling edges (|r|≥{args.min_r}, p≤{args.max_p})")
-    for e in edges[:20]:
+
+    # Separate causal leads (lag > 0) from zero-lag structure.
+    # Deduplicate zero-lag symmetric pairs (A→B and B→A at lag=0 are the same structural fact).
+    causal = [e for e in edges if e.lag_seconds > 0]
+    zero_lag = []
+    seen_zero = set()
+    for e in edges:
+        if e.lag_seconds == 0:
+            key = frozenset([(e.source_stream, e.source_primitive), (e.target_stream, e.target_primitive)])
+            if key not in seen_zero:
+                seen_zero.add(key)
+                zero_lag.append(e)
+
+    n = args.top
+    if causal:
+        print(f"\n  ── Causal leads (lag > 0): top {min(n, len(causal))} of {len(causal)} ──")
+        for e in causal[:n]:
+            print(f"    {e.label()}")
+    else:
+        print("\n  ── No causal leads found (lag > 0) ──")
+
+    print(f"\n  ── Zero-lag structure (deduplicated): top {min(n, len(zero_lag))} of {len(zero_lag)} ──")
+    for e in zero_lag[:n]:
         print(f"    {e.label()}")
+
     save_coupling(edges, COUPLING_PATH)
-    print(f"  Saved to {COUPLING_PATH}")
+    print(f"\n  Saved to {COUPLING_PATH}")
 
 
 def cmd_map(args) -> None:
@@ -84,6 +107,7 @@ def main() -> None:
     p_couple.add_argument("--max-lag", type=int, default=259200, help="Maximum lag to test in seconds (default 259200 = 72h)")
     p_couple.add_argument("--min-r", type=float, default=0.3, help="Minimum |Pearson r| to include")
     p_couple.add_argument("--max-p", type=float, default=0.05, help="Maximum p-value to include")
+    p_couple.add_argument("--top", type=int, default=20, help="Top N to display per section (default 20)")
 
     p_map = sub.add_parser("map", help="Display coupling graph")
     p_map.add_argument("--dot", action="store_true", help="Output Graphviz DOT format")
