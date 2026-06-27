@@ -1,62 +1,48 @@
-ig-pulse: fix 7 failing streams + remove 805 lines of dead code — 2026-06-27
+ig-pulse: fix space stream positions + L/R infinite map scroll — 2026-06-27
 
-## Dead code removal
+## geo_viz.py: SPACE_SOURCE_MAP
 
-The earlier extreme→base merge left 7 function definitions duplicated (Python
-runs the last definition, so lines 717–1521 were entirely dead). Removed:
-  - Dead copies of: _stream_arxiv_bio, _stream_openfda_enforcement,
-    _stream_stereo_cosmic_rays, _stream_ace_epam, _stream_goes_cosmic_ray,
-    _stream_dscovr_helicity, _stream_stereo_sept
-  - Stale _WIKI_CHIRAL_ARTICLES and _ARXIV_BIO_CATS constants (redefined later)
-  - Old _SEPT_BASE constant (moved to just before _sept_fetch_latest)
-  - Misleading "# ── Aggregator ──" comment mid-file
-File: 2954 → 2207 lines (-747 lines); all 7 unique functions now at correct
-positions, all 33 streams confirmed working.
+Added SPACE_SOURCE_MAP dict (origin["source"] → SPACE_ORIGINS key) so space-based
+stream readings render at their actual orbital positions instead of falling back to
+NOAA SWPC Boulder CO via PROJECTION_MAP.
 
-## Stream data source fixes (7 of 7)
+Mapping:
+  "sun"                → SPACE_ORIGINS["sun"]              (lon=0, lat=0)
+  "L1_lagrange"        → SPACE_ORIGINS["L1_dscovr"]        (lon=-65, lat=5)
+  "DSCOVR"             → SPACE_ORIGINS["L1_dscovr"]        (lon=-65, lat=5)
+  "ACE"                → SPACE_ORIGINS["L1_ace"]           (lon=-75, lat=-5)
+  "GOES-18" / "GOES-19"→ SPACE_ORIGINS["goes_18"]          (lon=-137, lat=0)
+  "stereo_a"           → SPACE_ORIGINS["stereo_a"]         (lon=70, lat=0)
+  "stereo_sept"        → SPACE_ORIGINS["stereo_a"]         (lon=70, lat=0)
+  "earth_magnetosphere"→ SPACE_ORIGINS["earth_magnetosphere"](lat=90, lon=0)
 
-1. deribit_options — "insufficient data"
-   Root cause: API no longer returns option_type field.
-   Fix: parse from instrument_name suffix (-P = put, -C = call).
+Updated _extract_geo_nodes() priority chain:
+  1. origin["lat"] / origin["lon"] if present  (seismic/atmosphere/tide — exact GPS)
+  2. SPACE_SOURCE_MAP via origin["source"]       (ACE/GOES/STEREO/DSCOVR/SEPT/Sun/Kp)
+  3. PROJECTION_MAP hub                          (market/social/bio/infrastructure)
 
-2. yield_curve — "no data"
-   Root cause: Treasury fiscaldata filter query has spaces in URL (URL encoding
-   issue) AND the security_desc values ("Treasury Notes 2-year") don't exist in
-   the API — only "Treasury Notes" as one combined category.
-   Fix: FRED T10Y2Y CSV (fred.stlouisfed.org) — returns 10Y−2Y spread directly.
-   Note: FRED requires plain urllib (no custom User-Agent); _text() blocked.
+Result: 25 of 73 nodes now render as origin_type="space" at correct orbital coords.
 
-3. vix — "no data"
-   Root cause: CBOE cdn.cboe.com/api/... returns HTTP 403.
-   Fix: Yahoo Finance chart API for ^VIX with Mozilla User-Agent.
+## geo_map.html: L/R infinite scroll
 
-4. shipping — "no data"
-   Root cause: VesselFinder API returns HTML (requires paid API key).
-   Fix: Yahoo Finance BDRY ETF (Breakwave Dry Bulk Shipping) — 5-day close
-   series; day-over-day % change → Γ granularity / Σ stoichiometry signal.
+Changed tile layer noWrap from true → false. CARTO dark_all tiles support world
+repetition natively; map now scrolls left/right indefinitely.
 
-5. power_grid — "no data"
-   Root cause: EIA API v2 requires registration; api_key=public returns 403.
-   Fix: CAISO OASIS (oasis.caiso.com) — free, no key, ZIP CSV of RTM 5-min
-   load forecast. Sums MW across all 37 reporting areas → Ç kinetics signal.
+## Serialization audit (no changes needed)
 
-6. gdelt — "no data"
-   Root cause: GDELT doc API (api.gdeltproject.org/api/v2/doc/) rate-limits
-   aggressively (HTTP 429 on every real collect).
-   Fix: GDELT v2 raw 15-min event export via data.gdeltproject.org/gdeltv2/
-   lastupdate.txt → ZIP CSV. 740 events per 15-min window, columns 26 (Goldstein
-   scale) and 30 (AvgTone) used for coupling/granularity signals.
+Verified lat/lon origin data flows through the full pipeline without loss:
+  domain_streams._set(origin={lat,lon}) → StreamValue.origin
+  → snapshot_from_domain_signal() → ReadingRecord.origin (via getattr)
+  → asdict(Snapshot) → JSON → ReadingRecord(**r) → _extract_geo_nodes()
 
-7. stereo_cr — "magnetic-only (no recent particle data)"
-   Root cause: During quiet heliosphere, STEREO IMPACT particle channels are
-   null — this is expected, not an error. Stream was still producing valid
-   magnetic helicity readings (winding, chirality) and appending to errors.
-   Fix: Removed the erroneous sig.errors.append(); stream now silently uses
-   magnetic data when particle data is absent.
+7 streams already carrying real lat/lon in origin:
+  tide_range         lat=40.700  lon=-74.014  (Battery Park, NYC — hardcoded)
+  pm2_5              lat=40.710  lon=-74.010  (OpenWeatherMap city response)
+  ozone              lat=40.710  lon=-74.010
+  temp_swing         lat=40.710  lon=-74.010
+  surface_wind       lat=40.710  lon=-74.010
+  seismic_energy     lat=10.435  lon=-68.472  (actual earthquake epicenter — varies)
+  seismic_major      lat=10.435  lon=-68.472
 
-## Verification
-
-collect --once (2 passes):
-  Pass 1: 0 errors (stereo transient hiccup in one earlier run — not reproducible)
-  Pass 2: 0 errors
-  alerts=18, ×1.50, B-state active; Ç kinetics now contributing from CAISO grid.
+All others carry type/source/instrument metadata but no lat/lon — correctly use
+SPACE_SOURCE_MAP (step 2) or PROJECTION_MAP (step 3) as fallback.

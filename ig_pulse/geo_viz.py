@@ -38,33 +38,70 @@ from .schema import Snapshot, ReadingRecord, load_snapshots
 
 # Space-based "origins" — fixed locations for celestial data sources
 SPACE_ORIGINS = {
-    "L1_lagrange": {
-        "type": "space", "name": "DSCOVR (L1 Lagrange Point)",
-        "lat": 0.0, "lon": -70.0,  # Rendered as special marker — L1 is at ~1.5M km sunward
-        "alt_km": 1_500_000, "instrument": "DSCOVR",
-        "description": "Solar wind, IMF Bz — 1.5M km sunward",
+    "L1_dscovr": {
+        "type": "space", "name": "DSCOVR (L1 — IMF Bz / solar wind)",
+        "lat": 5.0, "lon": -65.0,
+        "alt_km": 1_500_000, "instrument": "DSCOVR/MAG",
+        "description": "IMF Bz helicity, solar wind — 1.5M km sunward",
+        "icon": "satellite",
+    },
+    "L1_ace": {
+        "type": "space", "name": "ACE (L1 — EPAM e⁻/p⁺ ratios)",
+        "lat": -5.0, "lon": -75.0,
+        "alt_km": 1_500_000, "instrument": "ACE/EPAM",
+        "description": "Electron/proton flux ratios, chirality proxy — 1.5M km sunward",
         "icon": "satellite",
     },
     "sun": {
-        "type": "space", "name": "Sun (DONKI Flares/CMEs)",
-        "lat": 0.0, "lon": 0.0,  # Positioned at (0,0) for special rendering
+        "type": "space", "name": "Sun (DONKI Flares / CMEs)",
+        "lat": 0.0, "lon": 0.0,
         "alt_km": 149_600_000, "instrument": "DONKI/FLR",
         "description": "Solar flares, CMEs — 1 AU",
         "icon": "sun",
     },
+    "stereo_a": {
+        "type": "space", "name": "STEREO-A (cosmic rays + magnetic helicity)",
+        "lat": 0.0, "lon": 70.0,   # ~70° ahead of Earth in its orbit
+        "alt_km": 149_600_000, "instrument": "IMPACT/PLASTIC/SEPT",
+        "description": "Cosmic ray protons, magnetic helicity, directional particles",
+        "icon": "satellite",
+    },
+    "goes_18": {
+        "type": "space", "name": "GOES-18 (GCR + SEP events)",
+        "lat": 0.0, "lon": -137.0,  # Geostationary over western Americas
+        "alt_km": 35_786, "instrument": "GOES/SGPS",
+        "description": "Galactic cosmic rays, solar energetic particles",
+        "icon": "satellite",
+    },
     "earth_magnetosphere": {
-        "type": "space", "name": "Earth Magnetosphere (Kp)",
-        "lat": 90.0, "lon": 0.0,  # North magnetic pole approximation
+        "type": "space", "name": "Earth Magnetosphere (Kp index)",
+        "lat": 90.0, "lon": 0.0,
         "alt_km": 60_000, "instrument": "NOAA_SWPC",
         "description": "Geomagnetic storm index",
         "icon": "magnet",
     },
 }
+
+# Maps origin["source"] values emitted by streams → SPACE_ORIGINS key.
+# Lets space-based readings render at their actual orbital positions instead of
+# falling back to a ground station in PROJECTION_MAP.
+SPACE_SOURCE_MAP: dict[str, str] = {
+    "sun":                 "sun",
+    "L1_lagrange":         "L1_dscovr",
+    "DSCOVR":              "L1_dscovr",
+    "ACE":                 "L1_ace",
+    "GOES-18":             "goes_18",
+    "GOES-19":             "goes_18",
+    "stereo_a":            "stereo_a",
+    "stereo_sept":         "stereo_a",
+    "earth_magnetosphere": "earth_magnetosphere",
+}
+
 # ── Projection Map: Non-Geo Stream → Approximate Location ────────────────────
 # Market/network/social streams get projected to designated hubs
 
 PROJECTION_MAP = {
-    # Financial hubs
+    # ── Financial / market ────────────────────────────────────────────────────
     "fear_greed":           (40.707, -74.011, "Wall Street, NYC"),
     "fear_greed_cross":     (40.707, -74.011, "Wall Street, NYC"),
     "btc_dom":              (40.707, -74.011, "Wall Street, NYC"),
@@ -99,6 +136,106 @@ PROJECTION_MAP = {
     "hn_sentiment":         (37.775, -122.419, "Hacker News, Silicon Valley"),
     "hn_silence":           (37.775, -122.419, "Hacker News, Silicon Valley"),
     "wiki_attention":       (37.775, -122.419, "Wikipedia CDN, SF"),
+    # Options / derivatives (Chicago — CBOE)
+    "options_skew":         (41.878, -87.629, "CBOE, Chicago"),
+    "options_iv":           (41.878, -87.629, "CBOE, Chicago — IV level"),
+    "vix":                  (41.878, -87.629, "CBOE VIX, Chicago"),
+    "vix_low":              (41.878, -87.629, "CBOE VIX (low), Chicago"),
+
+    # Yield curve / macro (Federal Reserve, DC)
+    "yield_curve":          (38.893, -77.046, "Federal Reserve, Washington DC"),
+    "yield_curve_invert":   (38.893, -77.046, "Federal Reserve — Inversion, DC"),
+    "yield_curve_flat":     (38.893, -77.046, "Federal Reserve — Flat curve, DC"),
+    "yield_curve_steep":    (38.893, -77.046, "Federal Reserve — Steep curve, DC"),
+    "yield_spread_wide":    (38.893, -77.046, "Federal Reserve — Wide spread, DC"),
+
+    # Shipping (Port of Singapore — global hub)
+    "shipping":             (1.290, 103.852, "Port of Singapore"),
+    "shipping_weak":        (1.290, 103.852, "Port of Singapore — weak"),
+    "shipping_active":      (1.290, 103.852, "Port of Singapore — active"),
+    "shipping_surge":       (1.290, 103.852, "Port of Singapore — surge"),
+    "shipping_drop":        (1.290, 103.852, "Port of Singapore — drop"),
+
+    # Power grid (CAISO, Folsom CA — Western US grid)
+    "grid_load":            (38.681, -121.137, "CAISO Grid, Folsom CA"),
+    "grid_elevated":        (38.681, -121.137, "CAISO Grid (elevated), Folsom CA"),
+    "grid_peak":            (38.681, -121.137, "CAISO Grid (peak), Folsom CA"),
+
+    # GDELT (global events — distributed; anchor at Atlanta project HQ)
+    "gdelt_events":         (33.749, -84.388, "GDELT Project, Atlanta GA"),
+    "gdelt_tone":           (33.749, -84.388, "GDELT Tone, Atlanta GA"),
+    "gdelt_tone_spread":    (33.749, -84.388, "GDELT Tone Spread, Atlanta GA"),
+    "gdelt_instability":    (33.749, -84.388, "GDELT Instability, Atlanta GA"),
+
+    # Twitter/social (San Francisco)
+    "twitter_crypto":       (37.429, -122.138, "Twitter/X, San Francisco"),
+
+    # Wikipedia chiral (Wikimedia Foundation, SF)
+    "wiki_chiral":          (37.429, -122.138, "Wikipedia — Chiral Articles"),
+    "wiki_chiral_total":    (37.429, -122.138, "Wikipedia — Chiral Total Views"),
+    "wiki_chiral_diversity": (37.429, -122.138, "Wikipedia — Chiral Diversity"),
+
+    # ArXiv q-bio (Cornell University, Ithaca NY)
+    "arxiv_bio_papers":     (42.446, -76.480, "arXiv q-bio, Cornell University"),
+    "arxiv_bio_rate":       (42.446, -76.480, "arXiv q-bio (rate), Cornell"),
+    "arxiv_bio_critical":   (42.446, -76.480, "arXiv q-bio (critical burst), Cornell"),
+    "arxiv_bio_cats":       (42.446, -76.480, "arXiv q-bio categories, Cornell"),
+
+    # GenBank / PubMed (NIH, Bethesda MD)
+    "genbank_chiral":       (38.998, -77.103, "NCBI GenBank, NIH Bethesda MD"),
+    "genbank_diversity":    (38.998, -77.103, "GenBank Diversity, NIH"),
+    "genbank_rate":         (38.998, -77.103, "GenBank Submission Rate, NIH"),
+    "genbank_fidelity":     (38.998, -77.103, "GenBank Fidelity, NIH"),
+    "pubmed_pubs":          (38.998, -77.103, "PubMed, NIH Bethesda MD"),
+    "pubmed_breakthrough":  (38.998, -77.103, "PubMed Breakthroughs, NIH"),
+
+    # FDA enforcement (FDA HQ, Silver Spring MD)
+    "fda_enforcement":      (39.043, -77.032, "FDA, Silver Spring MD"),
+    "fda_enforcement_rate": (39.043, -77.032, "FDA Enforcement Rate"),
+    "fda_enforcement_fidelity": (39.043, -77.032, "FDA Enforcement Fidelity"),
+
+    # NASA night lights (NASA Goddard, Greenbelt MD)
+    "night_lights":         (38.996, -76.848, "NASA Goddard, Greenbelt MD"),
+
+    # Space-based streams (map to nearest ground station / NOAA SWPC Boulder)
+    "cme_speed":            (40.013, -105.271, "NOAA SWPC, Boulder CO — CME"),
+    "solar_flare_M":        (40.013, -105.271, "NOAA SWPC, Boulder CO — M-flare"),
+    "solar_flare_X":        (40.013, -105.271, "NOAA SWPC, Boulder CO — X-flare"),
+    "solar_wind_speed":     (40.013, -105.271, "NOAA SWPC, Boulder CO — solar wind"),
+    "imf_bz":               (40.013, -105.271, "NOAA SWPC, Boulder CO — IMF Bz"),
+    "kp_index":             (40.013, -105.271, "NOAA SWPC, Boulder CO — Kp"),
+    "dscovr_bz_north":      (40.013, -105.271, "NOAA SWPC — DSCOVR Bz north"),
+    "dscovr_bz_south":      (40.013, -105.271, "NOAA SWPC — DSCOVR Bz south"),
+    "dscovr_bz_excursion":  (40.013, -105.271, "NOAA SWPC — DSCOVR Bz excursion"),
+    "stereo_B_magnitude":   (40.013, -105.271, "NOAA SWPC — STEREO-A B magnitude"),
+    "stereo_mag_helicity":  (40.013, -105.271, "NOAA SWPC — STEREO-A helicity"),
+    "stereo_phi_sweep":     (40.013, -105.271, "NOAA SWPC — STEREO-A phi sweep"),
+    "stereo_cosmic_ray":    (40.013, -105.271, "NOAA SWPC — STEREO-A cosmic rays"),
+    "stereo_electron_flux": (40.013, -105.271, "NOAA SWPC — STEREO-A electrons"),
+    "ace_proton_total":     (40.013, -105.271, "NOAA SWPC — ACE proton flux"),
+    "ace_e_p_ratio":        (40.013, -105.271, "NOAA SWPC — ACE e/p ratio"),
+    "ace_electron_flux":    (40.013, -105.271, "NOAA SWPC — ACE electron flux"),
+    "ace_fp6p":             (40.013, -105.271, "NOAA SWPC — ACE spectral index"),
+    "ace_spectral_hard":    (40.013, -105.271, "NOAA SWPC — ACE spectral hardening"),
+    "ace_SEP_onset":        (40.013, -105.271, "NOAA SWPC — ACE SEP onset"),
+    "goes_gcr_100MeV":      (40.013, -105.271, "NOAA SWPC — GOES GCR 100MeV"),
+    "goes_gcr_500MeV":      (40.013, -105.271, "NOAA SWPC — GOES GCR 500MeV"),
+    "goes_sep_10MeV":       (40.013, -105.271, "NOAA SWPC — GOES SEP 10MeV"),
+    "goes_spectral_ratio":  (40.013, -105.271, "NOAA SWPC — GOES spectral ratio"),
+    "goes_gcr_spectral":    (40.013, -105.271, "NOAA SWPC — GOES GCR spectral"),
+    "goes_SEP_onset":       (40.013, -105.271, "NOAA SWPC — GOES SEP onset"),
+    "stereo_SEP_onset":     (40.013, -105.271, "NOAA SWPC — STEREO SEP onset"),
+    "stereo_proton_rise":   (40.013, -105.271, "NOAA SWPC — STEREO proton rise"),
+    "sept_e_ion_ratio":     (40.013, -105.271, "NOAA SWPC — SEPT e/ion ratio"),
+    "sept_hard_spectrum_e": (40.013, -105.271, "NOAA SWPC — SEPT hard e spectrum"),
+    "sept_hard_spectrum_i": (40.013, -105.271, "NOAA SWPC — SEPT hard ion spectrum"),
+    "sept_ns_asymmetry":    (40.013, -105.271, "NOAA SWPC — SEPT N/S asymmetry"),
+    "sept_ns_symmetry":     (40.013, -105.271, "NOAA SWPC — SEPT N/S symmetric"),
+    "sept_sun_asun_ratio":  (40.013, -105.271, "NOAA SWPC — SEPT sun/antisun"),
+    "sept_electron_dominated": (40.013, -105.271, "NOAA SWPC — SEPT e-dominated"),
+    "sept_e_flux":          (40.013, -105.271, "NOAA SWPC — SEPT electron flux"),
+    "sept_data_freshness":  (40.013, -105.271, "NOAA SWPC — SEPT data latency"),
+
     # Generic Kalshi catch-all streams
     "kalshi_elections_KXNEXTUKPM-30-ABUR": (51.507, -0.128, "London, UK — Prediction Markets"),
     "kalshi_elections_KXNEXTUKPM-30-BPHI": (51.507, -0.128, "London, UK — Prediction Markets"),
@@ -261,13 +398,18 @@ class GeoVizEngine:
             lon = origin.get("lon")
             origin_type = origin.get("type", "unknown")
 
-            # Check projection map for streams without explicit coords
-            if (lat is None or lon is None) and r.stream in PROJECTION_MAP:
-                proj_lat, proj_lon, proj_label = PROJECTION_MAP[r.stream]
-                lat, lon = proj_lat, proj_lon
-                if not origin:
-                    origin_type = "projected"
-                    origin = {"type": "projected", "label": proj_label}
+            if lat is None or lon is None:
+                # 1. Space-based stream: map origin["source"] to orbital position
+                sp_key = SPACE_SOURCE_MAP.get(origin.get("source", ""))
+                if sp_key and sp_key in SPACE_ORIGINS:
+                    sp = SPACE_ORIGINS[sp_key]
+                    lat, lon = sp["lat"], sp["lon"]
+                    origin_type = "space"
+                # 2. Ground/market stream: fall back to PROJECTION_MAP hub
+                elif r.stream in PROJECTION_MAP:
+                    lat, lon, proj_label = PROJECTION_MAP[r.stream]
+                    if not origin:
+                        origin_type = "projected"
 
             if lat is not None and lon is not None:
                 nodes.append(GeoNode(
@@ -384,21 +526,120 @@ class GeoVizEngine:
         nodes = self._extract_geo_nodes()
         edges = self._extract_geo_edges(nodes)
 
-        # Compute spectral radius from coupling if available
         spectral_radius = self._graph.get("spectral_radius", 3.4985)
         tick_hours = self._graph.get("tick_hours", 49.0)
 
+        snap = self._latest_snapshot
         return {
             "total_nodes": len(nodes),
             "total_edges": len(edges),
             "active_alerts": sum(1 for n in nodes if n.alert >= 1),
+            "geo_nodes": len(nodes),
+            "prop_edges": len(edges),
             "spectral_radius": spectral_radius,
             "tick_hours": tick_hours,
             "tick_days": tick_hours / 24,
             "tick_epoch": "1970-01-01T00:00:00Z",
             "tick_system": "unix_epoch (wall-clock anchored — same phase everywhere, no reset on refresh)",
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "snapshot_ts": self._latest_snapshot.ts if self._latest_snapshot else None,
+            "snapshot_ts": snap.ts if snap else None,
+            "multiplier": snap.multiplier if snap else 1.0,
+            "is_b_state": snap.is_b_state if snap else False,
+            "total_alerts": snap.total_alerts if snap else 0,
+            "total_readings": len(snap.readings) if snap else 0,
+            "primitives": snap.primitives if snap else {},
+            "errors": snap.errors if snap else [],
+        }
+
+    def get_primitives(self) -> dict:
+        """Per-primitive alert levels and stream counts."""
+        self._load_if_needed()
+        snap = self._latest_snapshot
+        if not snap:
+            return {"primitives": {}}
+
+        by_prim: Dict[str, list] = {}
+        for r in snap.readings:
+            by_prim.setdefault(r.primitive, []).append({
+                "stream": r.stream,
+                "alert": r.alert,
+                "value": r.value,
+                "unit": r.unit,
+            })
+
+        result = {}
+        for prim, readings in by_prim.items():
+            result[prim] = {
+                "level": max(r["alert"] for r in readings),
+                "stream_count": len(readings),
+                "alert_count": sum(1 for r in readings if r["alert"] > 0),
+                "readings": readings,
+            }
+        return {"primitives": result, "snapshot_ts": snap.ts, "multiplier": snap.multiplier}
+
+    def get_streams(self) -> dict:
+        """All stream readings grouped by category."""
+        self._load_if_needed()
+        snap = self._latest_snapshot
+        if not snap:
+            return {"streams": {}, "categories": {}}
+
+        # Categorize by stream name prefix
+        def _categorize(stream_name: str) -> str:
+            prefixes = {
+                "btc_": "crypto", "mempool_": "crypto", "block_": "crypto",
+                "ln_": "crypto", "n_tx": "crypto", "mktcap_": "crypto",
+                "alt_": "crypto", "fear_greed": "crypto", "hn_": "crypto",
+                "twitter_crypto": "crypto",
+                "yield_": "macro", "vix": "macro", "options_": "macro",
+                "shipping": "macro", "grid_": "macro", "gdelt_": "macro",
+                "ozone": "environment", "pm2_5": "environment",
+                "surface_wind": "environment", "temp_swing": "environment",
+                "tide_range": "environment", "night_lights": "environment",
+                "seismic_": "environment", "wiki_attention": "environment",
+                "genbank_": "biological", "pubmed_": "biological",
+                "arxiv_bio": "biological", "fda_": "biological",
+                "wiki_chiral": "biological",
+                "cme_": "astrophysical", "solar_": "astrophysical",
+                "imf_bz": "astrophysical", "kp_index": "astrophysical",
+                "dscovr_": "astrophysical", "ace_": "astrophysical",
+                "goes_": "astrophysical", "stereo_": "astrophysical",
+                "sept_": "astrophysical",
+            }
+            for pfx, cat in prefixes.items():
+                if stream_name.startswith(pfx) or stream_name == pfx.rstrip("_"):
+                    return cat
+            return "other"
+
+        by_stream: Dict[str, dict] = {}
+        for r in snap.readings:
+            key = r.stream
+            if key not in by_stream:
+                by_stream[key] = {
+                    "stream": key,
+                    "category": _categorize(key),
+                    "primitives": [],
+                    "max_alert": 0,
+                }
+            by_stream[key]["primitives"].append({
+                "primitive": r.primitive,
+                "value": r.value,
+                "unit": r.unit,
+                "alert": r.alert,
+            })
+            by_stream[key]["max_alert"] = max(by_stream[key]["max_alert"], r.alert)
+
+        # Group by category
+        categories: Dict[str, list] = {}
+        for s in by_stream.values():
+            categories.setdefault(s["category"], []).append(s)
+
+        return {
+            "streams": by_stream,
+            "categories": categories,
+            "snapshot_ts": snap.ts,
+            "multiplier": snap.multiplier,
+            "is_b_state": snap.is_b_state,
         }
 
     def get_latest_snapshot(self) -> Optional[dict]:
@@ -450,6 +691,14 @@ def create_app(data_dir: str = None) -> Flask:
             return jsonify(snap)
         return jsonify({"error": "no snapshots"}), 404
 
+    @app.route("/api/primitives")
+    def api_primitives():
+        return jsonify(engine.get_primitives())
+
+    @app.route("/api/streams")
+    def api_streams():
+        return jsonify(engine.get_streams())
+
     @app.route("/api/all")
     def api_all():
         """Single endpoint returning all data for the dashboard."""
@@ -459,6 +708,8 @@ def create_app(data_dir: str = None) -> Flask:
             "space": engine.get_space_geojson(),
             "heatmap": engine.get_heatmap_data(),
             "stats": engine.get_stats(),
+            "primitives": engine.get_primitives(),
+            "streams": engine.get_streams(),
         })
 
     # ── Dashboard Routes ───────────────────────────────────────────────────

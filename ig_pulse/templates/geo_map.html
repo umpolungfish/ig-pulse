@@ -13,127 +13,351 @@ body { font-family: 'JetBrains Mono', 'Fira Code', monospace; background: #0a0a0
 #map { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
 .leaflet-tile-pane { filter: brightness(0.6) saturate(0.3) hue-rotate(180deg); }
 
+/* ── Sidebar ───────────────────────────────────────────────────── */
+#sidebar {
+  position: absolute; top: 0; left: 0; width: 250px; height: 100%;
+  z-index: 1001; background: rgba(10, 10, 15, 0.95); border-right: 1px solid #1e293b;
+  color: #e2e8f0; font-size: 0.72rem; display: flex; flex-direction: column;
+  transform: translateX(0); transition: transform 0.3s ease;
+  overflow: hidden;
+}
+#sidebar.collapsed { transform: translateX(-250px); }
+#sidebar-header {
+  padding: 10px 12px; border-bottom: 1px solid #1e293b; display: flex;
+  justify-content: space-between; align-items: center; flex-shrink: 0;
+}
+#sidebar-header h2 { font-size: 0.8rem; color: #fbbf24; letter-spacing: 0.04em; }
+#sidebar-filters {
+  padding: 8px 10px; border-bottom: 1px solid #1e293b; display: flex; flex-wrap: wrap; gap: 4px; flex-shrink: 0;
+}
+.cat-btn {
+  padding: 2px 7px; border-radius: 4px; border: 1px solid #334155;
+  background: #0f172a; color: #94a3b8; font-size: 0.65rem; cursor: pointer;
+  font-family: inherit; transition: all 0.15s;
+}
+.cat-btn.active { background: #1e3a5f; color: #93c5fd; border-color: #3b82f6; }
+.cat-btn.active.cat-crypto { background: #1c2a1a; color: #86efac; border-color: #22c55e; }
+.cat-btn.active.cat-macro  { background: #2a2018; color: #fcd34d; border-color: #f59e0b; }
+.cat-btn.active.cat-environment { background: #1a2520; color: #6ee7b7; border-color: #10b981; }
+.cat-btn.active.cat-biological  { background: #24142a; color: #d8b4fe; border-color: #a855f7; }
+.cat-btn.active.cat-astrophysical { background: #1a1a30; color: #a5b4fc; border-color: #6366f1; }
+.cat-btn.active.cat-other { background: #1e1e1e; color: #94a3b8; border-color: #475569; }
+#sidebar-list {
+  flex: 1; overflow-y: auto; padding: 4px 0;
+  scrollbar-width: thin; scrollbar-color: #334155 transparent;
+}
+.stream-group-header {
+  padding: 6px 10px 2px; font-size: 0.63rem; color: #475569;
+  text-transform: uppercase; letter-spacing: 0.08em; border-top: 1px solid #1e293b;
+  margin-top: 2px;
+}
+.stream-entry {
+  display: flex; align-items: center; gap: 6px;
+  padding: 3px 10px; cursor: pointer; transition: background 0.1s;
+}
+.stream-entry:hover { background: #0f1a2e; }
+.stream-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+.stream-name { flex: 1; color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stream-alert-2 .stream-name { color: #fca5a5; }
+.stream-alert-1 .stream-name { color: #fde68a; }
+.stream-alert-0 .stream-name { color: #94a3b8; }
+.stream-val { color: #64748b; font-size: 0.65rem; white-space: nowrap; margin-left: auto; }
+.stream-prim { color: #475569; font-size: 0.6rem; white-space: nowrap; }
+
+/* ── Sidebar Toggle ─────────────────────────────────────────────── */
+#sidebar-toggle {
+  position: absolute; top: 12px; left: 10px; z-index: 1002;
+  background: rgba(10,10,15,0.9); color: #fbbf24; border: 1px solid #334155;
+  border-radius: 6px; padding: 5px 9px; cursor: pointer; font-size: 14px;
+  transition: left 0.3s ease; font-family: inherit;
+}
+#sidebar-toggle.open { left: 260px; }
+
+/* ── Main Info Panel ─────────────────────────────────────────────── */
 #panel {
   position: absolute; top: 10px; right: 10px; z-index: 1000;
   background: rgba(10, 10, 15, 0.92); border: 1px solid #1e293b;
-  border-radius: 12px; padding: 16px 20px; color: #e2e8f0;
-  font-size: 0.78rem; min-width: 280px; backdrop-filter: blur(12px);
+  border-radius: 12px; padding: 14px 18px; color: #e2e8f0;
+  font-size: 0.76rem; min-width: 260px; backdrop-filter: blur(12px);
   box-shadow: 0 4px 24px rgba(0,0,0,0.5);
 }
-#panel h1 { font-size: 1.1rem; font-weight: 700; color: #fbbf24; margin-bottom: 4px; letter-spacing: 0.02em; }
-#panel .sub { font-size: 0.68rem; color: #64748b; margin-bottom: 12px; }
+#panel h1 { font-size: 1.05rem; font-weight: 700; color: #fbbf24; margin-bottom: 2px; letter-spacing: 0.02em; }
+#panel .sub { font-size: 0.65rem; color: #64748b; margin-bottom: 10px; }
 #panel .row { display: flex; justify-content: space-between; margin: 3px 0; }
 #panel .row .k { color: #94a3b8; }
 #panel .row .v { color: #e2e8f0; font-weight: 600; }
-#panel .tick { color: #fbbf24; font-size: 0.85rem; }
-#panel .alive { display: inline-block; width: 8px; height: 8px; background: #22c55e; border-radius: 50%;
-  margin-right: 4px; animation: pulse 2s infinite; }
+#panel .tick { color: #fbbf24; font-size: 0.82rem; }
+#panel .alive { display: inline-block; width: 7px; height: 7px; background: #22c55e;
+  border-radius: 50%; margin-right: 4px; animation: pulse 2s infinite; }
+#panel .divider { border: none; border-top: 1px solid #1e293b; margin: 8px 0; }
+.bstate-on  { color: #fbbf24; font-weight: 700; }
+.bstate-off { color: #475569; }
+.mult { font-size: 1.05rem; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-#legend {
-  position: absolute; bottom: 30px; right: 10px; z-index: 1000;
-  background: rgba(10, 10, 15, 0.9); border: 1px solid #1e293b;
-  border-radius: 8px; padding: 10px 14px; color: #94a3b8; font-size: 0.7rem;
+/* ── Primitive Bar ───────────────────────────────────────────────── */
+#prim-bar {
+  position: absolute; bottom: 56px; left: 50%; transform: translateX(-50%);
+  z-index: 1000; background: rgba(10,10,15,0.92); border: 1px solid #1e293b;
+  border-radius: 10px; padding: 8px 14px; display: flex; gap: 6px;
+  backdrop-filter: blur(12px); flex-wrap: nowrap; align-items: center;
 }
-#legend .item { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
-#legend .dot { width: 10px; height: 10px; border-radius: 50%; }
+.prim-cell {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 4px 6px; border-radius: 6px; min-width: 42px; cursor: default;
+  transition: background 0.2s; border: 1px solid transparent;
+}
+.prim-cell:hover { border-color: #334155; }
+.prim-cell.lv0 { background: #0f172a; }
+.prim-cell.lv1 { background: #2a1f00; border-color: #78350f; }
+.prim-cell.lv2 { background: #2a0000; border-color: #7f1d1d; }
+.prim-glyph { font-size: 1.1rem; line-height: 1; }
+.prim-label { font-size: 0.52rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em; }
+.prim-level { font-size: 0.65rem; font-weight: 700; }
+.lv0 .prim-level { color: #475569; }
+.lv1 .prim-level { color: #fbbf24; }
+.lv2 .prim-level { color: #ef4444; }
 
+/* ── Tickbar ─────────────────────────────────────────────────────── */
 #tickbar {
   position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 1000;
   background: rgba(10, 10, 15, 0.9); border: 1px solid #1e293b;
-  border-radius: 8px; padding: 8px 16px; color: #fbbf24; font-size: 0.72rem;
-  display: flex; gap: 12px; align-items: center;
+  border-radius: 8px; padding: 6px 14px; color: #fbbf24; font-size: 0.7rem;
+  display: flex; gap: 10px; align-items: center;
 }
-#tickbar .bar-bg { width: 180px; height: 6px; background: #1e293b; border-radius: 3px; overflow: hidden; }
+#tickbar .bar-bg { width: 160px; height: 5px; background: #1e293b; border-radius: 3px; overflow: hidden; }
 #tickbar .bar-fg { height: 100%; background: linear-gradient(90deg, #3b82f6, #fbbf24, #ef4444);
   transition: width 0.5s linear; border-radius: 3px; }
-.leaflet-popup { font-family: monospace; font-size: 0.72rem; }
-.leaflet-popup-content { margin: 6px 10px; }
+
+/* ── Legend ──────────────────────────────────────────────────────── */
+#legend {
+  position: absolute; bottom: 56px; right: 10px; z-index: 1000;
+  background: rgba(10, 10, 15, 0.9); border: 1px solid #1e293b;
+  border-radius: 8px; padding: 9px 12px; color: #94a3b8; font-size: 0.68rem;
+}
+#legend .item { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+#legend .dot { width: 9px; height: 9px; border-radius: 50%; }
+#legend .cat-item { margin: 2px 0; }
+#legend .cat-dot { display: inline-block; width: 7px; height: 7px; border-radius: 2px; margin-right: 4px; }
+
+/* ── Zoom Slider ─────────────────────────────────────────────────── */
+#zoom-ctrl {
+  position: absolute; right: 10px; top: 340px; z-index: 1000;
+  background: rgba(10,10,15,0.92); border: 1px solid #1e293b;
+  border-radius: 10px; padding: 10px 8px; display: flex; flex-direction: column;
+  align-items: center; gap: 6px; backdrop-filter: blur(12px);
+  color: #94a3b8; font-size: 0.65rem; user-select: none;
+}
+#zoom-val { color: #fbbf24; font-weight: 700; font-size: 0.8rem; min-width: 28px; text-align: center; }
+#zoom-slider {
+  writing-mode: vertical-lr;
+  direction: rtl;
+  height: 140px;
+  width: 22px;
+  cursor: pointer;
+  accent-color: #fbbf24;
+  background: transparent;
+}
+#zoom-label { letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.58rem; color: #475569; }
+
+/* ── Popup styling ───────────────────────────────────────────────── */
+.leaflet-popup { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+.leaflet-popup-content { margin: 6px 10px; line-height: 1.5; }
 .leaflet-popup-content strong { color: #fbbf24; }
+.leaflet-popup-content .pu-prim { color: #93c5fd; }
+.leaflet-popup-content .pu-alert-2 { color: #ef4444; }
+.leaflet-popup-content .pu-alert-1 { color: #fbbf24; }
+.leaflet-popup-content .pu-alert-0 { color: #4ade80; }
+.leaflet-popup-content .pu-val { color: #e2e8f0; }
 </style>
 </head>
 <body>
 
 <div id="map"></div>
 
+<!-- Sidebar toggle button -->
+<button id="sidebar-toggle" title="Toggle stream list">☰</button>
+
+<!-- Stream list sidebar -->
+<div id="sidebar">
+  <div id="sidebar-header">
+    <h2>⚡ STREAMS</h2>
+    <span id="sidebar-summary" style="color:#64748b;font-size:0.65rem;">—</span>
+  </div>
+  <div id="sidebar-filters">
+    <button class="cat-btn active cat-crypto"      data-cat="crypto">Crypto</button>
+    <button class="cat-btn active cat-macro"       data-cat="macro">Macro</button>
+    <button class="cat-btn active cat-environment" data-cat="environment">Env</button>
+    <button class="cat-btn active cat-biological"  data-cat="biological">Bio</button>
+    <button class="cat-btn active cat-astrophysical" data-cat="astrophysical">Astro</button>
+    <button class="cat-btn active cat-other"       data-cat="other">Other</button>
+  </div>
+  <div id="sidebar-list"></div>
+</div>
+
+<!-- Zoom slider (right side, below panel) -->
+<div id="zoom-ctrl">
+  <div id="zoom-val">3</div>
+  <input type="range" id="zoom-slider" min="2" max="10" step="0.25" value="3">
+  <div id="zoom-label">zoom</div>
+</div>
+
+<!-- Main info panel (top right) -->
 <div id="panel">
   <h1>🌍 DATANADO</h1>
-  <div class="sub">Geographic Signal Propagation</div>
-  <div class="row"><span class="k"><span class="alive"></span>Snapshot</span><span class="v" id="snapshot_ts">—</span></div>
-  <div class="row"><span class="k">Geo Nodes</span><span class="v" id="geo_nodes">—</span></div>
-  <div class="row"><span class="k">Active Alerts</span><span class="v" id="active_alerts">—</span></div>
-  <div class="row"><span class="k">Propagation Edges</span><span class="v" id="prop_edges">—</span></div>
-  <div class="row"><span class="k">Spectral Radius ρ</span><span class="v" id="spec_rad">—</span></div>
-  <div class="row"><span class="k">Universal Tick</span><span class="v tick" id="tick_val">—</span></div>
+  <div class="sub">IG · Geographic Signal Propagation</div>
+
+  <!-- B-state / multiplier -->
+  <div class="row">
+    <span class="k"><span class="alive"></span>B-STATE</span>
+    <span class="v" id="bstate_display">—</span>
+  </div>
+  <div class="row">
+    <span class="k">Multiplier</span>
+    <span class="v mult" id="multiplier">—</span>
+  </div>
+  <div class="row">
+    <span class="k">Total Alerts</span>
+    <span class="v" id="total_alerts">—</span>
+  </div>
+  <div class="row">
+    <span class="k">Readings</span>
+    <span class="v" id="total_readings">—</span>
+  </div>
+
+  <hr class="divider">
+
+  <div class="row">
+    <span class="k">Snapshot</span>
+    <span class="v" id="snapshot_ts">—</span>
+  </div>
+  <div class="row">
+    <span class="k">Geo Nodes</span>
+    <span class="v" id="geo_nodes">—</span>
+  </div>
+  <div class="row">
+    <span class="k">Active Alerts</span>
+    <span class="v" id="active_alerts">—</span>
+  </div>
+  <div class="row">
+    <span class="k">Prop Edges</span>
+    <span class="v" id="prop_edges">—</span>
+  </div>
+  <div class="row">
+    <span class="k">Spectral ρ</span>
+    <span class="v" id="spec_rad">—</span>
+  </div>
+  <div class="row">
+    <span class="k">Tick</span>
+    <span class="v tick" id="tick_val">—</span>
+  </div>
 </div>
 
-<div id="legend">
-  <div class="item"><span class="dot" style="background:#ef4444"></span> Alert 2 — Critical</div>
-  <div class="item"><span class="dot" style="background:#facc15"></span> Alert 1 — Elevated</div>
-  <div class="item"><span class="dot" style="background:#4ade80"></span> Alert 0 — Baseline</div>
-  <div class="item" style="margin-top:4px;font-size:0.65rem;color:#64748b">Arc color: blue (cold) → red (hot)</div>
+<!-- Primitive bar (bottom center) -->
+<div id="prim-bar">
+  <!-- populated by JS -->
 </div>
 
+<!-- Tick progress bar (bottom center below prim-bar) -->
 <div id="tickbar">
-  <span>⏱ TICK</span>
+  <span>⏱</span>
   <div class="bar-bg"><div class="bar-fg" id="tick_progress" style="width:0%"></div></div>
-  <span id="tick_pct">0%</span>
+  <span id="tick_pct" style="min-width:34px;text-align:right;">0%</span>
+  <span id="tick_phase_label" style="color:#64748b;font-size:0.65rem;">phase</span>
+</div>
+
+<!-- Legend (bottom right) -->
+<div id="legend">
+  <div class="item"><span class="dot" style="background:#ef4444"></span>Alert 2 — Critical</div>
+  <div class="item"><span class="dot" style="background:#facc15"></span>Alert 1 — Elevated</div>
+  <div class="item"><span class="dot" style="background:#4ade80"></span>Alert 0 — Baseline</div>
+  <div style="margin-top:6px;margin-bottom:2px;font-size:0.6rem;color:#475569;">CATEGORIES</div>
+  <div class="cat-item"><span class="cat-dot" style="background:#22c55e"></span>Crypto</div>
+  <div class="cat-item"><span class="cat-dot" style="background:#f59e0b"></span>Macro / Financial</div>
+  <div class="cat-item"><span class="cat-dot" style="background:#10b981"></span>Environment</div>
+  <div class="cat-item"><span class="cat-dot" style="background:#a855f7"></span>Biological</div>
+  <div class="cat-item"><span class="cat-dot" style="background:#6366f1"></span>Astrophysical</div>
+  <div style="margin-top:4px;font-size:0.62rem;color:#475569;">Arc: blue → red (lag)</div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script>
-// ── Map Setup ────────────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
+const PRIM_DEFS = [
+  { key: 'criticality',   glyph: '⊙', label: 'Crit'  },
+  { key: 'parity',        glyph: 'Φ', label: 'Par'   },
+  { key: 'kinetics',      glyph: 'Ç', label: 'Kin'   },
+  { key: 'topology',      glyph: 'Þ', label: 'Top'   },
+  { key: 'coupling',      glyph: 'ɢ', label: 'Cpl'   },
+  { key: 'dimensionality',glyph: 'Ð', label: 'Dim'   },
+  { key: 'stoichiometry', glyph: 'Σ', label: 'Sto'   },
+  { key: 'granularity',   glyph: 'Γ', label: 'Gran'  },
+  { key: 'winding',       glyph: 'Ω', label: 'Wind'  },
+  { key: 'chirality',     glyph: 'Ħ', label: 'Chir'  },
+  { key: 'recognition',   glyph: 'Ř', label: 'Rec'   },
+  { key: 'fidelity',      glyph: 'ƒ', label: 'Fid'   },
+];
+
+const CAT_COLORS = {
+  crypto:       '#22c55e',
+  macro:        '#f59e0b',
+  environment:  '#10b981',
+  biological:   '#a855f7',
+  astrophysical:'#6366f1',
+  other:        '#64748b',
+};
+
+const ALERT_COLORS = ['#4ade80', '#facc15', '#ef4444'];
+
+// ── Map Setup ─────────────────────────────────────────────────────────────────
 const map = L.map('map', {
-  center: [20, 0],
-  zoom: 3,
-  minZoom: 2,
-  maxZoom: 10,
-  worldCopyJump: true,
-  zoomControl: true,
+  center: [20, 0], zoom: 3, minZoom: 2, maxZoom: 10,
+  worldCopyJump: true, zoomControl: false,
+  zoomSnap: 0.25, zoomDelta: 0.25,
 });
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
   attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
-  subdomains: 'abcd',
-  maxZoom: 10,
-  noWrap: true,
+  subdomains: 'abcd', maxZoom: 10, noWrap: false,
 }).addTo(map);
 
-// ── Layer Groups ─────────────────────────────────────────────────────────────
-const edgeLayer = L.layerGroup().addTo(map);
-const nodeLayer = L.layerGroup().addTo(map);
+// ── Layer Groups ──────────────────────────────────────────────────────────────
+const edgeLayer  = L.layerGroup().addTo(map);
+const nodeLayer  = L.layerGroup().addTo(map);
 const spaceLayer = L.layerGroup().addTo(map);
 let heatLayer = null;
 
-// ── Space Icons ──────────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentEdges   = [];
+let tickDuration   = 49 * 3600;
+let tickStart      = 0;
+let streamCatMap   = {};         // stream name → category
+let enabledCats    = new Set(['crypto','macro','environment','biological','astrophysical','other']);
+let lastNodesGeo   = null;
+let lastPrimData   = {};
+let nodeMarkers    = {};         // stream → marker (for sidebar click-to-center)
+
+// ── Space Icons ───────────────────────────────────────────────────────────────
 const spaceIcons = {
   satellite: L.divIcon({
-    className: 'space-icon',
-    html: '<div style="background:#fbbf24;width:18px;height:18px;border-radius:50%;border:2px solid #f59e0b;box-shadow:0 0 12px #fbbf24;display:flex;align-items:center;justify-content:center;font-size:10px;">🛰</div>',
-    iconSize: [18, 18], iconAnchor: [9, 9],
+    className: '', iconSize: [20, 20], iconAnchor: [10, 10],
+    html: '<div style="background:#fbbf24;width:20px;height:20px;border-radius:50%;border:2px solid #f59e0b;box-shadow:0 0 12px #fbbf24;display:flex;align-items:center;justify-content:center;font-size:11px;">🛰</div>',
   }),
   sun: L.divIcon({
-    className: 'space-icon',
-    html: '<div style="background:#ff6b00;width:24px;height:24px;border-radius:50%;border:2px solid #ff8c00;box-shadow:0 0 20px #ff6b00,0 0 40px #ff8c00;display:flex;align-items:center;justify-content:center;font-size:14px;">☀</div>',
-    iconSize: [24, 24], iconAnchor: [12, 12],
+    className: '', iconSize: [26, 26], iconAnchor: [13, 13],
+    html: '<div style="background:#ff6b00;width:26px;height:26px;border-radius:50%;border:2px solid #ff8c00;box-shadow:0 0 20px #ff6b00,0 0 40px #ff8c00;display:flex;align-items:center;justify-content:center;font-size:15px;">☀</div>',
   }),
   magnet: L.divIcon({
-    className: 'space-icon',
-    html: '<div style="background:#8b5cf6;width:16px;height:16px;border-radius:50%;border:2px solid #7c3aed;box-shadow:0 0 10px #8b5cf6;display:flex;align-items:center;justify-content:center;font-size:9px;">🧲</div>',
-    iconSize: [16, 16], iconAnchor: [8, 8],
+    className: '', iconSize: [18, 18], iconAnchor: [9, 9],
+    html: '<div style="background:#8b5cf6;width:18px;height:18px;border-radius:50%;border:2px solid #7c3aed;box-shadow:0 0 10px #8b5cf6;display:flex;align-items:center;justify-content:center;font-size:10px;">🧲</div>',
   }),
 };
 
-// ── State ────────────────────────────────────────────────────────────────────
-let currentEdges = [];
-let tickDuration = 49 * 3600; // 49 hours default
-// tickStart is Unix epoch (1970-01-01) — tick phase is purely a function of wall-clock time.
-// Same phase at same wall-clock time everywhere; no reset on refresh.
-let tickStart = 0;  // Unix epoch — cycle is modulo tickDuration
-
-// ── Data Fetch ───────────────────────────────────────────────────────────────
+// ── Data Fetch ────────────────────────────────────────────────────────────────
 async function fetchData() {
   try {
     const resp = await fetch('/api/all');
@@ -145,42 +369,57 @@ async function fetchData() {
   }
 }
 
-// ── Render Nodes ─────────────────────────────────────────────────────────────
+// ── Category helpers ──────────────────────────────────────────────────────────
+function streamCategory(streamName) {
+  return streamCatMap[streamName] || 'other';
+}
+
+function nodeColor(alert, stream) {
+  if (alert >= 2) return '#ef4444';
+  if (alert >= 1) return '#facc15';
+  return CAT_COLORS[streamCategory(stream)] || '#4ade80';
+}
+
+// ── Render Nodes ──────────────────────────────────────────────────────────────
 function renderNodes(nodesGeoJSON) {
+  lastNodesGeo = nodesGeoJSON;
   nodeLayer.clearLayers();
+  nodeMarkers = {};
   if (!nodesGeoJSON || !nodesGeoJSON.features) return;
 
-  const features = nodesGeoJSON.features;
-  for (const f of features) {
+  for (const f of nodesGeoJSON.features) {
     const p = f.properties;
-    const coords = f.geometry.coordinates;
+    const cat = streamCatMap[p.stream] || 'other';
+    if (!enabledCats.has(cat)) continue;
 
-    const size = 5 + p.alert * 4;
-    const color = p.color;
-    const glow = p.alert >= 2
-      ? `box-shadow: 0 0 ${10 + p.alert * 4}px ${color};`
-      : '';
+    const coords = f.geometry.coordinates;
+    const color = nodeColor(p.alert, p.stream);
+    const sz = 6 + p.alert * 4;
+    const glow = p.alert >= 2 ? `box-shadow:0 0 ${12 + p.alert * 4}px ${color};` : '';
 
     const icon = L.divIcon({
-      className: 'signal-node',
-      html: `<div style="background:${color};width:${size}px;height:${size}px;border-radius:50%;border:2px solid rgba(255,255,255,0.5);${glow}"></div>`,
-      iconSize: [size + 4, size + 4],
-      iconAnchor: [size / 2 + 2, size / 2 + 2],
+      className: '',
+      html: `<div style="background:${color};width:${sz}px;height:${sz}px;border-radius:50%;border:1px solid rgba(255,255,255,0.35);${glow}"></div>`,
+      iconSize: [sz + 4, sz + 4], iconAnchor: [sz / 2 + 2, sz / 2 + 2],
     });
 
+    const catLabel = cat.charAt(0).toUpperCase() + cat.slice(1);
+    const alertLabel = ['🟢 Baseline', '🟡 Elevated', '🔴 Critical'][p.alert] || `L${p.alert}`;
     const marker = L.marker([coords[1], coords[0]], { icon });
     marker.bindPopup(`
       <strong>${p.stream}</strong><br>
-      Primitive: ${p.primitive}<br>
-      Value: ${p.value.toFixed(3)}<br>
-      Alert: ${'🔴🟡🟢'.charAt(p.alert) || '⚪'} L${p.alert}<br>
+      <span class="pu-prim">${p.primitive}</span><br>
+      Value: <span class="pu-val">${Number(p.value).toPrecision(4)} ${p.unit || ''}</span><br>
+      Alert: <span class="pu-alert-${p.alert}">${alertLabel}</span><br>
+      Category: ${catLabel}<br>
       Type: ${p.origin_type}
     `);
     marker.addTo(nodeLayer);
+    nodeMarkers[p.stream] = marker;
   }
 }
 
-// ── Render Edges (Propagation Arcs) ─────────────────────────────────────────
+// ── Render Edges ──────────────────────────────────────────────────────────────
 function renderEdges(edgesGeoJSON) {
   edgeLayer.clearLayers();
   if (!edgesGeoJSON || !edgesGeoJSON.features) return;
@@ -190,18 +429,11 @@ function renderEdges(edgesGeoJSON) {
 
   for (const f of features) {
     const p = f.properties;
-    const coords = f.geometry.coordinates;
-
-    // Create a curved polyline
-    const latlngs = coords.map(c => [c[1], c[0]]);
+    const latlngs = f.geometry.coordinates.map(c => [c[1], c[0]]);
     const line = L.polyline(latlngs, {
-      color: p.color,
-      weight: p.width,
-      opacity: p.opacity * 0.6,
-      dashArray: p.lag_seconds > 3600 ? '8, 8' : null,
-      className: 'propagation-arc',
+      color: p.color, weight: p.width, opacity: p.opacity * 0.65,
+      dashArray: p.lag_seconds > 3600 ? '8, 6' : null,
     });
-
     line.bindPopup(`
       <strong>${p.source} → ${p.target}</strong><br>
       r = ${p.strength_r.toFixed(3)}<br>
@@ -212,7 +444,7 @@ function renderEdges(edgesGeoJSON) {
   }
 }
 
-// ── Render Space Layer ───────────────────────────────────────────────────────
+// ── Render Space ──────────────────────────────────────────────────────────────
 function renderSpace(spaceGeoJSON) {
   spaceLayer.clearLayers();
   if (!spaceGeoJSON || !spaceGeoJSON.features) return;
@@ -220,92 +452,266 @@ function renderSpace(spaceGeoJSON) {
   for (const f of spaceGeoJSON.features) {
     const p = f.properties;
     const coords = f.geometry.coordinates;
-
     const icon = spaceIcons[p.icon] || spaceIcons.satellite;
     const marker = L.marker([coords[1], coords[0]], { icon });
-
     marker.bindPopup(`
       <strong>${p.name}</strong><br>
       ${p.description}<br>
-      Altitude: ${(p.alt_km / 1000).toLocaleString()} km<br>
+      Alt: ${(p.alt_km / 1000).toLocaleString()} ×10³ km<br>
       Instrument: ${p.instrument}
     `);
     marker.addTo(spaceLayer);
   }
 }
 
-// ── Render Heatmap ───────────────────────────────────────────────────────────
+// ── Render Heatmap ────────────────────────────────────────────────────────────
 function renderHeatmap(heatData) {
   if (heatLayer) map.removeLayer(heatLayer);
   if (!heatData || heatData.length === 0) return;
-
   heatLayer = L.heatLayer(heatData.map(d => [d[0], d[1], d[2] * 0.8]), {
-    radius: 25,
-    blur: 15,
-    maxZoom: 8,
-    max: 1.0,
+    radius: 25, blur: 15, maxZoom: 8, max: 1.0,
     gradient: { 0.0: '#4ade80', 0.3: '#facc15', 0.7: '#f97316', 1.0: '#ef4444' },
   }).addTo(map);
 }
 
-// ── Update Panel ─────────────────────────────────────────────────────────────
+// ── Update Main Panel ─────────────────────────────────────────────────────────
 function updatePanel(stats) {
+  const isBState = stats.is_b_state;
+  const mult = stats.multiplier || 1.0;
+
+  const bEl = document.getElementById('bstate_display');
+  bEl.textContent = isBState ? 'ACTIVE' : 'INACTIVE';
+  bEl.className = isBState ? 'v bstate-on' : 'v bstate-off';
+
+  document.getElementById('multiplier').textContent  = `×${mult.toFixed(2)}`;
+  document.getElementById('multiplier').className    = 'v mult' + (isBState ? ' bstate-on' : '');
+  document.getElementById('total_alerts').textContent = stats.total_alerts ?? '—';
+  document.getElementById('total_readings').textContent = stats.total_readings ?? '—';
   document.getElementById('snapshot_ts').textContent =
     stats.snapshot_ts ? new Date(stats.snapshot_ts).toLocaleTimeString() : '—';
-  document.getElementById('geo_nodes').textContent = stats.total_nodes || '—';
-  document.getElementById('active_alerts').textContent = stats.active_alerts || '—';
-  document.getElementById('prop_edges').textContent = stats.total_edges || '—';
-  document.getElementById('spec_rad').textContent =
-    stats.spectral_radius ? stats.spectral_radius.toFixed(4) : '—';
+  document.getElementById('geo_nodes').textContent    = stats.geo_nodes ?? stats.total_nodes ?? '—';
+  document.getElementById('active_alerts').textContent = stats.active_alerts ?? '—';
+  document.getElementById('prop_edges').textContent   = stats.prop_edges ?? stats.total_edges ?? '—';
+  document.getElementById('spec_rad').textContent     =
+    stats.spectral_radius != null ? stats.spectral_radius.toFixed(4) : '—';
 
   const tickH = stats.tick_hours || 49;
   tickDuration = tickH * 3600;
-  const days = tickH / 24;
-  document.getElementById('tick_val').textContent =
-    `${tickH.toFixed(1)}h (${days.toFixed(2)}d)`;
+  document.getElementById('tick_val').textContent = `${tickH.toFixed(1)}h`;
 }
 
-// ── Tick Animation ───────────────────────────────────────────────────────────
+// ── Update Primitive Bar ──────────────────────────────────────────────────────
+function buildPrimBar() {
+  const bar = document.getElementById('prim-bar');
+  bar.innerHTML = '';
+  for (const pd of PRIM_DEFS) {
+    const cell = document.createElement('div');
+    cell.className = 'prim-cell lv0';
+    cell.id = 'prim-' + pd.key;
+    cell.title = pd.key;
+    cell.innerHTML = `
+      <span class="prim-glyph">${pd.glyph}</span>
+      <span class="prim-label">${pd.label}</span>
+      <span class="prim-level">—</span>
+    `;
+    bar.appendChild(cell);
+  }
+}
+
+function updatePrimBar(primitives) {
+  lastPrimData = primitives || {};
+  for (const pd of PRIM_DEFS) {
+    const cell = document.getElementById('prim-' + pd.key);
+    if (!cell) continue;
+    const lv = lastPrimData[pd.key] ?? 0;
+    cell.className = `prim-cell lv${lv}`;
+    const lvEl = cell.querySelector('.prim-level');
+    if (lvEl) lvEl.textContent = lv;
+  }
+}
+
+// ── Update Sidebar ────────────────────────────────────────────────────────────
+function updateSidebar(streamsData) {
+  if (!streamsData || !streamsData.categories) return;
+
+  const list = document.getElementById('sidebar-list');
+  list.innerHTML = '';
+
+  const catOrder = ['crypto','macro','environment','biological','astrophysical','other'];
+  const catLabels = {
+    crypto: 'Crypto', macro: 'Macro / Financial', environment: 'Environment',
+    biological: 'Biological', astrophysical: 'Astrophysical', other: 'Other',
+  };
+
+  let totalStreams = 0;
+  let alertStreams = 0;
+
+  for (const cat of catOrder) {
+    const entries = streamsData.categories[cat] || [];
+    if (entries.length === 0) continue;
+
+    const hdr = document.createElement('div');
+    hdr.className = 'stream-group-header';
+    hdr.textContent = catLabels[cat] || cat;
+    list.appendChild(hdr);
+
+    entries.sort((a, b) => b.max_alert - a.max_alert);
+
+    for (const s of entries) {
+      totalStreams++;
+      if (s.max_alert > 0) alertStreams++;
+
+      const row = document.createElement('div');
+      row.className = `stream-entry stream-alert-${s.max_alert}`;
+      row.title = s.stream;
+
+      const dot = document.createElement('span');
+      dot.className = 'stream-dot';
+      dot.style.background = ALERT_COLORS[s.max_alert] || '#64748b';
+
+      const name = document.createElement('span');
+      name.className = 'stream-name';
+      name.textContent = s.stream;
+
+      const prim = document.createElement('span');
+      prim.className = 'stream-prim';
+      // Show highest-alert primitive reading
+      const topReading = s.primitives.reduce((best, r) => r.alert >= best.alert ? r : best, s.primitives[0]);
+      if (topReading) {
+        prim.textContent = topReading.primitive.slice(0,4);
+      }
+
+      const val = document.createElement('span');
+      val.className = 'stream-val';
+      if (topReading) {
+        const v = topReading.value;
+        val.textContent = (Math.abs(v) >= 1000 ? v.toExponential(1) :
+          Math.abs(v) >= 10 ? v.toFixed(1) : v.toPrecision(3));
+      }
+
+      row.appendChild(dot);
+      row.appendChild(name);
+      row.appendChild(prim);
+      row.appendChild(val);
+
+      row.addEventListener('click', () => {
+        const m = nodeMarkers[s.stream];
+        if (m) {
+          map.setView(m.getLatLng(), Math.max(map.getZoom(), 5));
+          m.openPopup();
+        }
+      });
+
+      list.appendChild(row);
+    }
+  }
+
+  document.getElementById('sidebar-summary').textContent = `${alertStreams}⚠ / ${totalStreams}`;
+}
+
+// ── Build stream→category lookup ──────────────────────────────────────────────
+function buildCatMap(streamsData) {
+  if (!streamsData || !streamsData.streams) return;
+  streamCatMap = {};
+  for (const [name, s] of Object.entries(streamsData.streams)) {
+    streamCatMap[name] = s.category;
+  }
+}
+
+// ── Tick Animation ────────────────────────────────────────────────────────────
 function updateTick() {
-  // Wall-clock anchored: progress = (unix_time % tickDuration) / tickDuration
-  // Same phase everywhere, never resets on refresh
-  const elapsed = Date.now() / 1000; // seconds since Unix epoch
+  const elapsed = Date.now() / 1000;
   const progress = (elapsed % tickDuration) / tickDuration;
   const pct = Math.round(progress * 100);
   document.getElementById('tick_progress').style.width = pct + '%';
   document.getElementById('tick_pct').textContent = pct + '%';
 
-  // Flash edges based on their lag relative to current tick phase
-  const tickPhase = progress; // 0..1 within current tick
-  for (const f of currentEdges) {
-    const p = f.properties;
-    const edgePhase = (p.lag_seconds / tickDuration) % 1.0;
-    // Edge is "active" when tick phase passes through its lag window
+  // Animate edge opacity based on lag proximity to current tick phase
+  const tickPhase = progress;
+  edgeLayer.eachLayer(line => {
+    const props = line.options._props;
+    if (!props) return;
+    const edgePhase = (props.lag_seconds / tickDuration) % 1.0;
     const dist = Math.abs(tickPhase - edgePhase);
-    const active = dist < 0.08; // ~4h window around lag time
-    // (animation applied via opacity in the edge render, but we could animate here)
-  }
+    const proximity = Math.max(0, 1 - dist / 0.15);
+    const baseOpacity = props.opacity * 0.65;
+    line.setStyle({ opacity: baseOpacity + proximity * 0.35 });
+  });
 }
 
-// ── Main Refresh Loop ────────────────────────────────────────────────────────
+// ── Main Refresh Loop ─────────────────────────────────────────────────────────
 async function refresh() {
   const data = await fetchData();
   if (!data) return;
 
+  if (data.streams) {
+    buildCatMap(data.streams);
+    updateSidebar(data.streams);
+  }
   if (data.nodes) renderNodes(data.nodes);
   if (data.edges) renderEdges(data.edges);
   if (data.space) renderSpace(data.space);
   if (data.heatmap) renderHeatmap(data.heatmap);
-  if (data.stats) updatePanel(data.stats);
+  if (data.stats) {
+    updatePanel(data.stats);
+    if (data.stats.primitives) updatePrimBar(data.stats.primitives);
+  }
+  // Also pull primitives from dedicated key if available
+  if (data.primitives && data.primitives.primitives) {
+    // merge per-primitive reading counts into bar tooltips
+    for (const pd of PRIM_DEFS) {
+      const cell = document.getElementById('prim-' + pd.key);
+      if (!cell) continue;
+      const info = data.primitives.primitives[pd.key];
+      if (info) {
+        cell.title = `${pd.key}\n${info.stream_count} stream(s), ${info.alert_count} alert(s)`;
+      }
+    }
+  }
 }
 
-// ── Bootstrap ────────────────────────────────────────────────────────────────
-refresh();
-setInterval(refresh, 5000);   // Poll every 5 seconds
-setInterval(updateTick, 1000); // Animate tick every second
+// ── Sidebar Toggle ────────────────────────────────────────────────────────────
+const sidebar     = document.getElementById('sidebar');
+const sidebarBtn  = document.getElementById('sidebar-toggle');
+let sidebarOpen   = true;
 
-// ── Navigation Buttons ───────────────────────────────────────────────────────
-// Add zoom-to-fit button
+function toggleSidebar() {
+  sidebarOpen = !sidebarOpen;
+  if (sidebarOpen) {
+    sidebar.classList.remove('collapsed');
+    sidebarBtn.textContent = '✕';
+    sidebarBtn.classList.add('open');
+  } else {
+    sidebar.classList.add('collapsed');
+    sidebarBtn.textContent = '☰';
+    sidebarBtn.classList.remove('open');
+  }
+}
+sidebarBtn.addEventListener('click', toggleSidebar);
+
+// ── Category Filter Buttons ───────────────────────────────────────────────────
+document.querySelectorAll('.cat-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const cat = btn.dataset.cat;
+    if (enabledCats.has(cat)) {
+      enabledCats.delete(cat);
+      btn.classList.remove('active');
+    } else {
+      enabledCats.add(cat);
+      btn.classList.add('active');
+    }
+    if (lastNodesGeo) renderNodes(lastNodesGeo);
+  });
+});
+
+// ── Layer Controls ────────────────────────────────────────────────────────────
+L.control.layers(null, {
+  'Propagation Arcs': edgeLayer,
+  'Signal Nodes':     nodeLayer,
+  'Space Layer':      spaceLayer,
+}, { position: 'bottomleft', collapsed: true }).addTo(map);
+
+// ── Fit-to-bounds button ──────────────────────────────────────────────────────
 L.Control.FitBounds = L.Control.extend({
   onAdd: function() {
     const btn = L.DomUtil.create('button');
@@ -313,26 +719,39 @@ L.Control.FitBounds = L.Control.extend({
     btn.title = 'Fit all signals';
     btn.style.cssText = 'background:rgba(10,10,15,0.9);color:#fbbf24;border:1px solid #1e293b;' +
       'border-radius:6px;padding:6px 10px;font-size:16px;cursor:pointer;margin-top:60px;';
-    btn.onclick = function() {
+    L.DomEvent.on(btn, 'click', () => {
       const bounds = [];
       nodeLayer.eachLayer(m => bounds.push(m.getLatLng()));
       spaceLayer.eachLayer(m => bounds.push(m.getLatLng()));
-      if (bounds.length > 0) {
-        map.fitBounds(L.latLngBounds(bounds).pad(0.2));
-      }
-    };
+      if (bounds.length > 0) map.fitBounds(L.latLngBounds(bounds).pad(0.2));
+    });
     return btn;
   }
 });
 new L.Control.FitBounds({ position: 'topleft' }).addTo(map);
 
-// Add toggle layers
-const overlayControls = {
-  'Propagation Arcs': edgeLayer,
-  'Signal Nodes': nodeLayer,
-  'Space Layer': spaceLayer,
-};
-L.control.layers(null, overlayControls, { position: 'bottomleft', collapsed: true }).addTo(map);
+// ── Zoom Slider ───────────────────────────────────────────────────────────────
+const zoomSlider = document.getElementById('zoom-slider');
+const zoomVal    = document.getElementById('zoom-val');
+
+function syncZoomDisplay(z) {
+  zoomVal.textContent = z.toFixed(2).replace(/\.?0+$/, '') || z;
+  zoomSlider.value = z;
+}
+
+zoomSlider.addEventListener('input', () => {
+  map.setZoom(parseFloat(zoomSlider.value), { animate: true });
+});
+
+map.on('zoom', () => syncZoomDisplay(map.getZoom()));
+map.on('load',  () => syncZoomDisplay(map.getZoom()));
+syncZoomDisplay(map.getZoom());
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────────
+buildPrimBar();
+refresh();
+setInterval(refresh, 5000);
+setInterval(updateTick, 1000);
 </script>
 </body>
 </html>
