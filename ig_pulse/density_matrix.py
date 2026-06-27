@@ -17,6 +17,7 @@ Fiducial proximity Tr(ρ·Π_fid) is the formal B-state score.
 """
 
 import numpy as np
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 D = 12
@@ -49,7 +50,84 @@ PRIM_IDX = {p: i for i, p in enumerate(PRIMITIVES)}
 #
 # Replace _FIDUCIAL_VEC with Scott-Grassl d=12 values when precision matters.
 
-_FIDUCIAL_VEC: np.ndarray = np.ones(D, dtype=complex) / np.sqrt(D)
+def _wh_displacements() -> list:
+    """All 144 WH displacement operators D(p,q) for d=12, cached."""
+    omega = np.exp(2j * np.pi / D)
+    X = np.zeros((D, D), dtype=complex)
+    for k in range(D):
+        X[(k + 1) % D, k] = 1.0
+    Z = np.diag([omega**k for k in range(D)])
+    X_pows = [np.linalg.matrix_power(X, p) for p in range(D)]
+    Z_pows = [np.linalg.matrix_power(Z, q) for q in range(D)]
+    ops = []
+    for p in range(D):
+        for q in range(D):
+            phase = np.exp(1j * np.pi * p * q / D)
+            ops.append(phase * (X_pows[p] @ Z_pows[q]))
+    return ops
+
+
+_WH_OPS: list = _wh_displacements()
+
+
+def _wh_frame_potential(x: np.ndarray) -> float:
+    """
+    WH-covariant frame potential to minimise for SIC fiducial.
+    x: 2D real vector (real and imag parts of complex d-vector, minus phase d.o.f.)
+
+    F(ψ₀) = Σ_{(p,q)≠(0,0)} |⟨ψ₀|D(p,q)|ψ₀⟩|⁴
+
+    Minimised when pairwise overlaps are all equal = 1/(d+1).
+    """
+    psi = x[:D] + 1j * x[D:]
+    psi /= np.linalg.norm(psi)
+    F = 0.0
+    for k, D_pq in enumerate(_WH_OPS):
+        if k == 0:
+            continue  # skip identity
+        overlap = abs(psi.conj() @ (D_pq @ psi)) ** 2
+        F += overlap ** 2
+    return F
+
+
+def _compute_sic_fiducial() -> np.ndarray:
+    """
+    Find d=12 SIC fiducial by minimising the WH frame potential.
+    Uses scipy L-BFGS-B starting from multiple random seeds and returns
+    the best solution found. Target F* = (d²-1)/(d+1)² = 143/169 ≈ 0.8462.
+    """
+    from scipy.optimize import minimize
+
+    best_psi = np.ones(D, dtype=complex) / np.sqrt(D)
+    best_F = np.inf
+
+    rng = np.random.default_rng(42)
+    for _ in range(8):
+        x0 = rng.standard_normal(2 * D)
+        x0 /= np.linalg.norm(x0[:D] + 1j * x0[D:])
+
+        res = minimize(_wh_frame_potential, x0, method="L-BFGS-B",
+                       options={"maxiter": 2000, "ftol": 1e-14, "gtol": 1e-10})
+        if res.fun < best_F:
+            best_F = res.fun
+            psi = res.x[:D] + 1j * res.x[D:]
+            best_psi = psi / np.linalg.norm(psi)
+
+    return best_psi
+
+
+def _load_or_compute_fiducial() -> np.ndarray:
+    """Load cached fiducial from disk; compute and cache on first run (~5s)."""
+    cache_path = Path(__file__).parent.parent / "data" / "sic_fiducial_d12.npy"
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    if cache_path.exists():
+        return np.load(cache_path, allow_pickle=False)
+    psi = _compute_sic_fiducial()
+    np.save(cache_path, psi)
+    return psi
+
+
+_FIDUCIAL_VEC: np.ndarray = _load_or_compute_fiducial()
 
 
 def set_fiducial(vec: np.ndarray) -> None:

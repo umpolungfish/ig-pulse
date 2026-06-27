@@ -64,6 +64,10 @@ STREAM_PRIMITIVE_MAP: Dict[str, List[Tuple[str, float]]] = {
     "seismic_energy":       [("topology", 0.6), ("winding", 0.4)],
     "seismic_major":        [("topology", 0.5), ("criticality", 0.5)],
     "seismic_network":      [("topology", 0.4), ("winding", 0.3), ("criticality", 0.3)],
+    # SIC gap fill (34-36)
+    "wiki_entropy":         [("recognition", 0.7), ("granularity", 0.3)],
+    "bgp_routing":          [("granularity", 0.7), ("topology", 0.3)],
+    "arxiv_ai":             [("recognition", 0.5), ("criticality", 0.5)],
 }
 
 

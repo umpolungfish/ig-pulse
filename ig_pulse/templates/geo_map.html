@@ -548,13 +548,13 @@ function updatePanel(stats, rho) {
   bEl.textContent = isBState ? 'ACTIVE' : 'INACTIVE';
   bEl.className = isBState ? 'v bstate-on' : 'v bstate-off';
 
-  // ρ metrics — formal B-state geometry
+  // ρ metrics — formal B-state geometry (Zauner SIC fiducial d=12)
   if (rho && rho.fiducial_proximity != null) {
     const fp = rho.fiducial_proximity;
-    const baseline = 1/12;  // 0.0833 = maximally mixed
+    const baseline = 1/144;  // uniform SIC overlap floor
     const fpEl = document.getElementById('fiducial_prox');
-    fpEl.textContent = fp.toFixed(4);
-    fpEl.className = 'v' + (fp > baseline * 1.5 ? ' bstate-on' : '');
+    fpEl.textContent = fp.toFixed(4) + (fp > 0.08 ? ' ★' : '');
+    fpEl.className = 'v' + (fp > 0.08 ? ' bstate-on' : '');
 
     document.getElementById('rho_purity').textContent = rho.purity != null ? rho.purity.toFixed(4) : '—';
     document.getElementById('rho_entropy').textContent = rho.von_neumann_entropy != null

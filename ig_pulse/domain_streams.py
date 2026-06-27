@@ -1,7 +1,7 @@
 """
 domain_streams.py — Free cross-domain data stream aggregator for synfin.
 
-33 streams, no API keys required (15 base + 18 fine-grained):
+36 streams, no API keys required (15 base + 18 fine-grained + 3 SIC gap fill):
   1. Fear & Greed Index    (alternative.me)                   → ⊙ Criticality, Φ Parity
   2. Mempool state         (mempool.space)                    → Ç Kinetics, Þ Topology, ɢ Coupling
   3. Global market         (coingecko.com)                    → Ð Dimensionality, Σ Stoichiometry, Γ Granularity
@@ -2293,6 +2293,153 @@ def _sept_fetch_latest(sc: str, particle: str, direction: str) -> Optional[dict]
 
 
 
+# ── Stream 34: Wikipedia attention entropy → Ř recognition ──────────────────
+#
+# Shannon entropy of the top-1000 Wikipedia article view distribution.
+# Low entropy = attention spike (one or few topics dominating).
+# High entropy = distributed attention (business as usual).
+# Spike events (elections, disasters, discoveries) drive entropy down and
+# recognition up — this is the Ř signal.
+
+_wiki_entropy_cache: dict = {"ts": 0.0, "entropy": None, "top_article": ""}
+_WIKI_ENTROPY_TTL = 3600 * 6  # update every 6h — daily top-1000 changes slowly
+
+
+def _stream_wiki_entropy(sig: DomainSignal) -> None:
+    import math as _math
+    now = time.time()
+    if now - _wiki_entropy_cache["ts"] < _WIKI_ENTROPY_TTL and _wiki_entropy_cache["entropy"] is not None:
+        entropy = _wiki_entropy_cache["entropy"]
+        top = _wiki_entropy_cache["top_article"]
+    else:
+        yesterday = (date.today() - timedelta(days=1)).strftime("%Y/%m/%d")
+        url = (f"https://wikimedia.org/api/rest_v1/metrics/pageviews/top/"
+               f"en.wikipedia/all-access/{yesterday}")
+        data = _json(url, timeout=15)
+        if not data or "items" not in data:
+            sig.errors.append("wiki_entropy: no data"); return
+        try:
+            articles = data["items"][0]["articles"][:1000]
+            views = [a["views"] for a in articles if a.get("views", 0) > 0]
+            if not views:
+                sig.errors.append("wiki_entropy: no views"); return
+            total = sum(views)
+            probs = [v / total for v in views]
+            entropy = -sum(p * _math.log(p) for p in probs if p > 0)
+            top = articles[0]["article"].replace("_", " ") if articles else ""
+            _wiki_entropy_cache.update({"ts": now, "entropy": entropy, "top_article": top})
+        except Exception as e:
+            sig.errors.append(f"wiki_entropy: {e}"); return
+
+    # Max entropy for 1000 equal-prob articles = log(1000) ≈ 6.908
+    max_entropy = 6.908
+    entropy_pct = (entropy / max_entropy) * 100.0
+    # Low entropy = recognition spike
+    alert = 2 if entropy < 4.5 else (1 if entropy < 5.5 else 0)
+    origin = {"type": "social", "source": "wikimedia.org", "top": top}
+    sig._set("recognition", alert, "wiki_entropy", entropy_pct, "entropy%", origin)
+    # Also emit inverse as granularity (concentration = low granularity)
+    sig._nom("granularity", "wiki_concentration", 100.0 - entropy_pct, "%", origin)
+
+
+# ── Stream 35: BGP routing table size → Γ granularity ────────────────────────
+#
+# The global IPv4 BGP routing table is a real-time snapshot of internet
+# topology granularity. More prefixes = finer-grained routing = higher Γ.
+# Rapid changes (prefix hijacks, outages, new allocations) signal topology
+# events. Source: RIPE NCC stat API (public, no auth).
+
+_bgp_cache: dict = {"ts": 0.0, "prefixes": None, "prev": None}
+_BGP_TTL = 3600 * 4
+
+
+def _stream_bgp_routing(sig: DomainSignal) -> None:
+    now = time.time()
+    if now - _bgp_cache["ts"] < _BGP_TTL and _bgp_cache["prefixes"] is not None:
+        prefixes = _bgp_cache["prefixes"]
+        prev = _bgp_cache["prev"]
+    else:
+        # RIPE NCC RIS: total unique ASNs in global routing table
+        url = "https://stat.ripe.net/data/ris-asns/data.json?list_asns=false"
+        data = _json(url, timeout=15)
+        if not data:
+            sig.errors.append("bgp_routing: no data"); return
+        try:
+            result = data.get("data", {})
+            prefixes = result.get("counts", {}).get("total")
+            if prefixes is None:
+                sig.errors.append(f"bgp_routing: unexpected schema {list(result.keys())}"); return
+            prefixes = int(prefixes)
+            prev = _bgp_cache.get("prefixes")
+            _bgp_cache.update({"ts": now, "prefixes": prefixes, "prev": prev})
+        except Exception as e:
+            sig.errors.append(f"bgp_routing: {e}"); return
+
+    # Global ASN count ~85k–90k; rapid change signals internet fragmentation event
+    scaled = max(0.0, min(100.0, (prefixes - 80_000) / 200.0))
+    delta_pct = 0.0
+    if prev and prev > 0:
+        delta_pct = abs(prefixes - prev) / prev * 100.0
+    alert = 2 if delta_pct > 0.5 or prefixes > 92_000 else (1 if delta_pct > 0.2 else 0)
+    origin = {"type": "infrastructure", "source": "stat.ripe.net", "asns": prefixes}
+    sig._set("granularity", alert, "bgp_asns", scaled, "scaled", origin)
+    if delta_pct > 0.1:
+        sig._set("topology", 1 if delta_pct > 0.3 else 0, "bgp_delta", delta_pct, "%change", origin)
+
+
+# ── Stream 36: ArXiv AI submission rate → Ř⊗⊙ recognition/criticality ───────
+#
+# Daily new submission count to cs.AI + cs.LG on ArXiv.
+# High submission rate = recognition event in AI (papers responding to a
+# major release/result). This is the cleanest Ř⊗⊙ cross-primitive signal
+# in the synthesisable set — collective intellectual recognition of a critical
+# development, directly measurable.
+
+_arxiv_ai_cache: dict = {"ts": 0.0, "count": None, "prev": None}
+_ARXIV_AI_TTL = 3600 * 12
+
+
+def _stream_arxiv_ai(sig: DomainSignal) -> None:
+    now = time.time()
+    if now - _arxiv_ai_cache["ts"] < _ARXIV_AI_TTL and _arxiv_ai_cache["count"] is not None:
+        count = _arxiv_ai_cache["count"]
+        prev = _arxiv_ai_cache["prev"]
+    else:
+        # ArXiv API: search last 2 days, cs.AI + cs.LG
+        start = (date.today() - timedelta(days=2)).strftime("%Y%m%d")
+        end = date.today().strftime("%Y%m%d")
+        url = (f"https://export.arxiv.org/api/query?"
+               f"search_query=cat:cs.AI+OR+cat:cs.LG"
+               f"&start=0&max_results=1"
+               f"&submittedDate=[{start}0000+TO+{end}2359]")
+        data = _text(url, timeout=20)
+        if not data:
+            sig.errors.append("arxiv_ai: no data"); return
+        try:
+            import re as _re
+            # Parse totalResults from Atom feed
+            m = _re.search(r"<opensearch:totalResults[^>]*>(\d+)</opensearch:totalResults>", data)
+            if not m:
+                sig.errors.append("arxiv_ai: no totalResults"); return
+            count = int(m.group(1))
+            prev = _arxiv_ai_cache.get("count")
+            _arxiv_ai_cache.update({"ts": now, "count": count, "prev": prev})
+        except Exception as e:
+            sig.errors.append(f"arxiv_ai: {e}"); return
+
+    # Typical baseline ~200-400 papers/day; spike = >600 (major event)
+    scaled = min(100.0, count / 6.0)  # 600 papers → 100
+    delta = 0.0
+    if prev and prev > 0:
+        delta = (count - prev) / prev * 100.0
+    rate_alert  = 2 if count > 700 else (1 if count > 500 else 0)
+    spike_alert = 2 if delta > 50 else (1 if delta > 25 else 0)
+    origin = {"type": "social", "source": "arxiv.org", "count": count}
+    sig._set("recognition",  rate_alert,  "arxiv_ai_rate",  scaled,       "scaled",  origin)
+    if prev is not None:
+        sig._set("criticality", spike_alert, "arxiv_ai_spike", abs(delta), "%delta", origin)
+
+
 # ── Aggregator ────────────────────────────────────────────────────────────────
 
 _ALL_STREAMS = [
@@ -2336,12 +2483,17 @@ _ALL_STREAMS = [
     ("goes_cr",       _stream_goes_cosmic_ray),
     ("dscovr_helicity", _stream_dscovr_helicity),
     ("stereo_sept",   _stream_stereo_sept),
+
+    # ── SIC-POVM gap fill (34-36) — Ř recognition, Γ granularity ──
+    ("wiki_entropy",  _stream_wiki_entropy),   # Ř — attention entropy
+    ("bgp_routing",   _stream_bgp_routing),    # Γ — internet topology grain
+    ("arxiv_ai",      _stream_arxiv_ai),       # Ř⊗⊙ — AI recognition spike
 ]
 
 
 class DomainStreamAggregator:
     """
-    Fetches all 33 domain streams (15 base + 18 fine-grained) and returns a DomainSignal.
+    Fetches all 36 domain streams (15 base + 18 fine-grained + 3 SIC gap fill) and returns a DomainSignal.
 
     Stream categories:
       1-15:  Base market/network/space/seismic/social

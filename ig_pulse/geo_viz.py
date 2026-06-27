@@ -261,6 +261,13 @@ PROJECTION_MAP = {
 
     # Alt crypto (Wall Street)
     "alt_outperform":      (40.707, -74.011, "Wall Street, NYC — Alt outperform"),
+    # SIC gap fill streams
+    "wiki_entropy":        (37.774, -122.419, "San Francisco — Wikimedia Foundation"),
+    "wiki_concentration":  (37.774, -122.419, "San Francisco — Wikimedia Foundation"),
+    "bgp_asns":            (52.374, 4.898,   "Amsterdam — RIPE NCC"),
+    "bgp_delta":           (52.374, 4.898,   "Amsterdam — RIPE NCC"),
+    "arxiv_ai_rate":       (42.360, -71.094, "Cambridge MA — ArXiv/MIT"),
+    "arxiv_ai_spike":      (42.360, -71.094, "Cambridge MA — ArXiv/MIT"),
 }
 
 

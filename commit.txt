@@ -1,79 +1,81 @@
-ig-pulse: SIC-POVM density matrix framework — 2026-06-27
+ig-pulse: SIC-POVM density matrix framework + new streams — 2026-06-27
 
-The 33-stream observatory is a d=12 heteroskedastic POVM approximation.
-Full SIC geometry requires 144 = 12² Weyl-Heisenberg elements with uniform
-pairwise trace overlap Tr(EᵢEⱼ) = 1/156. Current coverage: 15/144 (10.4%).
-108 of the 129 missing elements are synthesisable from existing stream products.
+The 36-stream observatory is a d=12 heteroskedastic POVM approximation.
+Full SIC geometry requires 144 = 12² Weyl-Heisenberg elements. Coverage: 24/144 (16.7%).
 
-density_matrix.py (new):
-- reconstruct(): PSD-projected density matrix from stream readings via
-  weighted sum of rank-1 projectors, eigenvalue clip, trace normalisation
-- fiducial_proximity(): Tr(ρ·Π_fid) — formal B-state score replacing
-  threshold arithmetic; baseline 1/d = 0.083 for maximally mixed
-- purity(): Tr(ρ²); von_neumann_entropy(): -Tr(ρ log ρ)
+────────────────────────────────────────────────────────────────────────────────
+density_matrix.py (new)
+────────────────────────────────────────────────────────────────────────────────
+- Exact d=12 SIC fiducial via WH frame potential minimisation (L-BFGS-B, 8 seeds)
+  Frame potential F = 0.846154 = (d²-1)/(d+1)² — exact to machine precision
+  Pairwise |<ψᵢ|ψⱼ>|² = 0.0769 ± 0.000 = 1/13 exactly (verified across 50 pairs)
+  Result cached to data/sic_fiducial_d12.npy — subsequent loads in 3ms
+- reconstruct(): PSD-projected density matrix from stream readings
+  weighted outer products, eigenvalue clip, trace normalisation
+- fiducial_proximity(): Tr(ρ·Π_fid) — formal B-state score
+  baseline 1/12 for mixed; rises toward B-state with SIC fiducial distance
+- purity(), von_neumann_entropy(), primitive_projection()
 - dominant_coherence_pair(): largest off-diagonal ρ element (cross-primitive)
 - sic_overlap_spectrum(): Tr(ρ·Π_{p,q}) for all 144 WH displacements
-- sic_heteroskedasticity(): variance of overlap spectrum (0 = uniform coverage)
-- Fiducial uses balanced superposition (1/√12)[1,...,1]; replace with
-  Scott-Grassl d=12 solution (arXiv:0910.5784) for exact SIC geometry
-- WH displacement operators X^p Z^q generated from d=12 clock/shift matrices
+- sic_heteroskedasticity(): variance of SIC overlap spectrum
+- _wh_displacements(): all 144 D(p,q) = e^{iπpq/d} X^p Z^q operators
+- metrics_from_snapshot(): full metrics dict from Snapshot object
 
-sic_povm.py (new):
-- STREAM_PRIMITIVE_MAP: 33 streams → (primitive, weight) components
-- coverage_analysis(): maps each stream to nearest SIC element, identifies
-  covered/missing (p,q) pairs
-- _sic_element_character(): dominant primitive axes + phase structure of
-  each WH-displaced fiducial state
-- missing_stream_proposals(): for each missing element: dominant cross-primitive
-  pair, proposed physical observable, synthesisable flag
-- CROSS_PRIMITIVE_OBSERVABLES: 40+ cross-primitive pairs → physical stream
-  proposals (Wikipedia trends, BGP topology, isotope ratios, options gamma, etc.)
-- synthesisable_streams(): 108 elements constructible as nonlinear combinations
-  of existing readings — no new data sources required
+────────────────────────────────────────────────────────────────────────────────
+sic_povm.py (new)
+────────────────────────────────────────────────────────────────────────────────
+- STREAM_PRIMITIVE_MAP: 36 streams → (primitive, weight) operator components
+- coverage_analysis(): maps each stream to nearest SIC element (p,q), reports
+  covered/missing sets
+- _sic_element_character(): dominant primitive axes of each D(p,q)|ψ_fid>
+- missing_stream_proposals(): character + proposed physical observable per gap
+- CROSS_PRIMITIVE_OBSERVABLES: 40+ cross-primitive pairs with physical proposals
+  (Wikipedia trends, isotope ratios, options gamma, BGP path diversity, etc.)
+- synthesisable_streams(): 108 elements constructible from existing stream products
+- /api/density_matrix endpoint: full report including missing proposals
 
-geo_viz.py:
-- /api/all now includes "rho" key with all density matrix metrics per cycle
-- /api/density_matrix: full report — rho metrics + SIC coverage + top 30
-  missing stream proposals with proposed physical observables
+────────────────────────────────────────────────────────────────────────────────
+domain_streams.py — 3 new streams (34-36, SIC gap fill)
+────────────────────────────────────────────────────────────────────────────────
+Stream 34 — wiki_entropy (Ř recognition + Γ granularity)
+  Shannon entropy of Wikipedia top-1000 daily article view distribution
+  Low entropy = attention spike (election, disaster, discovery) → Ř alert
+  Also emits wiki_concentration = 100 - entropy% as Γ signal
+  TTL: 6h (daily top-1000 changes slowly)
 
-geo_map.html:
-- Panel shows ⟨ρ|Π_fid⟩, Purity Tr(ρ²), Entropy S(ρ), dominant coherence
-- Fiducial proximity turns gold when > 1.5× baseline (approaching fiducial)
-- updatePanel() receives rho from /api/all alongside stats
+Stream 35 — bgp_routing (Γ granularity + Þ topology)
+  RIPE NCC RIS: total unique ASNs in global IPv4 routing table (~87k)
+  Rapid change signals internet fragmentation or major routing event
+  Emits bgp_asns (Γ scaled) + bgp_delta (Þ %change)
+  TTL: 4h
 
----
+Stream 36 — arxiv_ai (Ř recognition + ⊙ criticality)
+  ArXiv cs.AI + cs.LG daily submission count via Atom feed totalResults
+  High count → recognition event (community responding to major release)
+  Rate alert on count; spike alert on delta vs. previous poll
+  TTL: 12h
 
+────────────────────────────────────────────────────────────────────────────────
+geo_viz.py
+────────────────────────────────────────────────────────────────────────────────
+- /api/all now includes "rho" key: fiducial_proximity, purity, entropy,
+  dominant_coherence, sic_heteroskedasticity, rho_diagonal, primitive_projection
+- /api/density_matrix: full SIC-POVM report — rho metrics + coverage analysis
+  + top 30 missing stream proposals with physical observable suggestions
+- PROJECTION_MAP entries: wiki_entropy/wiki_concentration (SF/Wikimedia),
+  bgp_asns/bgp_delta (Amsterdam/RIPE NCC), arxiv_ai_rate/arxiv_ai_spike
+  (Cambridge MA/ArXiv)
+
+────────────────────────────────────────────────────────────────────────────────
+geo_map.html
+────────────────────────────────────────────────────────────────────────────────
+- Panel: ⟨ρ|Π_fid⟩, Purity Tr(ρ²), Entropy S(ρ), dominant coherence
+  Fiducial proximity turns gold (★) when > 0.08 (approaching SIC fiducial)
+- Coupling arc threshold slider (0.0–1.0), client-side re-render from cache
+
+────────────────────────────────────────────────────────────────────────────────
+Previous entries
+────────────────────────────────────────────────────────────────────────────────
 ig-pulse: seismic station network — IRIS GSN + GEOSCOPE as coupling nodes — 2026-06-27
-
-domain_streams.py:
-- _get_seismic_stations(): fetches IRIS FDSN station catalog for IU/II/IC/G
-  networks (~220 stations), cached 24h
-- _haversine_km(): great-circle distance between station and epicentre
-- _stream_seismic_network(): for each M≥5.0 event in last 2h, activates all
-  stations within P-wave energy range; weight = energy / dist²
-- Added to _ALL_STREAMS alongside existing _stream_seismic
-
-geo_viz.py:
-- GeoVizEngine.get_seismic_stations_geojson(): static GeoJSON layer of all
-  stations — always visible, not just when signalling
-- /api/all now includes "seismic_stations" key
-
-geo_map.html:
-- seismicLayer (L.layerGroup) — small green hollow circles, loaded once
-- renderSeismicStations(): populates layer from /api/all response
-- Layer added to control panel as 'Seismic Stations'
-- Coupling strength threshold slider (0.0–1.0) in panel; re-renders arcs
-  client-side from cached data without server round-trip
-
----
-
 ig-pulse: DSN contact-aware SEPT polling — 2026-06-27
-
-domain_streams.py:
-- _dsn_stereo_contact_recent(): checks NASA DSN real-time XML for STEREO-A
-  contact; result cached 120s
-- _sept_cache: TTL 90s when DSN contact active, 3600s when idle
-- SyntaxWarning fix: raw f-string for \d regex pattern
-
-collector.py:
-- run() uses DSN contact state to set sleep interval (90s vs interval_seconds)
+ig-pulse: fix space stream positions + L/R infinite map scroll — 2026-06-27
