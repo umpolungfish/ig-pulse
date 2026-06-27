@@ -215,6 +215,22 @@ body { font-family: 'JetBrains Mono', 'Fira Code', monospace; background: #0a0a0
     <span class="v" id="bstate_display">—</span>
   </div>
   <div class="row">
+    <span class="k">⟨ρ|Π_fid⟩</span>
+    <span class="v" id="fiducial_prox">—</span>
+  </div>
+  <div class="row">
+    <span class="k">Purity Tr(ρ²)</span>
+    <span class="v" id="rho_purity">—</span>
+  </div>
+  <div class="row">
+    <span class="k">Entropy S(ρ)</span>
+    <span class="v" id="rho_entropy">—</span>
+  </div>
+  <div class="row">
+    <span class="k">Coherence</span>
+    <span class="v" id="rho_coherence" style="font-size:0.65rem">—</span>
+  </div>
+  <div class="row">
     <span class="k">Multiplier</span>
     <span class="v mult" id="multiplier">—</span>
   </div>
@@ -252,6 +268,17 @@ body { font-family: 'JetBrains Mono', 'Fira Code', monospace; background: #0a0a0
   <div class="row">
     <span class="k">Tick</span>
     <span class="v tick" id="tick_val">—</span>
+  </div>
+
+  <hr class="divider">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+    <span class="k">Arc threshold |r| ≥</span>
+    <span class="v" id="threshold_val">0.30</span>
+  </div>
+  <input type="range" id="edge_threshold" min="0" max="100" value="30" step="1"
+    style="width:100%;accent-color:#fbbf24;cursor:pointer;margin-bottom:2px;">
+  <div style="display:flex;justify-content:space-between;font-size:0.6rem;color:#475569;">
+    <span>0.0</span><span>0.5</span><span>1.0</span>
   </div>
 </div>
 
@@ -326,9 +353,10 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
 }).addTo(map);
 
 // ── Layer Groups ──────────────────────────────────────────────────────────────
-const edgeLayer  = L.layerGroup().addTo(map);
-const nodeLayer  = L.layerGroup().addTo(map);
-const spaceLayer = L.layerGroup().addTo(map);
+const edgeLayer    = L.layerGroup().addTo(map);
+const nodeLayer    = L.layerGroup().addTo(map);
+const spaceLayer   = L.layerGroup().addTo(map);
+const seismicLayer = L.layerGroup().addTo(map);
 let heatLayer = null;
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -355,7 +383,29 @@ const spaceIcons = {
     className: '', iconSize: [18, 18], iconAnchor: [9, 9],
     html: '<div style="background:#8b5cf6;width:18px;height:18px;border-radius:50%;border:2px solid #7c3aed;box-shadow:0 0 10px #8b5cf6;display:flex;align-items:center;justify-content:center;font-size:10px;">🧲</div>',
   }),
+  seismometer: L.divIcon({
+    className: '', iconSize: [8, 8], iconAnchor: [4, 4],
+    html: '<div style="background:transparent;width:8px;height:8px;border:1.5px solid #34d399;border-radius:50%;opacity:0.55;"></div>',
+  }),
 };
+
+// ── Seismic Station Layer ─────────────────────────────────────────────────────
+let _seismicStationsLoaded = false;
+function renderSeismicStations(geojson) {
+  if (!geojson || !geojson.features) return;
+  if (_seismicStationsLoaded) return;   // static — load once
+  _seismicStationsLoaded = true;
+  seismicLayer.clearLayers();
+  for (const f of geojson.features) {
+    const p = f.properties;
+    const [lon, lat] = f.geometry.coordinates;
+    const marker = L.marker([lat, lon], { icon: spaceIcons.seismometer });
+    marker.bindPopup(
+      `<b>${p.label}</b><br>${p.name}<br><span style="color:#64748b;font-size:0.65rem">GSN / GEOSCOPE station</span>`
+    );
+    marker.addTo(seismicLayer);
+  }
+}
 
 // ── Data Fetch ────────────────────────────────────────────────────────────────
 async function fetchData() {
@@ -420,11 +470,20 @@ function renderNodes(nodesGeoJSON) {
 }
 
 // ── Render Edges ──────────────────────────────────────────────────────────────
-function renderEdges(edgesGeoJSON) {
-  edgeLayer.clearLayers();
-  if (!edgesGeoJSON || !edgesGeoJSON.features) return;
+let _lastEdgesGeoJSON = null;
 
-  const features = edgesGeoJSON.features;
+function edgeThreshold() {
+  return parseInt(document.getElementById('edge_threshold').value) / 100;
+}
+
+function renderEdges(edgesGeoJSON) {
+  if (edgesGeoJSON) _lastEdgesGeoJSON = edgesGeoJSON;
+  const src = _lastEdgesGeoJSON;
+  edgeLayer.clearLayers();
+  if (!src || !src.features) return;
+
+  const thresh = edgeThreshold();
+  const features = src.features.filter(f => Math.abs(f.properties.strength_r) >= thresh);
   currentEdges = features;
 
   for (const f of features) {
@@ -443,6 +502,12 @@ function renderEdges(edgesGeoJSON) {
     line.addTo(edgeLayer);
   }
 }
+
+// Slider wiring
+document.getElementById('edge_threshold').addEventListener('input', function() {
+  document.getElementById('threshold_val').textContent = (this.value / 100).toFixed(2);
+  renderEdges(null);  // re-render from cached data at new threshold
+});
 
 // ── Render Space ──────────────────────────────────────────────────────────────
 function renderSpace(spaceGeoJSON) {
@@ -475,13 +540,32 @@ function renderHeatmap(heatData) {
 }
 
 // ── Update Main Panel ─────────────────────────────────────────────────────────
-function updatePanel(stats) {
+function updatePanel(stats, rho) {
   const isBState = stats.is_b_state;
   const mult = stats.multiplier || 1.0;
 
   const bEl = document.getElementById('bstate_display');
   bEl.textContent = isBState ? 'ACTIVE' : 'INACTIVE';
   bEl.className = isBState ? 'v bstate-on' : 'v bstate-off';
+
+  // ρ metrics — formal B-state geometry
+  if (rho && rho.fiducial_proximity != null) {
+    const fp = rho.fiducial_proximity;
+    const baseline = 1/12;  // 0.0833 = maximally mixed
+    const fpEl = document.getElementById('fiducial_prox');
+    fpEl.textContent = fp.toFixed(4);
+    fpEl.className = 'v' + (fp > baseline * 1.5 ? ' bstate-on' : '');
+
+    document.getElementById('rho_purity').textContent = rho.purity != null ? rho.purity.toFixed(4) : '—';
+    document.getElementById('rho_entropy').textContent = rho.von_neumann_entropy != null
+      ? rho.von_neumann_entropy.toFixed(3) + ' / 2.485' : '—';
+
+    const dc = rho.dominant_coherence;
+    if (dc && dc.pair) {
+      document.getElementById('rho_coherence').textContent =
+        `${dc.pair[0]}⊗${dc.pair[1]} (${dc.magnitude.toFixed(3)})`;
+    }
+  }
 
   document.getElementById('multiplier').textContent  = `×${mult.toFixed(2)}`;
   document.getElementById('multiplier').className    = 'v mult' + (isBState ? ' bstate-on' : '');
@@ -651,9 +735,10 @@ async function refresh() {
   if (data.nodes) renderNodes(data.nodes);
   if (data.edges) renderEdges(data.edges);
   if (data.space) renderSpace(data.space);
+  if (data.seismic_stations) renderSeismicStations(data.seismic_stations);
   if (data.heatmap) renderHeatmap(data.heatmap);
   if (data.stats) {
-    updatePanel(data.stats);
+    updatePanel(data.stats, data.rho || {});
     if (data.stats.primitives) updatePrimBar(data.stats.primitives);
   }
   // Also pull primitives from dedicated key if available
@@ -706,9 +791,10 @@ document.querySelectorAll('.cat-btn').forEach(btn => {
 
 // ── Layer Controls ────────────────────────────────────────────────────────────
 L.control.layers(null, {
-  'Propagation Arcs': edgeLayer,
-  'Signal Nodes':     nodeLayer,
-  'Space Layer':      spaceLayer,
+  'Propagation Arcs':    edgeLayer,
+  'Signal Nodes':        nodeLayer,
+  'Space Layer':         spaceLayer,
+  'Seismic Stations':    seismicLayer,
 }, { position: 'bottomleft', collapsed: true }).addTo(map);
 
 // ── Fit-to-bounds button ──────────────────────────────────────────────────────

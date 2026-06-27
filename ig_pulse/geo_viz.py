@@ -33,6 +33,7 @@ import numpy as np
 from flask import Flask, jsonify, render_template, request, send_from_directory
 
 from .schema import Snapshot, ReadingRecord, load_snapshots
+from .density_matrix import metrics_from_snapshot
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -249,6 +250,17 @@ PROJECTION_MAP = {
     "kalshi_entertainment_KXSWIFTKELCEWEDDINGLOCATION-30-TEN": (40.707, -74.011, "Wall Street, NYC"),
     "kalshi_entertainment_KXTAYLORSWIFTWEDDING-30JAN01-BRI": (40.707, -74.011, "Wall Street, NYC"),
     "kalshi_politics_KXTAIWANLVL4-27JAN01": (25.033, 121.565, "Taipei, Taiwan — Prediction Market"),
+
+    # Air quality (EPA AQS network — Washington DC hub)
+    "pm2_5":               (38.907, -77.037, "EPA AQS Network — PM2.5"),
+    "ozone":               (38.907, -77.037, "EPA AQS Network — Ozone"),
+
+    # DSCOVR variants missing from above
+    "dscovr_bz_flipping":  (40.013, -105.271, "NOAA SWPC — DSCOVR Bz flipping"),
+    "dscovr_bz_variable":  (40.013, -105.271, "NOAA SWPC — DSCOVR Bz variable"),
+
+    # Alt crypto (Wall Street)
+    "alt_outperform":      (40.707, -74.011, "Wall Street, NYC — Alt outperform"),
 }
 
 
@@ -426,18 +438,50 @@ class GeoVizEngine:
 
         return nodes
 
+    def _full_geo_lookup(self, geo_nodes: List[GeoNode]) -> Dict[str, GeoNode]:
+        """Build a geo lookup covering ALL known stream positions — not just
+        streams currently active in the snapshot.  Active snapshot nodes take
+        precedence (they carry live alert data); everything else is filled in
+        from PROJECTION_MAP and SPACE_ORIGINS so coupling arcs are always
+        visible regardless of whether a stream fired this cycle.
+        """
+        lookup: Dict[str, GeoNode] = {}
+
+        # 1. Fill from static PROJECTION_MAP (alert=0, dim node)
+        for stream, (lat, lon, label) in PROJECTION_MAP.items():
+            lookup[stream] = GeoNode(
+                stream=stream, primitive="", value=0.0, alert=0,
+                lat=lat, lon=lon, origin_type="projected", label=label,
+                timestamp=0.0,
+            )
+
+        # 2. Fill from SPACE_ORIGINS via SPACE_SOURCE_MAP
+        for source_key, space_key in SPACE_SOURCE_MAP.items():
+            sp = SPACE_ORIGINS.get(space_key)
+            if sp:
+                lookup[source_key] = GeoNode(
+                    stream=source_key, primitive="", value=0.0, alert=0,
+                    lat=sp["lat"], lon=sp["lon"], origin_type="space",
+                    label=sp["name"], timestamp=0.0,
+                )
+
+        # 3. Override with live snapshot nodes (carry real alert/value data)
+        for n in geo_nodes:
+            lookup[n.stream] = n
+
+        return lookup
+
     def _extract_geo_edges(self, geo_nodes: List[GeoNode]) -> List[GeoEdge]:
-        """Build propagation arcs between geographically-anchored nodes."""
+        """Build propagation arcs between geographically-anchored nodes.
+
+        Uses the full geo lookup so arcs between any two known-position streams
+        are always rendered — not just when both happen to be active this cycle.
+        """
         self._load_if_needed()
         edges = []
 
-        # Build lookup: (stream, primitive) -> GeoNode
-        node_map: Dict[str, GeoNode] = {}
-        for n in geo_nodes:
-            # Map by stream name (without primitive suffix for broader matching)
-            node_map[n.stream] = n
+        node_map = self._full_geo_lookup(geo_nodes)
 
-        # Match coupling edges to geo nodes
         for ce in self._coupling_edges:
             src_stream = ce.get("source_stream", "")
             tgt_stream = ce.get("target_stream", "")
@@ -452,15 +496,10 @@ class GeoVizEngine:
                     strength_r=ce.get("strength_r", 0),
                     p_value=ce.get("p_value", 0),
                 ))
-            elif src_node and not tgt_node:
-                # Source has geo origin, target doesn't — still show as outgoing
-                # Use the target stream name to create a synthetic node at origin
-                # Or skip — we only draw arcs between geo-anchored nodes
-                pass
 
-        # Filter to top 100 strongest edges for visual clarity
+        # Send all edges to client — threshold filtering happens in the frontend
         edges.sort(key=lambda e: abs(e.strength_r) * (1.0 - e.p_value), reverse=True)
-        return edges[:100]
+        return edges
 
     def get_nodes_geojson(self) -> dict:
         """GeoJSON FeatureCollection of signal origins."""
@@ -498,6 +537,27 @@ class GeoVizEngine:
                     "key": key,
                     "radius": 12,
                     "color": "#fbbf24",
+                },
+            })
+        return {"type": "FeatureCollection", "features": features}
+
+    def get_seismic_stations_geojson(self) -> dict:
+        """Static layer: all IRIS GSN + GEOSCOPE stations as GeoJSON points."""
+        from .domain_streams import _get_seismic_stations
+        stations = _get_seismic_stations()
+        features = []
+        for sta in stations:
+            features.append({
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [sta["lon"], sta["lat"]]},
+                "properties": {
+                    "type": "seismic_station",
+                    "network": sta["net"],
+                    "station": sta["sta"],
+                    "name": sta["name"],
+                    "elev_m": sta.get("elev", 0),
+                    "label": f"{sta['net']}.{sta['sta']}",
+                    "icon": "seismometer",
                 },
             })
         return {"type": "FeatureCollection", "features": features}
@@ -702,14 +762,38 @@ def create_app(data_dir: str = None) -> Flask:
     @app.route("/api/all")
     def api_all():
         """Single endpoint returning all data for the dashboard."""
+        rho_metrics = {}
+        snap = engine._latest_snapshot
+        if snap:
+            try:
+                rho_metrics = metrics_from_snapshot(snap)
+            except Exception:
+                pass
         return jsonify({
             "nodes": engine.get_nodes_geojson(),
             "edges": engine.get_edges_geojson(),
             "space": engine.get_space_geojson(),
+            "seismic_stations": engine.get_seismic_stations_geojson(),
             "heatmap": engine.get_heatmap_data(),
             "stats": engine.get_stats(),
             "primitives": engine.get_primitives(),
             "streams": engine.get_streams(),
+            "rho": rho_metrics,
+        })
+
+    @app.route("/api/density_matrix")
+    def api_density_matrix():
+        """Full density matrix metrics + SIC-POVM coverage."""
+        snap = engine._latest_snapshot
+        if not snap:
+            return jsonify({"error": "no snapshot"}), 404
+        from .sic_povm import coverage_analysis, missing_stream_proposals
+        rho_metrics = metrics_from_snapshot(snap)
+        cov = coverage_analysis()
+        return jsonify({
+            "rho": rho_metrics,
+            "sic_coverage": cov,
+            "missing_proposals": missing_stream_proposals(cov)[:30],
         })
 
     # ── Dashboard Routes ───────────────────────────────────────────────────

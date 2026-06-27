@@ -28,10 +28,15 @@ def collect_once(verbose: bool = True) -> None:
 
 
 def run(interval_seconds: int = 3600, verbose: bool = True) -> None:
-    print(f"ig-pulse collector running | interval={interval_seconds}s | writing to {SNAPSHOTS_PATH}")
+    from .domain_streams import _dsn_stereo_contact_recent
+    contact_interval = 90  # seconds — poll fast during DSN downlink windows
+    print(f"ig-pulse collector running | interval={interval_seconds}s (contact={contact_interval}s) | writing to {SNAPSHOTS_PATH}")
     while True:
         try:
             collect_once(verbose=verbose)
         except Exception as e:
             print(f"  [ERROR] collect_once failed: {e}")
-        time.sleep(interval_seconds)
+        sleep = contact_interval if _dsn_stereo_contact_recent() else interval_seconds
+        if verbose and sleep == contact_interval:
+            print(f"  [DSN contact active — next collect in {contact_interval}s]")
+        time.sleep(sleep)

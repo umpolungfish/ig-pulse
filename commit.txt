@@ -1,48 +1,79 @@
-ig-pulse: fix space stream positions + L/R infinite map scroll — 2026-06-27
+ig-pulse: SIC-POVM density matrix framework — 2026-06-27
 
-## geo_viz.py: SPACE_SOURCE_MAP
+The 33-stream observatory is a d=12 heteroskedastic POVM approximation.
+Full SIC geometry requires 144 = 12² Weyl-Heisenberg elements with uniform
+pairwise trace overlap Tr(EᵢEⱼ) = 1/156. Current coverage: 15/144 (10.4%).
+108 of the 129 missing elements are synthesisable from existing stream products.
 
-Added SPACE_SOURCE_MAP dict (origin["source"] → SPACE_ORIGINS key) so space-based
-stream readings render at their actual orbital positions instead of falling back to
-NOAA SWPC Boulder CO via PROJECTION_MAP.
+density_matrix.py (new):
+- reconstruct(): PSD-projected density matrix from stream readings via
+  weighted sum of rank-1 projectors, eigenvalue clip, trace normalisation
+- fiducial_proximity(): Tr(ρ·Π_fid) — formal B-state score replacing
+  threshold arithmetic; baseline 1/d = 0.083 for maximally mixed
+- purity(): Tr(ρ²); von_neumann_entropy(): -Tr(ρ log ρ)
+- dominant_coherence_pair(): largest off-diagonal ρ element (cross-primitive)
+- sic_overlap_spectrum(): Tr(ρ·Π_{p,q}) for all 144 WH displacements
+- sic_heteroskedasticity(): variance of overlap spectrum (0 = uniform coverage)
+- Fiducial uses balanced superposition (1/√12)[1,...,1]; replace with
+  Scott-Grassl d=12 solution (arXiv:0910.5784) for exact SIC geometry
+- WH displacement operators X^p Z^q generated from d=12 clock/shift matrices
 
-Mapping:
-  "sun"                → SPACE_ORIGINS["sun"]              (lon=0, lat=0)
-  "L1_lagrange"        → SPACE_ORIGINS["L1_dscovr"]        (lon=-65, lat=5)
-  "DSCOVR"             → SPACE_ORIGINS["L1_dscovr"]        (lon=-65, lat=5)
-  "ACE"                → SPACE_ORIGINS["L1_ace"]           (lon=-75, lat=-5)
-  "GOES-18" / "GOES-19"→ SPACE_ORIGINS["goes_18"]          (lon=-137, lat=0)
-  "stereo_a"           → SPACE_ORIGINS["stereo_a"]         (lon=70, lat=0)
-  "stereo_sept"        → SPACE_ORIGINS["stereo_a"]         (lon=70, lat=0)
-  "earth_magnetosphere"→ SPACE_ORIGINS["earth_magnetosphere"](lat=90, lon=0)
+sic_povm.py (new):
+- STREAM_PRIMITIVE_MAP: 33 streams → (primitive, weight) components
+- coverage_analysis(): maps each stream to nearest SIC element, identifies
+  covered/missing (p,q) pairs
+- _sic_element_character(): dominant primitive axes + phase structure of
+  each WH-displaced fiducial state
+- missing_stream_proposals(): for each missing element: dominant cross-primitive
+  pair, proposed physical observable, synthesisable flag
+- CROSS_PRIMITIVE_OBSERVABLES: 40+ cross-primitive pairs → physical stream
+  proposals (Wikipedia trends, BGP topology, isotope ratios, options gamma, etc.)
+- synthesisable_streams(): 108 elements constructible as nonlinear combinations
+  of existing readings — no new data sources required
 
-Updated _extract_geo_nodes() priority chain:
-  1. origin["lat"] / origin["lon"] if present  (seismic/atmosphere/tide — exact GPS)
-  2. SPACE_SOURCE_MAP via origin["source"]       (ACE/GOES/STEREO/DSCOVR/SEPT/Sun/Kp)
-  3. PROJECTION_MAP hub                          (market/social/bio/infrastructure)
+geo_viz.py:
+- /api/all now includes "rho" key with all density matrix metrics per cycle
+- /api/density_matrix: full report — rho metrics + SIC coverage + top 30
+  missing stream proposals with proposed physical observables
 
-Result: 25 of 73 nodes now render as origin_type="space" at correct orbital coords.
+geo_map.html:
+- Panel shows ⟨ρ|Π_fid⟩, Purity Tr(ρ²), Entropy S(ρ), dominant coherence
+- Fiducial proximity turns gold when > 1.5× baseline (approaching fiducial)
+- updatePanel() receives rho from /api/all alongside stats
 
-## geo_map.html: L/R infinite scroll
+---
 
-Changed tile layer noWrap from true → false. CARTO dark_all tiles support world
-repetition natively; map now scrolls left/right indefinitely.
+ig-pulse: seismic station network — IRIS GSN + GEOSCOPE as coupling nodes — 2026-06-27
 
-## Serialization audit (no changes needed)
+domain_streams.py:
+- _get_seismic_stations(): fetches IRIS FDSN station catalog for IU/II/IC/G
+  networks (~220 stations), cached 24h
+- _haversine_km(): great-circle distance between station and epicentre
+- _stream_seismic_network(): for each M≥5.0 event in last 2h, activates all
+  stations within P-wave energy range; weight = energy / dist²
+- Added to _ALL_STREAMS alongside existing _stream_seismic
 
-Verified lat/lon origin data flows through the full pipeline without loss:
-  domain_streams._set(origin={lat,lon}) → StreamValue.origin
-  → snapshot_from_domain_signal() → ReadingRecord.origin (via getattr)
-  → asdict(Snapshot) → JSON → ReadingRecord(**r) → _extract_geo_nodes()
+geo_viz.py:
+- GeoVizEngine.get_seismic_stations_geojson(): static GeoJSON layer of all
+  stations — always visible, not just when signalling
+- /api/all now includes "seismic_stations" key
 
-7 streams already carrying real lat/lon in origin:
-  tide_range         lat=40.700  lon=-74.014  (Battery Park, NYC — hardcoded)
-  pm2_5              lat=40.710  lon=-74.010  (OpenWeatherMap city response)
-  ozone              lat=40.710  lon=-74.010
-  temp_swing         lat=40.710  lon=-74.010
-  surface_wind       lat=40.710  lon=-74.010
-  seismic_energy     lat=10.435  lon=-68.472  (actual earthquake epicenter — varies)
-  seismic_major      lat=10.435  lon=-68.472
+geo_map.html:
+- seismicLayer (L.layerGroup) — small green hollow circles, loaded once
+- renderSeismicStations(): populates layer from /api/all response
+- Layer added to control panel as 'Seismic Stations'
+- Coupling strength threshold slider (0.0–1.0) in panel; re-renders arcs
+  client-side from cached data without server round-trip
 
-All others carry type/source/instrument metadata but no lat/lon — correctly use
-SPACE_SOURCE_MAP (step 2) or PROJECTION_MAP (step 3) as fallback.
+---
+
+ig-pulse: DSN contact-aware SEPT polling — 2026-06-27
+
+domain_streams.py:
+- _dsn_stereo_contact_recent(): checks NASA DSN real-time XML for STEREO-A
+  contact; result cached 120s
+- _sept_cache: TTL 90s when DSN contact active, 3600s when idle
+- SyntaxWarning fix: raw f-string for \d regex pattern
+
+collector.py:
+- run() uses DSN contact state to set sleep interval (90s vs interval_seconds)

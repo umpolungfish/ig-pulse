@@ -449,6 +449,136 @@ def _stream_seismic(sig: DomainSignal) -> None:
         sig.errors.append(f"usgs_seismic: {e}")
 
 
+# ── Seismic station catalog (IRIS GSN + GEOSCOPE) ────────────────────────────
+# Cached globally — stations don't move; refresh every 24h
+_SEISMIC_STATION_CACHE: dict = {"ts": 0.0, "stations": []}
+_SEISMIC_STATION_TTL = 86400  # 24h
+
+_IRIS_STATION_URL = (
+    "https://service.iris.edu/fdsnws/station/1/query"
+    "?network=IU,II,IC,G&level=station&format=text&nodata=404"
+)
+
+
+def _get_seismic_stations() -> list:
+    """Return list of {net, sta, lat, lon, name} dicts from IRIS GSN + GEOSCOPE."""
+    import time as _time
+    now = _time.time()
+    if now - _SEISMIC_STATION_CACHE["ts"] < _SEISMIC_STATION_TTL:
+        return _SEISMIC_STATION_CACHE["stations"]
+    try:
+        text = _text(_IRIS_STATION_URL, timeout=20)
+        if not text:
+            return _SEISMIC_STATION_CACHE["stations"]
+        stations = []
+        for line in text.splitlines():
+            if line.startswith("#") or not line.strip():
+                continue
+            parts = line.split("|")
+            if len(parts) < 6:
+                continue
+            try:
+                stations.append({
+                    "net": parts[0].strip(),
+                    "sta": parts[1].strip(),
+                    "lat": float(parts[2]),
+                    "lon": float(parts[3]),
+                    "elev": float(parts[4]),
+                    "name": parts[5].strip(),
+                })
+            except (ValueError, IndexError):
+                continue
+        if stations:
+            _SEISMIC_STATION_CACHE.update({"ts": now, "stations": stations})
+        return stations
+    except Exception:
+        return _SEISMIC_STATION_CACHE["stations"]
+
+
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    import math
+    R = 6371.0
+    φ1, φ2 = math.radians(lat1), math.radians(lat2)
+    dφ = math.radians(lat2 - lat1)
+    dλ = math.radians(lon2 - lon1)
+    a = math.sin(dφ/2)**2 + math.cos(φ1)*math.cos(φ2)*math.sin(dλ/2)**2
+    return R * 2 * math.asin(min(1.0, math.sqrt(a)))
+
+
+def _stream_seismic_network(sig: DomainSignal) -> None:
+    """IRIS GSN + GEOSCOPE stations as coupling nodes — signals propagate from
+    earthquake epicentres outward to receiving stations, weighted by P-wave
+    energy decay (1/distance²).  Each activated station emits a reading at its
+    own lat/lon so the map shows the full receiver network lighting up.
+    """
+    stations = _get_seismic_stations()
+    if not stations:
+        sig.errors.append("seismic_network: no station catalog")
+        return
+
+    url = (
+        "https://earthquake.usgs.gov/fdsnws/event/1/query"
+        f"?format=geojson&starttime={_ago(2)}&endtime={_today()}"
+        "&minmagnitude=5.0&orderby=time&limit=20"
+    )
+    data = _json(url, timeout=20)
+    if not data or "features" not in data:
+        sig.errors.append("seismic_network: no events")
+        return
+
+    try:
+        import math
+        for event in data["features"]:
+            props = event.get("properties", {})
+            mag = props.get("mag") or 0.0
+            coords = event.get("geometry", {}).get("coordinates", [0, 0, 0])
+            eq_lon, eq_lat, depth_km = coords[0], coords[1], (coords[2] or 0.0)
+            place = props.get("place", "unknown")
+            if mag < 5.0:
+                continue
+
+            energy = 10 ** (1.5 * mag)
+
+            for sta in stations:
+                dist_km = _haversine_km(eq_lat, eq_lon, sta["lat"], sta["lon"])
+                if dist_km < 1.0:
+                    dist_km = 1.0
+                # P-wave energy at station (geometric spreading: 1/r²)
+                weight = min(1.0, energy / (dist_km ** 2) / 1e6)
+                if weight < 0.001:
+                    continue
+
+                origin = {
+                    "type": "seismic_station",
+                    "lat": sta["lat"],
+                    "lon": sta["lon"],
+                    "source": f"{sta['net']}.{sta['sta']}",
+                    "station": sta["sta"],
+                    "network": sta["net"],
+                    "station_name": sta["name"],
+                    "epicentre_lat": eq_lat,
+                    "epicentre_lon": eq_lon,
+                    "dist_km": round(dist_km, 1),
+                    "mag": mag,
+                    "place": place,
+                    "depth_km": depth_km,
+                }
+                stream_name = f"seismic_{sta['net']}_{sta['sta']}"
+
+                if weight > 0.6 or mag >= 7.0:
+                    sig._set("topology",     2, stream_name, weight, "pw", origin)
+                    sig._set("winding",      1, stream_name, mag,    "M",  origin)
+                    if depth_km < 70:
+                        sig._set("criticality", 2, stream_name, mag, "M", origin)
+                elif weight > 0.1 or mag >= 6.0:
+                    sig._set("topology",     1, stream_name, weight, "pw", origin)
+                    sig._set("dimensionality", 1, stream_name, depth_km, "km", origin)
+                else:
+                    sig._nom("topology", stream_name, weight, "pw", origin)
+    except Exception as e:
+        sig.errors.append(f"seismic_network: {e}")
+
+
 # ── Stream 9: NOAA Kp geomagnetic index ──────────────────────────────────────
 
 def _stream_kp(sig: DomainSignal) -> None:
@@ -1997,6 +2127,46 @@ def _stream_stereo_sept(sig: DomainSignal) -> None:
 
 
 _SEPT_BASE = "http://www2.physik.uni-kiel.de/stereo/data/sept/level2"
+_DSN_XML_URL = "https://eyes.nasa.gov/dsn/data/dsn.xml"
+
+# Module-level DSN contact cache — avoid hammering the DSN status endpoint
+_dsn_cache: dict = {"ts": None, "active": False}
+_DSN_CACHE_TTL = 120  # seconds
+
+# Module-level SEPT data cache — keyed by (sc, particle, direction)
+_sept_cache: dict = {}
+_SEPT_TTL_CONTACT  = 90    # seconds — poll aggressively when DSN contact is fresh
+_SEPT_TTL_IDLE     = 3600  # seconds — back off when no recent contact
+
+
+def _dsn_stereo_contact_recent(window_minutes: int = 30) -> bool:
+    """Return True if STEREO-A has had DSN contact in the last `window_minutes`.
+
+    Checks NASA's DSN real-time XML feed. Result is cached for _DSN_CACHE_TTL
+    seconds so every SEPT stream variant doesn't fire a separate request.
+    """
+    import time as _time
+    now = _time.time()
+    if (_dsn_cache["ts"] is not None
+            and now - _dsn_cache["ts"] < _DSN_CACHE_TTL):
+        return _dsn_cache["active"]
+
+    try:
+        xml = _text(_DSN_XML_URL, timeout=8)
+        if not xml:
+            _dsn_cache.update({"ts": now, "active": False})
+            return False
+
+        # DSN XML uses <spacecraft name="STEREO_A" ...> inside <dish> elements.
+        # Any mention of STEREO_A in an active <dish> block = contact underway.
+        # We also accept a recent-downlink heuristic: if STEREO_A appears at all
+        # the station received data this cycle.
+        active = "STEREO_A" in xml or "stereo_a" in xml.lower()
+        _dsn_cache.update({"ts": now, "active": active})
+        return active
+    except Exception:
+        _dsn_cache.update({"ts": now, "active": False})
+        return False
 
 
 def _sept_fetch_latest(sc: str, particle: str, direction: str) -> Optional[dict]:
@@ -2012,11 +2182,19 @@ def _sept_fetch_latest(sc: str, particle: str, direction: str) -> Optional[dict]
     
     Returns dict with flux bins, timestamp, and spectral info, or None.
     """
-    import math, re
+    import math, re, time as _time
+    cache_key = (sc, particle, direction)
+    cached = _sept_cache.get(cache_key)
+    if cached is not None:
+        contact = _dsn_stereo_contact_recent()
+        ttl = _SEPT_TTL_CONTACT if contact else _SEPT_TTL_IDLE
+        if _time.time() - cached["_fetched_at"] < ttl:
+            return cached
+
     try:
         today = datetime.utcnow()
         year = today.year
-        
+
         # Step 1: Scrape directory to find latest available day
         dir_url = f"{_SEPT_BASE}/{sc}/1min/{year}/"
         dir_text = _text(dir_url, timeout=15)
@@ -2024,7 +2202,7 @@ def _sept_fetch_latest(sc: str, particle: str, direction: str) -> Optional[dict]
             return None
         
         # Extract all day numbers for this particle+direction combo
-        pattern = f'sept_{sc}_{particle}_{direction}_{year}_(\d+)_1min_l2_v03\.dat'
+        pattern = rf'sept_{sc}_{particle}_{direction}_{year}_(\d+)_1min_l2_v03\.dat'
         matches = re.findall(pattern, dir_text)
         if not matches:
             return None
@@ -2096,7 +2274,7 @@ def _sept_fetch_latest(sc: str, particle: str, direction: str) -> Optional[dict]
         except (ValueError, IndexError):
             year_val, hour, minute = 2026, 0, 0
         
-        return {
+        result = {
             'total_flux': total_flux,
             'n_bins': len(valid_fluxes),
             'spectral_ratio': spectral_ratio,
@@ -2105,7 +2283,10 @@ def _sept_fetch_latest(sc: str, particle: str, direction: str) -> Optional[dict]
             'year': year_val,
             'doy': doy,
             'filename': f"sept_{sc}_{particle}_{direction}_{year}_{doy:03d}",
+            '_fetched_at': _time.time(),
         }
+        _sept_cache[cache_key] = result
+        return result
     except Exception:
         return None
 
@@ -2122,7 +2303,8 @@ _ALL_STREAMS = [
     ("tides",        _stream_tides),
     ("air_quality",  _stream_air_quality),
     ("donki",        _stream_donki),
-    ("seismic",      _stream_seismic),
+    ("seismic",          _stream_seismic),
+    ("seismic_network",  _stream_seismic_network),
     ("kp_index",        _stream_kp),
     ("hn_sentiment",    _stream_hn),
     ("solar_wind",      _stream_solar_wind),
