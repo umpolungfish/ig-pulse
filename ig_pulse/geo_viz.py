@@ -271,6 +271,35 @@ PROJECTION_MAP = {
 }
 
 
+# Per-primitive colors — each of the 12 primitives has a fixed hue
+PRIMITIVE_COLOR = {
+    "recognition":    "#ff6200",  # Ř — electric orange
+    "chirality":      "#9b00ff",  # Ħ — electric purple
+    "winding":        "#00ffcc",  # Ω — neon teal
+    "dimensionality": "#6600ff",  # Ð — electric indigo
+    "stoichiometry":  "#ff8800",  # Σ — deep orange
+    "parity":         "#cc00ff",  # Φ — electric violet
+    "kinetics":       "#ff3d00",  # Ç — plasma orange
+    "fidelity":       "#00e5ff",  # ƒ — electric cyan
+    "coupling":       "#00ff88",  # ɢ — neon green
+    "granularity":    "#ff00cc",  # Γ — hot magenta
+    "topology":       "#ff1744",  # Þ — electric red
+    "criticality":    "#ffe600",  # ⊙ — electric yellow
+}
+_DEFAULT_COLOR = "#94a3b8"  # slate — unknown primitive
+
+
+def primitive_color(primitive: str, alert: int) -> str:
+    """Return primitive hue dimmed at alert=0, full at alert=1, bright at alert=2."""
+    base = PRIMITIVE_COLOR.get(primitive, _DEFAULT_COLOR)
+    if alert == 0:
+        return base + "55"   # 33% opacity
+    elif alert == 1:
+        return base + "bb"   # 73% opacity
+    else:
+        return base          # full
+
+
 # Color scale for edge strength
 def strength_color(r: float) -> str:
     """Map coupling strength to hex color: blue(cold) → white → red(hot)."""
@@ -316,7 +345,7 @@ class GeoNode:
                 "label": self.label,
                 "ts": self.timestamp,
                 "radius": 3 + self.alert * 3,  # Alert 2 = big dot
-                "color": {0: "#4ade80", 1: "#facc15", 2: "#ef4444"}[self.alert],
+                "color": primitive_color(self.primitive, self.alert),
             },
         }
 
@@ -355,7 +384,7 @@ class GeoEdge:
                 "lag_seconds": self.lag_seconds,
                 "strength_r": self.strength_r,
                 "p_value": self.p_value,
-                "color": strength_color(self.strength_r),
+                "color": primitive_color(self.source_node.primitive, min(1, int(abs(self.strength_r) * 2))),
                 "width": strength_width(self.strength_r),
                 "opacity": 1.0 - self.p_value,
             },
@@ -808,6 +837,192 @@ def create_app(data_dir: str = None) -> Flask:
     @app.route("/")
     def dashboard():
         return render_template("geo_map.html")
+
+    @app.route("/solar-seismic")
+    def solar_seismic():
+        return render_template("solar_seismic.html")
+
+    @app.route("/api/solar-seismic/warnings")
+    def api_solar_seismic_warnings():
+        import time as _time, json as _json
+        snap = engine._latest_snapshot
+        if not snap:
+            return jsonify({"warnings": [], "ts": None})
+
+        # Known lag correlations from coupling data (hardcoded from observed r/p/lag)
+        LAG_RULES = [
+            {"trigger": "cme_speed",         "alert_min": 1, "r": -0.730, "lag_h": 62.9,
+             "label": "CME impact",
+             "msg": "CME detected ({val:.0f} km/s). Correlation: seismic suppression at network stations in ~{lag:.0f}h (arrival ~{eta})."},
+            {"trigger": "ace_electron_flux",  "alert_min": 1, "r": +0.680, "lag_h": 2.7,
+             "label": "ACE e⁻ flux",
+             "msg": "Energetic electron flux elevated ({val:.0f} cts). Correlation: seismic elevation expected in ~{lag:.1f}h (arrival ~{eta})."},
+            {"trigger": "ace_proton_total",   "alert_min": 2, "r": +0.600, "lag_h": 3.5,
+             "label": "ACE proton storm",
+             "msg": "ACE proton flux storm-level (alert {alv}). Seismic network may activate in ~{lag:.1f}h."},
+            {"trigger": "solar_wind_speed",   "alert_min": 1, "r": +0.400, "lag_h": 18.0,
+             "label": "Fast solar wind",
+             "msg": "Solar wind elevated ({val:.0f} km/s). Correlated seismic response window opens in ~{lag:.0f}h (arrival ~{eta})."},
+            {"trigger": "solar_flare_M",      "alert_min": 1, "r": +0.350, "lag_h": 8.0,
+             "label": "M-class flare",
+             "msg": "M-class solar flare detected ({cls}). Monitor for CME follow-up; seismic window ~{lag:.0f}h."},
+            {"trigger": "goes_gcr_500MeV",    "alert_min": 2, "r": +0.450, "lag_h": 1.5,
+             "label": "SEP event",
+             "msg": "Solar energetic particle event (500 MeV, alert {alv}). Fast seismic response window ~{lag:.1f}h."},
+            {"trigger": "stereo_mag_helicity","alert_min": 1, "r": +0.380, "lag_h": 24.0,
+             "label": "Helicity surge",
+             "msg": "STEREO-A magnetic helicity surge. Seismic correlation window ~{lag:.0f}h."},
+            {"trigger": "kp_index",           "alert_min": 1, "r": +0.310, "lag_h": 12.0,
+             "label": "Kp elevated",
+             "msg": "Kp index elevated (Kp={val:.1f}). Geomagnetic loading — seismic correlation window ~{lag:.0f}h."},
+        ]
+
+        readings = snap.readings if hasattr(snap, 'readings') else []
+        now_ts = _time.time()
+        import datetime as _dt
+
+        # Load coupling edges and station coords once
+        coupling_path = engine.data_dir / "coupling.json"
+        coupling = _json.loads(coupling_path.read_text()) if coupling_path.exists() else []
+        try:
+            from .domain_streams import _get_seismic_stations
+            station_list = _get_seismic_stations()
+            station_map = {f"{s['net']}_{s['sta']}": s for s in station_list}
+        except Exception:
+            station_map = {}
+
+        def stations_for_trigger(trigger_stream, lag_h, tol_h=6.0):
+            """Return list of {code, name, lat, lon} correlated with this solar stream at ~lag_h."""
+            results = []
+            seen = set()
+            for e in coupling:
+                src, tgt = e['source_stream'], e['target_stream']
+                if src != trigger_stream or 'seismic_' not in tgt:
+                    continue
+                if abs(e['lag_seconds'] / 3600 - lag_h) > tol_h:
+                    continue
+                key = tgt.replace('seismic_', '', 1)
+                if key in seen:
+                    continue
+                seen.add(key)
+                s = station_map.get(key)
+                if s:
+                    results.append({"code": key, "name": s['name'], "lat": s['lat'], "lon": s['lon']})
+            return results
+
+        warnings = []
+        seen_triggers = set()
+
+        for rule in LAG_RULES:
+            trigger = rule["trigger"]
+            if trigger in seen_triggers:
+                continue
+            matches = [r for r in readings if r.stream == trigger and r.alert >= rule["alert_min"]]
+            if not matches:
+                continue
+            best = max(matches, key=lambda r: r.alert)
+            val = best.value
+            alv = best.alert
+            cls = best.origin.get("flare_class", "M-class") if isinstance(best.origin, dict) else "M-class"
+            lag_h = rule["lag_h"]
+            eta_ts = now_ts + lag_h * 3600
+            eta = _dt.datetime.utcfromtimestamp(eta_ts).strftime("%Y-%m-%d %H:%MZ")
+            severity = "critical" if alv >= 2 else "elevated"
+            stations = stations_for_trigger(trigger, lag_h)
+            msg = rule["msg"].format(val=val, lag=lag_h, eta=eta, alv=alv, cls=cls)
+            warnings.append({
+                "label": rule["label"],
+                "trigger_stream": trigger,
+                "trigger_value": val,
+                "trigger_alert": alv,
+                "r": rule["r"],
+                "lag_h": lag_h,
+                "eta": eta,
+                "severity": severity,
+                "msg": msg,
+                "stations": stations,
+            })
+            seen_triggers.add(trigger)
+
+        warnings.sort(key=lambda w: (-w["trigger_alert"], -abs(w["r"])))
+        return jsonify({"warnings": warnings, "ts": snap.ts})
+
+    @app.route("/api/solar-seismic")
+    def api_solar_seismic():
+        import json as _json
+        coupling_path = engine.data_dir / "coupling.json"
+        if not coupling_path.exists():
+            return jsonify({"edges": [], "stations": [], "solar": []})
+        edges = _json.loads(coupling_path.read_text())
+        solar_keys = {'kp_index','solar_wind_speed','cme_speed','solar_flare_M','solar_flare_X',
+                      'imf_bz','ace_electron_flux','ace_proton_total','ace_e_p_ratio',
+                      'stereo_B_magnitude','stereo_mag_helicity','stereo_phi_sweep',
+                      'goes_gcr_100MeV','goes_gcr_500MeV','goes_gcr_depression',
+                      'dscovr_bz_flipping','dscovr_bz_variable'}
+        seismic_keys = {s for s in
+                        set(e['source_stream'] for e in edges) | set(e['target_stream'] for e in edges)
+                        if 'seismic' in s}
+        hits = [e for e in edges
+                if (e['source_stream'] in solar_keys and e['target_stream'] in seismic_keys)
+                or (e['target_stream'] in solar_keys and e['source_stream'] in seismic_keys)]
+        # Station coordinates from IRIS
+        try:
+            from .domain_streams import _get_seismic_stations
+            all_stations = _get_seismic_stations()
+            station_map = {f"{s['net']}_{s['sta']}": s for s in all_stations}
+        except Exception:
+            station_map = {}
+        # Static solar source coords
+        solar_coords = {
+            'cme_speed':        {'lat': 0,    'lon': 0,      'label': 'Sun (CME)', 'type': 'star'},
+            'solar_flare_M':    {'lat': 0,    'lon': 0,      'label': 'Sun (M-flare)', 'type': 'star'},
+            'solar_wind_speed': {'lat': 28.3, 'lon': -80.6,  'label': 'ACE/DSCOVR L1', 'type': 'space'},
+            'imf_bz':           {'lat': 28.3, 'lon': -80.6,  'label': 'IMF Bz (L1)', 'type': 'space'},
+            'kp_index':         {'lat': 40.0, 'lon': -105.3, 'label': 'NOAA SWPC (Kp)', 'type': 'ground'},
+            'ace_electron_flux':{'lat': 28.3, 'lon': -80.6,  'label': 'ACE (L1)', 'type': 'space'},
+            'ace_proton_total': {'lat': 28.3, 'lon': -80.6,  'label': 'ACE (L1)', 'type': 'space'},
+            'ace_e_p_ratio':    {'lat': 28.3, 'lon': -80.6,  'label': 'ACE e/p ratio (L1)', 'type': 'space'},
+            'stereo_B_magnitude':{'lat': 0,   'lon': 60,     'label': 'STEREO-A', 'type': 'space'},
+            'stereo_mag_helicity':{'lat': 0,  'lon': 60,     'label': 'STEREO-A', 'type': 'space'},
+            'goes_gcr_100MeV':  {'lat': 0,    'lon': -75,    'label': 'GOES-18 (GCR)', 'type': 'space'},
+            'goes_gcr_500MeV':  {'lat': 0,    'lon': -75,    'label': 'GOES-18 (GCR)', 'type': 'space'},
+            'dscovr_bz_flipping':{'lat':28.3, 'lon': -80.6,  'label': 'DSCOVR (L1)', 'type': 'space'},
+            'dscovr_bz_variable':{'lat':28.3, 'lon': -80.6,  'label': 'DSCOVR (L1)', 'type': 'space'},
+        }
+        # Build edge features
+        features = []
+        for e in sorted(hits, key=lambda x: abs(x['strength_r']), reverse=True):
+            src = e['source_stream']; tgt = e['target_stream']
+            # Determine which is solar and which is seismic
+            if src in solar_keys:
+                sol_stream, sei_stream = src, tgt
+                direction = 'solar→seismic'
+            else:
+                sol_stream, sei_stream = tgt, src
+                direction = 'seismic→solar'
+            sol = solar_coords.get(sol_stream)
+            # Look up seismic station: stream name like seismic_IU_GUMO → IU_GUMO
+            sei_key = sei_stream.replace('seismic_', '', 1)
+            sei = station_map.get(sei_key)
+            if not sol or not sei:
+                continue
+            lag_h = e['lag_seconds'] / 3600
+            features.append({
+                'solar_stream': sol_stream,
+                'seismic_stream': sei_stream,
+                'sol_lat': sol['lat'], 'sol_lon': sol['lon'], 'sol_label': sol['label'],
+                'sei_lat': sei['lat'], 'sei_lon': sei['lon'],
+                'sei_label': f"{sei_stream} ({sei['name']})",
+                'r': e['strength_r'], 'p': e['p_value'],
+                'lag_h': lag_h, 'direction': direction,
+            })
+        # Return all stations as background nodes (not just correlated ones)
+        all_sta = [
+            {"code": f"{s['net']}_{s['sta']}", "name": s['name'],
+             "lat": s['lat'], "lon": s['lon'], "net": s['net']}
+            for s in all_stations
+        ]
+        return jsonify({"edges": features, "stations": all_sta})
 
     @app.route("/health")
     def health():

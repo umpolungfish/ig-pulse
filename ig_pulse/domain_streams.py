@@ -1,7 +1,7 @@
 """
 domain_streams.py — Free cross-domain data stream aggregator for synfin.
 
-36 streams, no API keys required (15 base + 18 fine-grained + 3 SIC gap fill):
+38 streams, no API keys required (15 base + 18 fine-grained + 3 SIC gap fill + 2 ƒ gap fill):
   1. Fear & Greed Index    (alternative.me)                   → ⊙ Criticality, Φ Parity
   2. Mempool state         (mempool.space)                    → Ç Kinetics, Þ Topology, ɢ Coupling
   3. Global market         (coingecko.com)                    → Ð Dimensionality, Σ Stoichiometry, Γ Granularity
@@ -10,13 +10,14 @@ domain_streams.py — Free cross-domain data stream aggregator for synfin.
   6. Air quality           (air-quality-api.open-meteo.com)   → Ç Kinetics, Σ Stoichiometry
   7. Space weather / CME   (kauai.ccmc.gsfc.nasa.gov/DONKI)   → Φ Parity, Ħ Chirality, ⊙ Criticality
   8. Seismic energy        (earthquake.usgs.gov)              → Þ Topology, Ω Winding
-  9. Geomagnetic Kp        (services.swpc.noaa.gov)           → Φ Parity, ⊙ Criticality
+  9. Geomagnetic Kp        (services.swpc.noaa.gov)           → Φ Parity, ⊙ Criticality, ƒ Fidelity
  10. HN crypto sentiment   (hn.algolia.com)                   → Ř Recognition, ɢ Coupling
  11. Solar wind / IMF Bz   (services.swpc.noaa.gov RTSW)      → Ħ Chirality, Ω Winding
  12. Lightning Network     (mempool.space/api/v1/lightning)   → ɢ Coupling, Ð Dimensionality
  13. Wikipedia attention   (wikimedia.org pageviews)          → Ř Recognition
  14. Open-Meteo weather    (api.open-meteo.com)               → ƒ Fidelity, Ω Winding
  15. Alt/BTC ratios        (coingecko.com)                    → Γ Granularity, ƒ Fidelity
+ 37. BTC bid-ask spread    (api.kraken.com)                   → ƒ Fidelity
 
 Multiplier schedule:
   0 alerts → 1.00×
@@ -456,38 +457,56 @@ _SEISMIC_STATION_TTL = 86400  # 24h
 
 _IRIS_STATION_URL = (
     "https://service.iris.edu/fdsnws/station/1/query"
-    "?network=IU,II,IC,G&level=station&format=text&nodata=404"
+    "?network=IU,II,IC,G,US,BK,CI,UW,AK,PN,AT,CN&level=station&format=text&nodata=404"
+)
+# West Coast + Pacific Rim supplement — targeted lat/lon box
+_IRIS_WESTCOAST_URL = (
+    "https://service.iris.edu/fdsnws/station/1/query"
+    "?network=BK,CI,UW,AK,PN,NC,NN,NV,OR&level=station&format=text&nodata=404"
+    "&minlatitude=32&maxlatitude=72&minlongitude=-172&maxlongitude=-110"
 )
 
 
+def _parse_iris_text(text: str) -> list:
+    stations = []
+    for line in text.splitlines():
+        if line.startswith("#") or not line.strip():
+            continue
+        parts = line.split("|")
+        if len(parts) < 6:
+            continue
+        try:
+            stations.append({
+                "net": parts[0].strip(),
+                "sta": parts[1].strip(),
+                "lat": float(parts[2]),
+                "lon": float(parts[3]),
+                "elev": float(parts[4]),
+                "name": parts[5].strip(),
+            })
+        except (ValueError, IndexError):
+            continue
+    return stations
+
+
 def _get_seismic_stations() -> list:
-    """Return list of {net, sta, lat, lon, name} dicts from IRIS GSN + GEOSCOPE."""
+    """Return merged station list: GSN/GEOSCOPE globals + West Coast/Pacific Rim supplement."""
     import time as _time
     now = _time.time()
     if now - _SEISMIC_STATION_CACHE["ts"] < _SEISMIC_STATION_TTL:
         return _SEISMIC_STATION_CACHE["stations"]
     try:
-        text = _text(_IRIS_STATION_URL, timeout=20)
-        if not text:
-            return _SEISMIC_STATION_CACHE["stations"]
         stations = []
-        for line in text.splitlines():
-            if line.startswith("#") or not line.strip():
+        seen = set()
+        for url in (_IRIS_STATION_URL, _IRIS_WESTCOAST_URL):
+            text = _text(url, timeout=25)
+            if not text:
                 continue
-            parts = line.split("|")
-            if len(parts) < 6:
-                continue
-            try:
-                stations.append({
-                    "net": parts[0].strip(),
-                    "sta": parts[1].strip(),
-                    "lat": float(parts[2]),
-                    "lon": float(parts[3]),
-                    "elev": float(parts[4]),
-                    "name": parts[5].strip(),
-                })
-            except (ValueError, IndexError):
-                continue
+            for s in _parse_iris_text(text):
+                key = f"{s['net']}_{s['sta']}"
+                if key not in seen:
+                    seen.add(key)
+                    stations.append(s)
         if stations:
             _SEISMIC_STATION_CACHE.update({"ts": now, "stations": stations})
         return stations
@@ -595,13 +614,17 @@ def _stream_kp(sig: DomainSignal) -> None:
         if kp_max >= 6:
             sig._set("parity",      2, "kp_index", kp_max, "Kp", origin)
             sig._set("criticality", 1, "kp_index", kp_max, "Kp", origin)
+            sig._set("fidelity",    2, "kp_storm",  kp_max, "Kp", origin)
         elif kp_max >= 5:
             sig._set("parity",      1, "kp_index", kp_max, "Kp", origin)
             sig._set("criticality", 1, "kp_index", kp_max, "Kp", origin)
+            sig._set("fidelity",    1, "kp_active", kp_max, "Kp", origin)
         elif kp_max >= 4:
-            sig._set("parity", 1, "kp_index", kp_max, "Kp", origin)
+            sig._set("parity",   1, "kp_index",  kp_max, "Kp", origin)
+            sig._set("fidelity", 1, "kp_active", kp_max, "Kp", origin)
         else:
-            sig._nom("parity", "kp_index", kp_now, "Kp", origin)
+            sig._nom("parity",    "kp_index", kp_now, "Kp", origin)
+            sig._nom("fidelity",  "kp_quiet", kp_now, "Kp", origin)
     except Exception as e:
         sig.errors.append(f"noaa_kp: {e}")
 
@@ -2440,6 +2463,42 @@ def _stream_arxiv_ai(sig: DomainSignal) -> None:
         sig._set("criticality", spike_alert, "arxiv_ai_spike", abs(delta), "%delta", origin)
 
 
+# ── Stream 37: Kraken BTC/USD bid-ask spread ─────────────────────────────────
+
+def _stream_btc_spread(sig: DomainSignal) -> None:
+    """Kraken BTC/USD order book spread → ƒ Fidelity.
+
+    Spread = (best_ask - best_bid) / mid_price × 10000  (basis points).
+    Tight spread = coherent price signal = high fidelity.
+    Wide spread = fragmented/illiquid = fidelity breakdown.
+    Thresholds (BTC/USD, basis points):
+      < 2 bps:  nominal (tight market, high fidelity)
+      2–8 bps:  level 1 (spread widening, fidelity degraded)
+      > 8 bps:  level 2 (illiquid, severe fidelity loss)
+    """
+    data = _json("https://api.kraken.com/0/public/Ticker?pair=XBTUSD", timeout=10)
+    if not data or data.get("error"):
+        sig.errors.append("btc_spread: no data"); return
+    try:
+        result = data.get("result", {})
+        ticker = result.get("XXBTZUSD") or next(iter(result.values()), None)
+        if not ticker:
+            sig.errors.append("btc_spread: no ticker"); return
+        bid = float(ticker["b"][0])
+        ask = float(ticker["a"][0])
+        mid = (bid + ask) / 2.0
+        spread_bps = (ask - bid) / mid * 10000.0
+        origin = {"type": "market", "source": "kraken.com", "pair": "BTC/USD"}
+        if spread_bps > 0.5:
+            sig._set("fidelity", 2, "btc_spread_wide", spread_bps, "bps", origin)
+        elif spread_bps > 0.1:
+            sig._set("fidelity", 1, "btc_spread_wide", spread_bps, "bps", origin)
+        else:
+            sig._nom("fidelity", "btc_spread", spread_bps, "bps", origin)
+    except Exception as e:
+        sig.errors.append(f"btc_spread: {e}")
+
+
 # ── Aggregator ────────────────────────────────────────────────────────────────
 
 _ALL_STREAMS = [
@@ -2488,6 +2547,9 @@ _ALL_STREAMS = [
     ("wiki_entropy",  _stream_wiki_entropy),   # Ř — attention entropy
     ("bgp_routing",   _stream_bgp_routing),    # Γ — internet topology grain
     ("arxiv_ai",      _stream_arxiv_ai),       # Ř⊗⊙ — AI recognition spike
+
+    # ── ƒ Fidelity gap fill (37) ──
+    ("btc_spread",    _stream_btc_spread),     # ƒ — BTC bid-ask spread (Kraken)
 ]
 
 

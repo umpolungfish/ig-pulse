@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Solar–Seismic Coupling Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#030712; color:#e2e8f0; font-family:'JetBrains Mono',monospace,sans-serif; height:100vh; display:flex; flex-direction:column; }
+#warnings-bar { background:#0a0f1a; border-bottom:2px solid #ff6200; padding:0; overflow:hidden; max-height:0; transition:max-height 0.3s ease; }
+#warnings-bar.has-warnings { max-height:300px; }
+#warnings-inner { padding:8px 14px; display:flex; flex-direction:column; gap:5px; }
+.warn-item { display:flex; gap:10px; align-items:flex-start; padding:5px 8px; border-radius:3px; border-left:3px solid; font-size:0.62rem; line-height:1.5; }
+.warn-item.critical { background:rgba(255,23,68,0.08); border-color:#ff1744; }
+.warn-item.elevated { background:rgba(255,98,0,0.08); border-color:#ff6200; }
+.warn-label { font-weight:700; white-space:nowrap; min-width:90px; }
+.warn-item.critical .warn-label { color:#ff1744; }
+.warn-item.elevated .warn-label { color:#ff8800; }
+.warn-msg { color:#94a3b8; flex:1; }
+.warn-eta { white-space:nowrap; color:#00e5ff; font-size:0.6rem; margin-left:auto; }
+.warn-r { white-space:nowrap; font-size:0.6rem; }
+.warn-stations { display:inline-flex; gap:3px; flex-wrap:wrap; margin-left:4px; }
+.warn-sta { background:#1e293b; border:1px solid #334155; border-radius:2px; padding:0 4px; font-size:0.58rem; color:#00e5ff; cursor:pointer; white-space:nowrap; }
+.warn-sta:hover { background:#1e3a5f; border-color:#00e5ff; }
+#header { padding:10px 18px; background:#0a0f1a; border-bottom:1px solid #1e293b; display:flex; align-items:center; gap:16px; }
+#header h1 { font-size:0.9rem; font-weight:700; color:#ff6200; letter-spacing:0.05em; }
+#header .sub { font-size:0.65rem; color:#475569; }
+#header a { margin-left:auto; font-size:0.65rem; color:#475569; text-decoration:none; }
+#header a:hover { color:#94a3b8; }
+#main { display:flex; flex:1; overflow:hidden; }
+#map { flex:1; }
+#sidebar { width:300px; background:#0a0f1a; border-left:1px solid #1e293b; overflow-y:auto; display:flex; flex-direction:column; }
+#sidebar-header { padding:10px 12px; border-bottom:1px solid #1e293b; }
+#sidebar-header h2 { font-size:0.72rem; color:#ff6200; letter-spacing:0.04em; }
+#controls { padding:8px 12px; border-bottom:1px solid #1e293b; display:flex; flex-direction:column; gap:6px; }
+.ctrl-row { display:flex; align-items:center; gap:8px; font-size:0.63rem; color:#94a3b8; }
+.ctrl-row label { width:60px; flex-shrink:0; }
+.ctrl-row input[type=range] { flex:1; accent-color:#ff6200; }
+.ctrl-row span { width:36px; text-align:right; color:#e2e8f0; }
+#filter-btns { display:flex; gap:4px; flex-wrap:wrap; }
+.fbtn { padding:2px 7px; font-size:0.6rem; border:1px solid #334155; background:#0f172a; color:#94a3b8; border-radius:3px; cursor:pointer; }
+.fbtn.active { background:#1a2030; color:#ff6200; border-color:#ff6200; }
+#edge-list { flex:1; overflow-y:auto; }
+.edge-item { padding:7px 12px; border-bottom:1px solid #0f172a; cursor:pointer; }
+.edge-item:hover { background:#0f1a2a; }
+.edge-sol { font-size:0.65rem; color:#ff6200; font-weight:600; }
+.edge-sei { font-size:0.63rem; color:#9b00ff; }
+.edge-stats { font-size:0.6rem; color:#475569; margin-top:2px; display:flex; gap:8px; }
+.edge-r-pos { color:#00ff88; }
+.edge-r-neg { color:#ff1744; }
+.edge-lag { color:#00e5ff; }
+#tooltip { position:fixed; background:rgba(10,10,20,0.95); border:1px solid #334155; border-radius:4px; padding:8px 12px; font-size:0.63rem; pointer-events:none; display:none; z-index:9999; max-width:260px; line-height:1.6; }
+#tooltip .tt-r { font-weight:700; }
+.leaflet-container { background:#030712; }
+</style>
+</head>
+<body>
+<div id="warnings-bar"><div id="warnings-inner"></div></div>
+<div id="header">
+  <h1>⚡ SOLAR–SEISMIC COUPLING</h1>
+  <span class="sub">CME · Kp · ACE electron flux → seismic network · lag-correlated</span>
+  <a href="/">← main map</a>
+</div>
+<div id="main">
+  <div id="map"></div>
+  <div id="sidebar">
+    <div id="sidebar-header"><h2>COUPLING EDGES</h2></div>
+    <div id="controls">
+      <div class="ctrl-row">
+        <label>|r| ≥</label>
+        <input type="range" id="r_thresh" min="0" max="100" value="50" step="1">
+        <span id="r_val">0.50</span>
+      </div>
+      <div class="ctrl-row">
+        <label>lag ≤</label>
+        <input type="range" id="lag_thresh" min="0" max="200" value="200" step="1">
+        <span id="lag_val">200h</span>
+      </div>
+      <div id="filter-btns">
+        <button class="fbtn active" data-src="all">all</button>
+        <button class="fbtn" data-src="cme_speed">CME</button>
+        <button class="fbtn" data-src="ace_electron_flux">ACE e⁻</button>
+        <button class="fbtn" data-src="kp_index">Kp</button>
+        <button class="fbtn" data-src="solar_wind_speed">wind</button>
+        <button class="fbtn" data-src="imf_bz">IMF Bz</button>
+      </div>
+    </div>
+    <div id="edge-list"></div>
+  </div>
+</div>
+<div id="tooltip"></div>
+
+<script>
+const map = L.map('map', {
+  center: [20, 0], zoom: 2, minZoom: 1, maxZoom: 8,
+  worldCopyJump: true, zoomControl: true,
+});
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '© CartoDB', subdomains: 'abcd', maxZoom: 19
+}).addTo(map);
+
+const stationLayer = L.layerGroup().addTo(map);  // all stations, dim
+const edgeLayer    = L.layerGroup().addTo(map);  // correlation arcs
+const nodeLayer    = L.layerGroup().addTo(map);  // active solar + correlated sei nodes
+
+let allEdges    = [];
+let allStations = [];
+let activeFilter = 'all';
+
+const SOLAR_COLOR  = '#ff6200';
+const SEISMIC_COLOR = '#9b00ff';
+
+function lagColor(lag_h) {
+  if (lag_h <= 3)   return '#00ff88';   // green — immediate
+  if (lag_h <= 12)  return '#00e5ff';   // cyan — hours
+  if (lag_h <= 48)  return '#ff8800';   // orange — day+
+  return '#ff1744';                      // red — 2+ days
+}
+
+function rColor(r) { return r >= 0 ? '#00ff88' : '#ff1744'; }
+
+function arcPoints(lat1, lon1, lat2, lon2, steps=30) {
+  const pts = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const lat = lat1 + (lat2 - lat1) * t;
+    let lon = lon1 + (lon2 - lon1) * t;
+    const lift = Math.sin(Math.PI * t) * Math.abs(lat2 - lat1) * 0.5;
+    pts.push([lat + lift, lon]);
+  }
+  return pts;
+}
+
+function rThresh() { return parseInt(document.getElementById('r_thresh').value) / 100; }
+function lagThresh() { return parseInt(document.getElementById('lag_thresh').value); }
+
+function renderStations() {
+  stationLayer.clearLayers();
+  const icon = L.divIcon({ className:'',
+    html:`<div style="background:#3b0066;width:4px;height:4px;border-radius:50%;opacity:0.6;"></div>`,
+    iconSize:[4,4], iconAnchor:[2,2] });
+  for (const s of allStations) {
+    L.marker([s.lat, s.lon], {icon})
+     .bindTooltip(`${s.code} — ${s.name}`, {direction:'top', className:''})
+     .addTo(stationLayer);
+  }
+}
+
+function render() {
+  edgeLayer.clearLayers();
+  nodeLayer.clearLayers();
+  const rt = rThresh();
+  const lt = lagThresh();
+  const solNodes = {};
+  const seiNodes = {};
+
+  const visible = allEdges.filter(e =>
+    Math.abs(e.r) >= rt &&
+    e.lag_h <= lt &&
+    (activeFilter === 'all' || e.solar_stream === activeFilter)
+  );
+
+  for (const e of visible) {
+    const col = lagColor(e.lag_h);
+    const pts = arcPoints(e.sol_lat, e.sol_lon, e.sei_lat, e.sei_lon);
+    const weight = 1 + Math.abs(e.r) * 4;
+    const line = L.polyline(pts, { color: col, weight, opacity: 0.7 + Math.abs(e.r) * 0.25 });
+    line.on('mouseover', ev => showTip(ev, e));
+    line.on('mouseout', hideTip);
+    line.addTo(edgeLayer);
+    solNodes[e.solar_stream] = e;
+    seiNodes[e.seismic_stream] = e;
+  }
+
+  // Solar nodes
+  for (const [key, e] of Object.entries(solNodes)) {
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="background:${SOLAR_COLOR};width:12px;height:12px;border-radius:50%;box-shadow:0 0 12px ${SOLAR_COLOR};border:1px solid #fff3;"></div>`,
+      iconSize: [14,14], iconAnchor: [7,7]
+    });
+    L.marker([e.sol_lat, e.sol_lon], {icon}).bindTooltip(e.sol_label, {className:'',direction:'top'}).addTo(nodeLayer);
+  }
+
+  // Seismic nodes
+  for (const [key, e] of Object.entries(seiNodes)) {
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="background:${SEISMIC_COLOR};width:9px;height:9px;border-radius:50%;box-shadow:0 0 10px ${SEISMIC_COLOR};border:1px solid #fff3;"></div>`,
+      iconSize: [11,11], iconAnchor: [5.5,5.5]
+    });
+    L.marker([e.sei_lat, e.sei_lon], {icon}).bindTooltip(e.sei_label, {className:'',direction:'top'}).addTo(nodeLayer);
+  }
+
+  renderList(visible);
+}
+
+function renderList(edges) {
+  const list = document.getElementById('edge-list');
+  list.innerHTML = '';
+  for (const e of edges) {
+    const div = document.createElement('div');
+    div.className = 'edge-item';
+    const rCls = e.r >= 0 ? 'edge-r-pos' : 'edge-r-neg';
+    div.innerHTML = `
+      <div class="edge-sol">${e.solar_stream}</div>
+      <div class="edge-sei">${e.seismic_stream}</div>
+      <div class="edge-stats">
+        <span class="${rCls}">r=${e.r.toFixed(3)}</span>
+        <span>p=${e.p.toFixed(3)}</span>
+        <span class="edge-lag">lag=${e.lag_h.toFixed(1)}h</span>
+      </div>`;
+    div.addEventListener('click', () => map.flyTo([e.sei_lat, e.sei_lon], 4));
+    list.appendChild(div);
+  }
+  if (!edges.length) list.innerHTML = '<div style="padding:12px;font-size:0.63rem;color:#475569;">No edges match filters.</div>';
+}
+
+function showTip(ev, e) {
+  const tip = document.getElementById('tooltip');
+  const rCls = e.r >= 0 ? 'edge-r-pos' : 'edge-r-neg';
+  tip.innerHTML = `
+    <div style="color:#ff6200;font-weight:700">${e.solar_stream}</div>
+    <div style="color:#9b00ff">${e.sei_label}</div>
+    <div class="tt-r ${rCls}">r = ${e.r.toFixed(3)}</div>
+    <div>p = ${e.p.toFixed(4)}</div>
+    <div style="color:#00e5ff">lag = ${e.lag_h.toFixed(1)}h</div>
+    <div style="color:#475569;margin-top:4px">${e.direction}</div>`;
+  tip.style.display = 'block';
+  tip.style.left = (ev.originalEvent.clientX + 14) + 'px';
+  tip.style.top  = (ev.originalEvent.clientY - 10) + 'px';
+}
+function hideTip() { document.getElementById('tooltip').style.display='none'; }
+
+document.getElementById('r_thresh').addEventListener('input', function() {
+  document.getElementById('r_val').textContent = (this.value/100).toFixed(2);
+  render();
+});
+document.getElementById('lag_thresh').addEventListener('input', function() {
+  document.getElementById('lag_val').textContent = this.value + 'h';
+  render();
+});
+document.querySelectorAll('.fbtn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    activeFilter = this.dataset.src;
+    render();
+  });
+});
+
+fetch('/api/solar-seismic')
+  .then(r => r.json())
+  .then(d => { allEdges = d.edges; allStations = d.stations || []; renderStations(); render(); });
+
+function loadWarnings() {
+  fetch('/api/solar-seismic/warnings')
+    .then(r => r.json())
+    .then(d => {
+      const bar = document.getElementById('warnings-bar');
+      const inner = document.getElementById('warnings-inner');
+      inner.innerHTML = '';
+      if (!d.warnings || !d.warnings.length) { bar.classList.remove('has-warnings'); return; }
+      bar.classList.add('has-warnings');
+      for (const w of d.warnings) {
+        const rSign = w.r >= 0 ? '+' : '';
+        const div = document.createElement('div');
+        div.className = `warn-item ${w.severity}`;
+        const stationHtml = w.stations && w.stations.length
+          ? `<span class="warn-stations">${w.stations.map(s =>
+              `<span class="warn-sta" data-lat="${s.lat}" data-lon="${s.lon}" title="${s.name}">${s.code}</span>`
+            ).join(' ')}</span>`
+          : '';
+        div.innerHTML = `
+          <span class="warn-label">⚠ ${w.label}</span>
+          <span class="warn-msg">${w.msg}${stationHtml ? ' ' + stationHtml : ''}</span>
+          <span class="warn-r" style="color:${w.r>=0?'#00ff88':'#ff1744'}">${rSign}${w.r.toFixed(2)}</span>
+          <span class="warn-eta">ETA ${w.eta}</span>`;
+        // click on station chip → fly to it
+        div.querySelectorAll('.warn-sta').forEach(el => {
+          el.addEventListener('click', e => {
+            e.stopPropagation();
+            map.flyTo([+el.dataset.lat, +el.dataset.lon], 5);
+          });
+        });
+        inner.appendChild(div);
+      }
+    });
+}
+loadWarnings();
+setInterval(loadWarnings, 60000);
+</script>
+</body>
+</html>

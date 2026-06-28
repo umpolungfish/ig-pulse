@@ -1,3 +1,95 @@
+ig-pulse: solar-seismic warnings panel — 2026-06-27
+
+geo_viz.py: /api/solar-seismic/warnings endpoint
+  Reads latest Snapshot.readings; cross-references 8 lag rules (CME→63h,
+  ACE e⁻→2.7h, proton storm→3.5h, solar wind→18h, M-flare→8h, SEP→1.5h,
+  helicity→24h, Kp→12h) against active alerts; returns severity/eta/r/msg.
+  Live output: 7 warnings (2 critical) from current M6.8+CME+SEP event.
+
+solar_seismic.html: warnings bar above header
+  Collapses when no warnings; expands with red (critical) / orange (elevated)
+  rows showing label, message, r-value, ETA. Auto-refreshes every 60s.
+
+────────────────────────────────────────────────────────────────────────────────
+
+ig-pulse: solar-seismic coupling map — 2026-06-27
+
+New route /solar-seismic + /api/solar-seismic:
+- geo_viz.py: api_solar_seismic() endpoint extracts all coupling edges where
+  source is a solar/space stream and target is a seismic station (or vice versa)
+- Resolves seismic station lat/lon from IRIS GSN live cache
+- Returns 210 edges from 13-day correlation history
+- Key signals: cme_speed→seismic r=-0.730 p=0.000 lag=62.9h;
+  ace_electron_flux→seismic r=+0.680 p=0.000 lag=2.7h
+
+templates/solar_seismic.html: standalone Leaflet map
+- Orange nodes = solar sources (CME, ACE, Kp, IMF Bz, STEREO, GOES)
+- Purple nodes = seismic stations (GUMO, QIZ, DAV, TATO, KAPI, network)
+- Arc color by lag: green=immediate cyan=hours orange=day red=2d+
+- Sidebar: sorted edge list with r/p/lag; filter by solar source; |r|/lag sliders
+- Hover tooltip on each arc
+
+────────────────────────────────────────────────────────────────────────────────
+
+ig-pulse: expand seismic station network (West Coast + Pacific Rim) — 2026-06-27
+
+domain_streams.py:
+- _IRIS_STATION_URL: added US,BK,CI,UW,AK,PN,AT,CN networks alongside IU,II,IC,G
+- _IRIS_WESTCOAST_URL (new): targeted BK,CI,UW,AK,PN,NC,NN,NV,OR query bounded
+  to lat 32-72 / lon -172 to -110 — Alaska through Baja California
+- _parse_iris_text(): extracted shared parser
+- _get_seismic_stations(): merges both URLs, deduplicates by net_sta key
+Total: 4,124 unique stations (was ~200); 3,667 West Coast/Pacific coverage.
+Cache TTL unchanged (24h); first fetch ~25s, then instant.
+
+────────────────────────────────────────────────────────────────────────────────
+
+ig-pulse: per-primitive colors on geo map — 2026-06-27
+
+geo_viz.py — PRIMITIVE_COLOR dict (12 entries) + primitive_color(prim, alert) function.
+Each primitive has a fixed hue; alert level controls opacity: 33% (nominal), 73% (level 1),
+100% (level 2). to_geojson now calls primitive_color() instead of alert-level green/yellow/red.
+
+Ř=orange Ħ=violet Ω=emerald Ð=sky Σ=gold Φ=pink Ç=coral ƒ=cyan ɢ=green Γ=fuchsia Þ=red ⊙=yellow
+
+────────────────────────────────────────────────────────────────────────────────
+
+ig-pulse: add ƒ Fidelity sources (KP + BTC spread) — 2026-06-27
+
+domain_streams.py — two changes:
+
+1. _stream_kp (stream 9): ƒ Fidelity signals added alongside existing Φ/⊙.
+   KP ≥ 4 → fidelity level 1; KP ≥ 6 → fidelity level 2; KP < 4 → _nom.
+   Geomagnetic quiet = coherent ionospheric signal = high fidelity.
+
+2. _stream_btc_spread (stream 38, new): Kraken BTC/USD bid-ask spread.
+   spread > 2 bps → fidelity level 1; > 8 bps → level 2; ≤ 2 bps → _nom.
+   No API key. Tight spread = coherent price signal = high fidelity.
+
+Header updated: 38 streams (was 37), 38. entry added.
+Both streams live; fidelity = 0 (nominal) at time of addition — correct
+for low-KP quiet magnetosphere and tight BTC spread conditions.
+
+────────────────────────────────────────────────────────────────────────────────
+
+ig-pulse: Foundations of Physics paper draft — 2026-06-27
+
+sic_povm_d12.md — "Convergent Derivation of a d=12 Physical SIC-POVM"
+  §1  Introduction: SIC-POVM background and the physical instantiation problem
+  §2  IG lattice as d=12 Hilbert space (3+4+5=12, Crystal 3³×4⁵×5⁴=17.28M)
+  §3  Weyl-Heisenberg SIC-POVM construction; fiducial condition
+  §4  Exact d=12 fiducial: F=0.846154 exact, overlaps 1/13±0
+  §5  Crystal geometry as SIC constraint: Crystal=classical shadow of SIC space
+  §6  Independent ML confirmation: DeepSeek R1 given vital necrosis paper with
+      instruction to remove all IG references produced d=12 VAE, hyperspherical
+      prior, training corpus = 17,280,000 exactly (= Crystal count), bijective
+      12-primitive latent space. Three independent choices, all forced.
+  §7  ig-pulse as physical heteroskedastic POVM (36 streams, 24/144 coverage)
+  §8  d=7 observation: 49 type symbols = 7² (nested SIC)
+  §9  Roadmap: 108 synthesisable + 12 new-source stream elements to full 144
+
+PDF compiled: pdfs/sic_povm_d12.pdf
+
 ig-pulse: SIC-POVM density matrix framework + new streams — 2026-06-27
 
 The 36-stream observatory is a d=12 heteroskedastic POVM approximation.
