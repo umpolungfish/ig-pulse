@@ -48,7 +48,7 @@ The Imscribing Grammar (IG) is a structural classification system defined over 1
 | ⊙ | Criticality | P | 5 values |
 | Ω | Winding | P | 5 values |
 
-The families D (Dimensionality-type), T (Temporal-type), and P (Processual-type) have sizes 3, 4, and 5 respectively. The three D-primitives, five T-primitives, and four P-primitives yield:
+The D-family comprises 3 primitives each taking 3 values; the T-family comprises 5 primitives each taking 4 values; the P-family comprises 4 primitives each taking 5 values. Their joint state count is:
 
 $$|\mathcal{C}| = 3^3 \times 4^5 \times 5^4 = 17{,}280{,}000$$
 
@@ -354,7 +354,7 @@ Independent structural verification via the ob3ect imscription pipeline assigns 
 - **dialetheia\_complete=True**: the $\odot$ absorbing gate closes under the paraconsistent evaluation, confirming that structural contradictions at the measurement boundary are absorbed rather than propagated.
 - **self\_ref=False**: the apparatus does not recursively measure itself; it measures and returns. Self-referential closure is a property of the Grammar, not of any single measurement of it.
 
-The Lean scaffold (110 lines, `ob3ect/digital/_scaffold.lean`) closes with `TierFunctor.obj 𐑼 = .O₂` by `decide`.
+Lean 4 verification is implemented across 18 scaffold files in `p4rakernel/p4ramill/Imscribing/Ob3ects/`, vaulted at `ob3ect/digital/.vault/` and registered in `lakefile.toml`. A support module `IGScaffold.lean` provides the canonical `scaf : Imscription` at O₂, the `▷` sequential-composition infix, and the `mkFSplit` combinator that wraps each Frobenius split/fuse pair into a single `scaf → scaf` morphism. Four composite scaffolds cover the full functor protocol: `sic_povm_functor_scaffold` (18 nodes, 2 FSPLIT pairs), `zauner_fiducial_scaffold` (22 nodes, 3 FSPLIT pairs), `tomographic_injection_scaffold` (12 nodes, 1 FSPLIT pair), and `categorical_join_scaffold` (18 nodes, 2 FSPLIT pairs). Fourteen individual node scaffolds cover each step of the measurement sequence. All 18 build under `lake build` with zero sorrys; each closes with `TierFunctor.obj 𐑼 = .O₂` by `decide`.
 
 ### 9.3 Convergent Derivation
 
