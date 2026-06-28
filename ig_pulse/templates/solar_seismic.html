@@ -23,14 +23,21 @@ body { background:#030712; color:#e2e8f0; font-family:'JetBrains Mono',monospace
 .warn-stations { display:inline-flex; gap:3px; flex-wrap:wrap; margin-left:4px; }
 .warn-sta { background:#1e293b; border:1px solid #334155; border-radius:2px; padding:0 4px; font-size:0.58rem; color:#00e5ff; cursor:pointer; white-space:nowrap; }
 .warn-sta:hover { background:#1e3a5f; border-color:#00e5ff; }
-#header { padding:10px 18px; background:#0a0f1a; border-bottom:1px solid #1e293b; display:flex; align-items:center; gap:16px; }
+#header { padding:10px 18px; background:#0a0f1a; border-bottom:1px solid #1e293b; display:flex; align-items:center; gap:16px; overflow:hidden; transition:max-height 0.2s ease, padding 0.2s ease; max-height:60px; }
+#header.collapsed { max-height:0; padding:0; border-bottom-color:transparent; }
 #header h1 { font-size:0.9rem; font-weight:700; color:#ff6200; letter-spacing:0.05em; }
 #header .sub { font-size:0.65rem; color:#475569; }
-#header a { margin-left:auto; font-size:0.65rem; color:#475569; text-decoration:none; }
+#header a { font-size:0.65rem; color:#475569; text-decoration:none; }
 #header a:hover { color:#94a3b8; }
+#hdr-toggle { margin-left:auto; background:none; border:1px solid #334155; color:#475569; border-radius:3px; padding:2px 7px; font-size:0.65rem; cursor:pointer; font-family:inherit; }
+#hdr-toggle:hover { color:#e2e8f0; border-color:#64748b; }
+#hdr-show { position:fixed; top:4px; right:4px; z-index:9000; background:#0a0f1a; border:1px solid #334155; color:#475569; border-radius:3px; padding:2px 7px; font-size:0.65rem; cursor:pointer; display:none; font-family:inherit; }
 #main { display:flex; flex:1; overflow:hidden; }
-#map { flex:1; }
-#sidebar { width:300px; background:#0a0f1a; border-left:1px solid #1e293b; overflow-y:auto; display:flex; flex-direction:column; }
+#map { flex:1; position:relative; }
+#sb-toggle { position:absolute; right:0; top:50%; transform:translateY(-50%); z-index:1000; background:#0a0f1a; border:1px solid #334155; border-right:none; color:#64748b; padding:8px 4px; cursor:pointer; font-size:0.7rem; border-radius:3px 0 0 3px; writing-mode:vertical-rl; }
+#sb-toggle:hover { color:#e2e8f0; }
+#sidebar { width:300px; background:#0a0f1a; border-left:1px solid #1e293b; overflow-y:auto; display:flex; flex-direction:column; transition:width 0.2s ease; }
+#sidebar.collapsed { width:0; overflow:hidden; border-left:none; }
 #sidebar-header { padding:10px 12px; border-bottom:1px solid #1e293b; }
 #sidebar-header h2 { font-size:0.72rem; color:#ff6200; letter-spacing:0.04em; }
 #controls { padding:8px 12px; border-bottom:1px solid #1e293b; display:flex; flex-direction:column; gap:6px; }
@@ -58,12 +65,16 @@ body { background:#030712; color:#e2e8f0; font-family:'JetBrains Mono',monospace
 <body>
 <div id="warnings-bar"><div id="warnings-inner"></div></div>
 <div id="header">
-  <h1>⚡ SOLAR–SEISMIC COUPLING</h1>
-  <span class="sub">CME · Kp · ACE electron flux → seismic network · lag-correlated</span>
+  <h1>⚡ SEISMIC COUPLING OBSERVATORY</h1>
+  <span class="sub">solar · financial · environmental · informational · biological → seismic network · lag-correlated</span>
   <a href="/">← main map</a>
+  <button id="hdr-toggle" onclick="toggleHeader()">−</button>
 </div>
+<button id="hdr-show" onclick="toggleHeader()">⚡ show header</button>
 <div id="main">
-  <div id="map"></div>
+  <div id="map">
+    <button id="sb-toggle" onclick="toggleSidebar()">▶ edges</button>
+  </div>
   <div id="sidebar">
     <div id="sidebar-header"><h2>COUPLING EDGES</h2></div>
     <div id="controls">
@@ -79,11 +90,12 @@ body { background:#030712; color:#e2e8f0; font-family:'JetBrains Mono',monospace
       </div>
       <div id="filter-btns">
         <button class="fbtn active" data-src="all">all</button>
-        <button class="fbtn" data-src="cme_speed">CME</button>
-        <button class="fbtn" data-src="ace_electron_flux">ACE e⁻</button>
-        <button class="fbtn" data-src="kp_index">Kp</button>
-        <button class="fbtn" data-src="solar_wind_speed">wind</button>
-        <button class="fbtn" data-src="imf_bz">IMF Bz</button>
+        <button class="fbtn" data-src="solar">solar</button>
+        <button class="fbtn" data-src="financial">financial</button>
+        <button class="fbtn" data-src="environmental">environ</button>
+        <button class="fbtn" data-src="info">info</button>
+        <button class="fbtn" data-src="bio">bio</button>
+        <button class="fbtn" data-src="extraplanetary">extrap.</button>
       </div>
     </div>
     <div id="edge-list"></div>
@@ -93,8 +105,8 @@ body { background:#030712; color:#e2e8f0; font-family:'JetBrains Mono',monospace
 
 <script>
 const map = L.map('map', {
-  center: [20, 0], zoom: 2, minZoom: 1, maxZoom: 8,
-  worldCopyJump: true, zoomControl: true,
+  center: [20, -160], zoom: 2, minZoom: 1, maxZoom: 8,
+  worldCopyJump: false, zoomControl: true,
 });
 L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
   attribution: '© CartoDB', subdomains: 'abcd', maxZoom: 19
@@ -108,8 +120,16 @@ let allEdges    = [];
 let allStations = [];
 let activeFilter = 'all';
 
-const SOLAR_COLOR  = '#ff6200';
+const CAT_COLOR = {
+  solar:           '#ff6200',
+  financial:       '#00e5ff',
+  environmental:   '#00ff88',
+  info:            '#ff8800',
+  bio:             '#ff1744',
+  extraplanetary:  '#d400ff',
+};
 const SEISMIC_COLOR = '#9b00ff';
+function partnerColor(e) { return CAT_COLOR[e.partner_cat] || '#ff6200'; }
 
 function lagColor(lag_h) {
   if (lag_h <= 3)   return '#00ff88';   // green — immediate
@@ -120,16 +140,16 @@ function lagColor(lag_h) {
 
 function rColor(r) { return r >= 0 ? '#00ff88' : '#ff1744'; }
 
-function arcPoints(lat1, lon1, lat2, lon2, steps=30) {
-  const pts = [];
-  for (let i = 0; i <= steps; i++) {
-    const t = i / steps;
-    const lat = lat1 + (lat2 - lat1) * t;
-    let lon = lon1 + (lon2 - lon1) * t;
-    const lift = Math.sin(Math.PI * t) * Math.abs(lat2 - lat1) * 0.5;
-    pts.push([lat + lift, lon]);
-  }
-  return pts;
+// Shift any positive longitude into the Pacific-copy frame (lon - 360) so all
+// coordinates live on the same tile as the Pacific Ocean.
+function adjLon(lon) { return lon > 0 ? lon - 360 : lon; }
+
+function arcPoints(lat1, lon1, lat2, lon2) {
+  const alon1 = adjLon(lon1);
+  const alon2 = adjLon(lon2);
+  const lonMid = (alon1 + alon2) / 2;
+  const latMid = (lat1  + lat2)  / 2 + 30;
+  return [[lat1, alon1], [latMid, lonMid], [lat2, alon2]];
 }
 
 function rThresh() { return parseInt(document.getElementById('r_thresh').value) / 100; }
@@ -137,13 +157,12 @@ function lagThresh() { return parseInt(document.getElementById('lag_thresh').val
 
 function renderStations() {
   stationLayer.clearLayers();
-  const icon = L.divIcon({ className:'',
-    html:`<div style="background:#3b0066;width:4px;height:4px;border-radius:50%;opacity:0.6;"></div>`,
-    iconSize:[4,4], iconAnchor:[2,2] });
+  const renderer = L.canvas({ padding: 0.5 });
   for (const s of allStations) {
-    L.marker([s.lat, s.lon], {icon})
-     .bindTooltip(`${s.code} — ${s.name}`, {direction:'top', className:''})
-     .addTo(stationLayer);
+    L.circleMarker([s.lat, adjLon(s.lon)], {
+      renderer, radius: 2, weight: 0, fillColor: '#7c3aed', fillOpacity: 0.55
+    }).bindTooltip(`${s.code} — ${s.name}`, {direction:'top', className:''})
+      .addTo(stationLayer);
   }
 }
 
@@ -158,39 +177,44 @@ function render() {
   const visible = allEdges.filter(e =>
     Math.abs(e.r) >= rt &&
     e.lag_h <= lt &&
-    (activeFilter === 'all' || e.solar_stream === activeFilter)
+    (activeFilter === 'all' || e.partner_cat === activeFilter)
   );
 
   for (const e of visible) {
-    const col = lagColor(e.lag_h);
-    const pts = arcPoints(e.sol_lat, e.sol_lon, e.sei_lat, e.sei_lon);
+    const col    = partnerColor(e);
     const weight = 1 + Math.abs(e.r) * 4;
+    const plat = e.partner_lat ?? e.sol_lat, plon = e.partner_lon ?? e.sol_lon;
+    const pts  = arcPoints(plat, plon, e.sei_lat, e.sei_lon);
     const line = L.polyline(pts, { color: col, weight, opacity: 0.7 + Math.abs(e.r) * 0.25 });
     line.on('mouseover', ev => showTip(ev, e));
     line.on('mouseout', hideTip);
     line.addTo(edgeLayer);
-    solNodes[e.solar_stream] = e;
+    solNodes[e.partner_stream ?? e.solar_stream] = e;
     seiNodes[e.seismic_stream] = e;
   }
 
-  // Solar nodes
+  // Partner nodes — adjusted to Pacific-copy frame
   for (const [key, e] of Object.entries(solNodes)) {
+    const c = partnerColor(e);
+    const plat   = e.partner_lat ?? e.sol_lat;
+    const plon   = adjLon(e.partner_lon ?? e.sol_lon);
+    const plabel = e.partner_label ?? e.sol_label;
     const icon = L.divIcon({
       className: '',
-      html: `<div style="background:${SOLAR_COLOR};width:12px;height:12px;border-radius:50%;box-shadow:0 0 12px ${SOLAR_COLOR};border:1px solid #fff3;"></div>`,
+      html: `<div style="background:${c};width:12px;height:12px;border-radius:50%;box-shadow:0 0 12px ${c};border:1px solid #fff3;"></div>`,
       iconSize: [14,14], iconAnchor: [7,7]
     });
-    L.marker([e.sol_lat, e.sol_lon], {icon}).bindTooltip(e.sol_label, {className:'',direction:'top'}).addTo(nodeLayer);
+    L.marker([plat, plon], {icon}).bindTooltip(plabel, {className:'',direction:'top'}).addTo(nodeLayer);
   }
 
-  // Seismic nodes
+  // Seismic nodes — adjusted to Pacific-copy frame
   for (const [key, e] of Object.entries(seiNodes)) {
     const icon = L.divIcon({
       className: '',
       html: `<div style="background:${SEISMIC_COLOR};width:9px;height:9px;border-radius:50%;box-shadow:0 0 10px ${SEISMIC_COLOR};border:1px solid #fff3;"></div>`,
       iconSize: [11,11], iconAnchor: [5.5,5.5]
     });
-    L.marker([e.sei_lat, e.sei_lon], {icon}).bindTooltip(e.sei_label, {className:'',direction:'top'}).addTo(nodeLayer);
+    L.marker([e.sei_lat, adjLon(e.sei_lon)], {icon}).bindTooltip(e.sei_label, {className:'',direction:'top'}).addTo(nodeLayer);
   }
 
   renderList(visible);
@@ -203,15 +227,16 @@ function renderList(edges) {
     const div = document.createElement('div');
     div.className = 'edge-item';
     const rCls = e.r >= 0 ? 'edge-r-pos' : 'edge-r-neg';
+    const catCol = CAT_COLOR[e.partner_cat] || '#ff6200';
     div.innerHTML = `
-      <div class="edge-sol">${e.solar_stream}</div>
+      <div class="edge-sol" style="color:${catCol}">[${e.partner_cat}] ${e.partner_stream ?? e.solar_stream}</div>
       <div class="edge-sei">${e.seismic_stream}</div>
       <div class="edge-stats">
         <span class="${rCls}">r=${e.r.toFixed(3)}</span>
         <span>p=${e.p.toFixed(3)}</span>
         <span class="edge-lag">lag=${e.lag_h.toFixed(1)}h</span>
       </div>`;
-    div.addEventListener('click', () => map.flyTo([e.sei_lat, e.sei_lon], 4));
+    div.addEventListener('click', () => map.flyTo([e.sei_lat, adjLon(e.sei_lon)], 4));
     list.appendChild(div);
   }
   if (!edges.length) list.innerHTML = '<div style="padding:12px;font-size:0.63rem;color:#475569;">No edges match filters.</div>';
@@ -220,8 +245,10 @@ function renderList(edges) {
 function showTip(ev, e) {
   const tip = document.getElementById('tooltip');
   const rCls = e.r >= 0 ? 'edge-r-pos' : 'edge-r-neg';
+  const tc = CAT_COLOR[e.partner_cat] || '#ff6200';
   tip.innerHTML = `
-    <div style="color:#ff6200;font-weight:700">${e.solar_stream}</div>
+    <div style="color:${tc};font-weight:700">[${e.partner_cat}] ${e.partner_stream ?? e.solar_stream}</div>
+    <div style="color:#94a3b8;font-size:0.6rem">${e.partner_label ?? e.sol_label}</div>
     <div style="color:#9b00ff">${e.sei_label}</div>
     <div class="tt-r ${rCls}">r = ${e.r.toFixed(3)}</div>
     <div>p = ${e.p.toFixed(4)}</div>
@@ -250,12 +277,17 @@ document.querySelectorAll('.fbtn').forEach(btn => {
   });
 });
 
-fetch('/api/solar-seismic')
+const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? ''   // relative — served directly by ig-pulse
+  : 'https://igpulse.imscribe.com';
+
+fetch(API_BASE + '/api/solar-seismic')
   .then(r => r.json())
-  .then(d => { allEdges = d.edges; allStations = d.stations || []; renderStations(); render(); });
+  .then(d => { allEdges = d.edges; allStations = d.stations || []; renderStations(); render(); })
+  .catch(() => { document.getElementById('edge-list').textContent = 'ig-pulse API unavailable — deploy at igpulse.imscribe.com'; });
 
 function loadWarnings() {
-  fetch('/api/solar-seismic/warnings')
+  fetch(API_BASE + '/api/solar-seismic/warnings')
     .then(r => r.json())
     .then(d => {
       const bar = document.getElementById('warnings-bar');
@@ -290,6 +322,21 @@ function loadWarnings() {
 }
 loadWarnings();
 setInterval(loadWarnings, 60000);
+
+function toggleHeader() {
+  const hdr = document.getElementById('header');
+  const btn = document.getElementById('hdr-show');
+  hdr.classList.toggle('collapsed');
+  btn.style.display = hdr.classList.contains('collapsed') ? 'block' : 'none';
+  map.invalidateSize();
+}
+function toggleSidebar() {
+  const sb  = document.getElementById('sidebar');
+  const btn = document.getElementById('sb-toggle');
+  sb.classList.toggle('collapsed');
+  btn.textContent = sb.classList.contains('collapsed') ? '◀ edges' : '▶ edges';
+  map.invalidateSize();
+}
 </script>
 </body>
 </html>

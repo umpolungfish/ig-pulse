@@ -753,9 +753,16 @@ def create_app(data_dir: str = None) -> Flask:
     if data_dir is None:
         data_dir = str(Path(__file__).parent.parent / "data")
 
-    app = Flask(__name__, 
+    app = Flask(__name__,
                 template_folder=str(Path(__file__).parent / "templates"),
                 static_folder=str(Path(__file__).parent / "static"))
+    try:
+        from flask_cors import CORS
+        CORS(app, resources={r"/api/*": {"origins": ["https://imscribe.com", "https://www.imscribe.com",
+                                                      "https://igpulse.imscribe.com", "http://localhost:5050",
+                                                      "http://localhost:*"]}})
+    except ImportError:
+        pass
     engine = GeoVizEngine(Path(data_dir))
 
     # ── API Routes ─────────────────────────────────────────────────────────
@@ -954,17 +961,12 @@ def create_app(data_dir: str = None) -> Flask:
         if not coupling_path.exists():
             return jsonify({"edges": [], "stations": [], "solar": []})
         edges = _json.loads(coupling_path.read_text())
-        solar_keys = {'kp_index','solar_wind_speed','cme_speed','solar_flare_M','solar_flare_X',
-                      'imf_bz','ace_electron_flux','ace_proton_total','ace_e_p_ratio',
-                      'stereo_B_magnitude','stereo_mag_helicity','stereo_phi_sweep',
-                      'goes_gcr_100MeV','goes_gcr_500MeV','goes_gcr_depression',
-                      'dscovr_bz_flipping','dscovr_bz_variable'}
         seismic_keys = {s for s in
                         set(e['source_stream'] for e in edges) | set(e['target_stream'] for e in edges)
                         if 'seismic' in s}
+        # All edges where at least one side is seismic
         hits = [e for e in edges
-                if (e['source_stream'] in solar_keys and e['target_stream'] in seismic_keys)
-                or (e['target_stream'] in solar_keys and e['source_stream'] in seismic_keys)]
+                if e['source_stream'] in seismic_keys or e['target_stream'] in seismic_keys]
         # Station coordinates from IRIS
         try:
             from .domain_streams import _get_seismic_stations
@@ -972,47 +974,123 @@ def create_app(data_dir: str = None) -> Flask:
             station_map = {f"{s['net']}_{s['sta']}": s for s in all_stations}
         except Exception:
             station_map = {}
-        # Static solar source coords
-        solar_coords = {
-            'cme_speed':        {'lat': 0,    'lon': 0,      'label': 'Sun (CME)', 'type': 'star'},
-            'solar_flare_M':    {'lat': 0,    'lon': 0,      'label': 'Sun (M-flare)', 'type': 'star'},
-            'solar_wind_speed': {'lat': 28.3, 'lon': -80.6,  'label': 'ACE/DSCOVR L1', 'type': 'space'},
-            'imf_bz':           {'lat': 28.3, 'lon': -80.6,  'label': 'IMF Bz (L1)', 'type': 'space'},
-            'kp_index':         {'lat': 40.0, 'lon': -105.3, 'label': 'NOAA SWPC (Kp)', 'type': 'ground'},
-            'ace_electron_flux':{'lat': 28.3, 'lon': -80.6,  'label': 'ACE (L1)', 'type': 'space'},
-            'ace_proton_total': {'lat': 28.3, 'lon': -80.6,  'label': 'ACE (L1)', 'type': 'space'},
-            'ace_e_p_ratio':    {'lat': 28.3, 'lon': -80.6,  'label': 'ACE e/p ratio (L1)', 'type': 'space'},
-            'stereo_B_magnitude':{'lat': 0,   'lon': 60,     'label': 'STEREO-A', 'type': 'space'},
-            'stereo_mag_helicity':{'lat': 0,  'lon': 60,     'label': 'STEREO-A', 'type': 'space'},
-            'goes_gcr_100MeV':  {'lat': 0,    'lon': -75,    'label': 'GOES-18 (GCR)', 'type': 'space'},
-            'goes_gcr_500MeV':  {'lat': 0,    'lon': -75,    'label': 'GOES-18 (GCR)', 'type': 'space'},
-            'dscovr_bz_flipping':{'lat':28.3, 'lon': -80.6,  'label': 'DSCOVR (L1)', 'type': 'space'},
-            'dscovr_bz_variable':{'lat':28.3, 'lon': -80.6,  'label': 'DSCOVR (L1)', 'type': 'space'},
+        # Coordinates + category for every non-seismic stream that couples with seismic
+        # category drives colour in the frontend: solar / financial / environmental / info / bio
+        partner_coords = {
+            # ── Space weather ──────────────────────────────────────────────────
+            'cme_speed':          {'lat': 40.0,  'lon':-105.3, 'label':'NOAA SWPC (CME)',           'cat':'solar'},
+            'solar_flare_M':      {'lat': 40.0,  'lon':-105.3, 'label':'NOAA SWPC (M-flare)',       'cat':'solar'},
+            'solar_flare_X':      {'lat': 40.0,  'lon':-105.3, 'label':'NOAA SWPC (X-flare)',       'cat':'solar'},
+            'solar_wind_speed':   {'lat': 28.3,  'lon': -80.6, 'label':'ACE/DSCOVR L1',             'cat':'solar'},
+            'imf_bz':             {'lat': 28.3,  'lon': -80.6, 'label':'IMF Bz (L1)',               'cat':'solar'},
+            'kp_index':           {'lat': 40.0,  'lon':-105.3, 'label':'NOAA SWPC (Kp)',            'cat':'solar'},
+            'ace_electron_flux':  {'lat': 28.3,  'lon': -80.6, 'label':'ACE (L1)',                  'cat':'solar'},
+            'ace_proton_total':   {'lat': 28.3,  'lon': -80.6, 'label':'ACE (L1)',                  'cat':'solar'},
+            'ace_e_p_ratio':      {'lat': 28.3,  'lon': -80.6, 'label':'ACE e/p ratio (L1)',        'cat':'solar'},
+            'stereo_B_magnitude': {'lat': 32.0,  'lon':-110.9, 'label':'STEREO-A',                  'cat':'solar'},
+            'stereo_mag_helicity':{'lat': 32.0,  'lon':-110.9, 'label':'STEREO-A (helicity)',       'cat':'solar'},
+            'stereo_phi_sweep':   {'lat': 32.0,  'lon':-110.9, 'label':'STEREO-A (phi sweep)',      'cat':'solar'},
+            'goes_gcr_100MeV':    {'lat': 28.3,  'lon': -80.6, 'label':'GOES-18 (GCR 100MeV)',     'cat':'solar'},
+            'goes_gcr_500MeV':    {'lat': 28.3,  'lon': -80.6, 'label':'GOES-18 (GCR 500MeV)',     'cat':'solar'},
+            'goes_gcr_depression':{'lat': 28.3,  'lon': -80.6, 'label':'GOES-18 (GCR depression)', 'cat':'solar'},
+            'dscovr_bz_flipping': {'lat': 28.3,  'lon': -80.6, 'label':'DSCOVR Bz flipping (L1)', 'cat':'solar'},
+            'dscovr_bz_variable': {'lat': 28.3,  'lon': -80.6, 'label':'DSCOVR Bz variable (L1)', 'cat':'solar'},
+            # ── Environmental ──────────────────────────────────────────────────
+            'pm2_5':              {'lat': 39.0,  'lon': -77.0, 'label':'EPA PM2.5 (US)',            'cat':'environmental'},
+            'ozone':              {'lat': 39.0,  'lon': -77.0, 'label':'EPA Ozone (US)',            'cat':'environmental'},
+            'tide_range':         {'lat': 37.8,  'lon':-122.5, 'label':'NOAA Tides (SF Bay)',       'cat':'environmental'},
+            'grid_elevated':      {'lat': 38.9,  'lon': -77.0, 'label':'NERC Grid Alert',           'cat':'environmental'},
+            # ── Financial / market ─────────────────────────────────────────────
+            'fear_greed':         {'lat': 40.71, 'lon': -74.0, 'label':'CNN Fear & Greed (NYSE)',   'cat':'financial'},
+            'options_iv':         {'lat': 41.88, 'lon': -87.6, 'label':'Options IV (CME)',          'cat':'financial'},
+            'shipping_weak':      {'lat': 22.3,  'lon': 114.2, 'label':'Baltic Dry / Shipping',     'cat':'financial'},
+            'btc_dominance_surge':{'lat': 40.71, 'lon': -74.0, 'label':'BTC Dominance',            'cat':'financial'},
+            'n_tx':               {'lat': 40.71, 'lon': -74.0, 'label':'BTC Transaction Count',    'cat':'financial'},
+            'mempool_count':      {'lat': 40.71, 'lon': -74.0, 'label':'Mempool Count',            'cat':'financial'},
+            'mempool_low_fee':    {'lat': 40.71, 'lon': -74.0, 'label':'Mempool Low Fee',          'cat':'financial'},
+            'ln_capacity':        {'lat': 40.71, 'lon': -74.0, 'label':'Lightning Network capacity','cat':'financial'},
+            'alt_divergence':     {'lat': 40.71, 'lon': -74.0, 'label':'Altcoin Divergence',       'cat':'financial'},
+            'alt_outperform':     {'lat': 40.71, 'lon': -74.0, 'label':'Altcoin Outperform',       'cat':'financial'},
+            # ── Prediction markets (Kalshi) ────────────────────────────────────
+            'kalshi_economics':   {'lat': 40.71, 'lon': -74.0, 'label':'Kalshi (economics)',       'cat':'financial'},
+            'kalshi_world':       {'lat': 40.71, 'lon': -74.0, 'label':'Kalshi (world)',           'cat':'financial'},
+            'kalshi_elections':   {'lat': 40.71, 'lon': -74.0, 'label':'Kalshi (elections)',       'cat':'financial'},
+            'kalshi_health':      {'lat': 40.71, 'lon': -74.0, 'label':'Kalshi (health)',          'cat':'financial'},
+            'kalshi_companies':   {'lat': 40.71, 'lon': -74.0, 'label':'Kalshi (companies)',       'cat':'financial'},
+            'kalshi_social':      {'lat': 40.71, 'lon': -74.0, 'label':'Kalshi (social)',          'cat':'financial'},
+            'kalshi_politics':    {'lat': 40.71, 'lon': -74.0, 'label':'Kalshi (politics)',        'cat':'financial'},
+            'kalshi_climate_and_weather':{'lat':40.71,'lon':-74.0,'label':'Kalshi (climate)',      'cat':'financial'},
+            'kalshi_sports':      {'lat': 40.71, 'lon': -74.0, 'label':'Kalshi (sports)',          'cat':'financial'},
+            'kalshi_financials':  {'lat': 40.71, 'lon': -74.0, 'label':'Kalshi (financials)',      'cat':'financial'},
+            'kalshi_entertainment':{'lat':40.71, 'lon': -74.0, 'label':'Kalshi (entertainment)',   'cat':'financial'},
+            'kalshi_science_and_technology':{'lat':40.71,'lon':-74.0,'label':'Kalshi (science/tech)','cat':'financial'},
+            # ── Information / social ───────────────────────────────────────────
+            'gdelt_tone_spread':  {'lat': 33.7,  'lon': -84.4, 'label':'GDELT Tone Spread',        'cat':'info'},
+            'gdelt_events':       {'lat': 33.7,  'lon': -84.4, 'label':'GDELT Events',             'cat':'info'},
+            'wiki_chiral':        {'lat': 37.8,  'lon':-122.4, 'label':'Wikipedia Chiral edits',   'cat':'info'},
+            'wiki_entropy':       {'lat': 37.8,  'lon':-122.4, 'label':'Wikipedia Edit Entropy',   'cat':'info'},
+            'hn_silence':         {'lat': 37.4,  'lon':-122.1, 'label':'HN Comment Silence',       'cat':'info'},
+            'arxiv_ai_rate':      {'lat': 42.4,  'lon': -76.5, 'label':'arXiv AI submission rate', 'cat':'info'},
+            'arxiv_bio_critical': {'lat': 42.4,  'lon': -76.5, 'label':'arXiv Bio (critical)',     'cat':'info'},
+            'arxiv_bio_rate':     {'lat': 42.4,  'lon': -76.5, 'label':'arXiv Bio submission rate','cat':'info'},
+            # ── Biological / health ────────────────────────────────────────────
+            'pubmed_pubs':        {'lat': 39.0,  'lon': -77.1, 'label':'PubMed Publications',      'cat':'bio'},
+            'pubmed_breakthrough':{'lat': 39.0,  'lon': -77.1, 'label':'PubMed Breakthroughs',     'cat':'bio'},
+            'genbank_chiral':     {'lat': 39.0,  'lon': -77.1, 'label':'GenBank Chiral sequences', 'cat':'bio'},
+            'genbank_diversity':  {'lat': 39.0,  'lon': -77.1, 'label':'GenBank Diversity index',  'cat':'bio'},
+            'fda_enforcement':    {'lat': 39.0,  'lon': -77.1, 'label':'FDA Enforcement actions',  'cat':'bio'},
+            # ── Extraplanetary ─────────────────────────────────────────────────
+            'aurora_north_peak':            {'lat': 64.8, 'lon':-147.9, 'label':'Aurora — north polar cap peak (Fairbanks AK)',  'cat':'extraplanetary'},
+            'aurora_south_peak':            {'lat':-54.8, 'lon': -68.3, 'label':'Aurora — south polar cap peak (Ushuaia)', 'cat':'extraplanetary'},
+            'aurora_ns_asymmetry':          {'lat': 64.8, 'lon':-147.9, 'label':'Aurora N/S asymmetry',           'cat':'extraplanetary'},
+            'aurora_oval_extent':           {'lat': 64.8, 'lon':-147.9, 'label':'Auroral oval extent (Fairbanks)','cat':'extraplanetary'},
+            'polar_gstorm_level':           {'lat': 40.0, 'lon':-105.3, 'label':'NOAA SWPC G-scale storm level', 'cat':'extraplanetary'},
+            'neutron_monitor_oulu':         {'lat': 39.4, 'lon':-106.2, 'label':'GCR flux — Oulu NM / Climax CO anchor', 'cat':'extraplanetary'},
+            'neutron_monitor_oulu_forbush': {'lat': 39.4, 'lon':-106.2, 'label':'Forbush decrease — Oulu NM',    'cat':'extraplanetary'},
+            'goes_xrs_b':                   {'lat': 28.3, 'lon': -80.6, 'label':'GOES XRS-B (solar X-ray flux)', 'cat':'extraplanetary'},
+            'goes_xrs_b_xclass':            {'lat': 28.3, 'lon': -80.6, 'label':'GOES XRS-B (X-class flare)',   'cat':'extraplanetary'},
+            'goes_xrs_b_mclass':            {'lat': 28.3, 'lon': -80.6, 'label':'GOES XRS-B (M-class flare)',   'cat':'extraplanetary'},
+            'ligo_gw_alert':                {'lat': 46.45,'lon':-119.41,'label':'LIGO Hanford (GW candidate)',   'cat':'extraplanetary'},
+            'ligo_gw_rate':                 {'lat': 46.45,'lon':-119.41,'label':'LIGO (GW event rate)',          'cat':'extraplanetary'},
+            'ligo_gw_far':                  {'lat': 30.56,'lon': -90.77,'label':'LIGO Livingston (GW FAR)',      'cat':'extraplanetary'},
+            'fermi_grb_rate':               {'lat': 28.3, 'lon': -80.6, 'label':'Fermi GBM (GRB rate)',         'cat':'extraplanetary'},
+            'dscovr_sw_density':            {'lat': 28.3, 'lon': -80.6, 'label':'DSCOVR SW density (L1)',       'cat':'extraplanetary'},
+            'dscovr_sw_kinetics':           {'lat': 28.3, 'lon': -80.6, 'label':'DSCOVR SW kinetics (L1)',      'cat':'extraplanetary'},
         }
-        # Build edge features
+        # Build edge features — all seismic coupling edges
         features = []
         for e in sorted(hits, key=lambda x: abs(x['strength_r']), reverse=True):
             src = e['source_stream']; tgt = e['target_stream']
-            # Determine which is solar and which is seismic
-            if src in solar_keys:
-                sol_stream, sei_stream = src, tgt
-                direction = 'solar→seismic'
+            if src in seismic_keys:
+                sei_stream, partner_stream = src, tgt
+                direction = 'seismic→partner'
             else:
-                sol_stream, sei_stream = tgt, src
-                direction = 'seismic→solar'
-            sol = solar_coords.get(sol_stream)
-            # Look up seismic station: stream name like seismic_IU_GUMO → IU_GUMO
+                sei_stream, partner_stream = tgt, src
+                direction = 'partner→seismic'
+            # Resolve partner coordinates; fall back to prefix-match for kalshi sub-markets
+            partner = partner_coords.get(partner_stream)
+            if partner is None:
+                for key, val in partner_coords.items():
+                    if partner_stream.startswith(key):
+                        partner = {**val, 'label': f"{val['label']} / {partner_stream[len(key):].lstrip('_')}"}
+                        break
             sei_key = sei_stream.replace('seismic_', '', 1)
             sei = station_map.get(sei_key)
-            if not sol or not sei:
+            if not partner or not sei:
                 continue
             lag_h = e['lag_seconds'] / 3600
             features.append({
-                'solar_stream': sol_stream,
+                'partner_stream': partner_stream,
                 'seismic_stream': sei_stream,
-                'sol_lat': sol['lat'], 'sol_lon': sol['lon'], 'sol_label': sol['label'],
+                'partner_cat':    partner['cat'],
+                'partner_lat': partner['lat'], 'partner_lon': partner['lon'],
+                'partner_label': partner['label'],
                 'sei_lat': sei['lat'], 'sei_lon': sei['lon'],
                 'sei_label': f"{sei_stream} ({sei['name']})",
+                # Keep legacy sol_* keys so old JS still works during transition
+                'sol_lat': partner['lat'], 'sol_lon': partner['lon'],
+                'sol_label': partner['label'],
+                'solar_stream': partner_stream,
                 'r': e['strength_r'], 'p': e['p_value'],
                 'lag_h': lag_h, 'direction': direction,
             })

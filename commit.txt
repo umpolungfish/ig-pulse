@@ -1,18 +1,28 @@
-sic_povm_d12.md: update §2.1 family sizes, §9.2 Lean scaffold reference — 2026-06-27
+Fix Pacific arc routing, collapse UI, API_BASE auto-detect, deploy scaffolding — 2026-06-28
 
-§2.1 fix:
-  "have sizes 3, 4, and 5 respectively" was ambiguous (conflated primitive
-  counts 3,5,4 with value counts 3,4,5). Replaced with explicit sentence:
-  D-family 3 primitives × 3 values; T-family 5 primitives × 4 values;
-  P-family 4 primitives × 5 values.
+solar_seismic.html:
+  - arcPoints: sine curve replaced with 2-segment angle-bracket tent (start→apex→end)
+  - adjLon(): all coordinates shifted to Pacific-copy frame (lon > 0 → lon - 360)
+  - Map centered at [20, -160] (Pacific center), worldCopyJump: false — eliminates
+    tile-copy drift on zoom
+  - Partner and seismic node markers, station dots, flyTo all use adjLon() so
+    nodes stay anchored to their arcs when zooming into Oceania
+  - API_BASE auto-detect: localhost → relative URLs; any other host →
+    https://igpulse.imscribe.com; error now shows in sidebar not over map
+  - Collapse toggles: header (−/⚡ show header), sidebar (▶/◀ edges tab)
+    both call map.invalidateSize() to reflow
 
-§9.2 update — Lean 4 verification:
-  18 scaffold files now live in p4rakernel/p4ramill/Imscribing/Ob3ects/,
-  vaulted at ob3ect/digital/.vault/, registered in lakefile.toml.
-  Support module IGScaffold.lean provides scaf : Imscription (O₂),
-  ▷ infix (IGProtocol.seq), and mkFSplit combinator.
-  4 composite scaffolds: sic_povm_functor (18-node, 2 FSPLIT pairs),
-  zauner_fiducial (22-node, 3 FSPLIT pairs), tomographic_injection
-  (12-node, 1 FSPLIT pair), categorical_join (18-node, 2 FSPLIT pairs).
-  14 individual node scaffolds. All build under lake build, 0 sorrys.
-  Each closes: TierFunctor.obj 𐑼 = .O₂ by decide.
+geo_viz.py:
+  - aurora_north_peak → Fairbanks AK (64.8°N, -147.9°W)
+  - aurora_south_peak → Ushuaia (-54.8°S, -68.3°W)
+  - aurora_ns_asymmetry / aurora_oval_extent → Fairbanks anchor
+  - neutron_monitor_oulu / forbush → Climax CO (-106.2°W) anchor
+  All extraplanetary partner nodes now in Western hemisphere; no Eastern-hemisphere
+  short arcs appear on the right side of the Pacific-centered map
+
+Previous entries:
+  - Streams 38-43 (extraplanetary + polar geomag)
+  - All-domain seismic coupling (950 edges, 5 categories)
+  - Coastal seismic station fix
+  - CORS + Dockerfile + fly.toml
+  - 49h/spin-½ SIC-POVM §7.3 addition

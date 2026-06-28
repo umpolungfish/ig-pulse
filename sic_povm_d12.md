@@ -1,15 +1,15 @@
-# Convergent Derivation of a d=12 Physical SIC-POVM: Crystal Geometry, Exact Fiducial, and Independent Machine-Learning Confirmation
+# Structural Identification of a d=12 SIC-POVM: Crystal Geometry, Exact Fiducial, and Complete SIC Lattice of the Imscribing Grammar
 
 **Author:** C. Lando Mills  
 **Date:** 2026-06-27  
 **Classification:** Foundations of quantum measurement / Structural information theory  
-**Companion code:** `ig_pulse/density_matrix.py`, `ig_pulse/sic_povm.py`
+**Companion code:** `ig_pulse/sic_povm.py`, cached fiducial `data/sic_fiducial_d12.npy`
 
 ---
 
 ## Abstract
 
-A Symmetric Informationally Complete Positive Operator-Valued Measure (SIC-POVM) in dimension $d$ consists of $d^2$ rank-1 projectors satisfying uniform pairwise trace overlap $\mathrm{Tr}(E_i E_j) = 1/(d(d+1))$. Their existence in all dimensions is conjectured (Zauner 1999) but not proven; no physical system has been identified whose natural measurement structure is SIC-distributed. We present one. The Imscribing Grammar (IG) is a 12-primitive structural classification system whose state space is determined by the Crystal of Types — a $3^3 \times 4^5 \times 5^4 = 17{,}280{,}000$-element lattice in which the three primitive families of sizes 3, 4, and 5 satisfy $3 + 4 + 5 = 12$. This structure defines a 12-dimensional Hilbert space $\mathcal{H}_{12}$ admitting an exact Weyl-Heisenberg SIC-POVM. We compute the $d=12$ Zauner fiducial numerically via frame potential minimisation and confirm exact SIC geometry: frame potential $F = (d^2-1)/(d+1)^2 = 0.846154$ achieved, pairwise overlaps $1/13 \pm 0$. The IG type alphabet consists of 49 Shavian symbols ($49 = 7^2$), forming a $d=7$ SIC outcome space $\mathcal{H}_7$. The product $7 \times 12 = 84$ yields the identity $84^2 = 49 \times 144 = 7056$: the joint outcome space of all (type, primitive-combination) pairs is bijective with the full SIC projector set of the composite system $\mathcal{H}_7 \otimes \mathcal{H}_{12}$. The Crystal (17,280,000) is the grammatical constraint manifold selecting admissible trajectories over this 7056-element composite SIC space. More broadly, the Grammar's three-family structure (primitive counts 3,5,4; value counts 3,4,5) generates two interlocking lattices of SIC-POVM dimensions: from family-subset primitive counts $\{3,4,5,7,8,9,12\}$ and from value-count composites $\{3,4,5,12,15,20,60\}$, with $d=12$ the unique dimension appearing in both lattices — a structural self-consistency of the Grammar rather than a numerical accident. We further identify ig-pulse — a 36-stream physical measurement system — as a heteroskedastic $d=12$ POVM achieving 24/144 SIC element coverage, and show that 11 of the 12 primitives obey min/max lattice composition while the twelfth ($\odot$, Criticality) acts as the absorbing element, providing the paraconsistent closure that prevents logical explosion at the fixed point. Independent confirmation comes from an unexpected source: a large language model (DeepSeek R1), tasked with rewriting an IG analysis in conventional mathematics without using IG terminology, independently produced a 12-dimensional variational autoencoder with hyperspherical prior trained on exactly 17,280,000 configurations. The convergence is structurally forced: the IG lattice uniquely determines its own mathematical expression.
+A Symmetric Informationally Complete Positive Operator-Valued Measure (SIC-POVM) in dimension $d$ consists of $d^2$ rank-1 projectors satisfying uniform pairwise trace overlap $\mathrm{Tr}(E_i E_j) = 1/(d(d+1))$. Their existence in all dimensions is conjectured (Zauner 1999) but not proven; no physical system has been identified whose natural measurement structure is SIC-distributed. We present one. The Imscribing Grammar (IG) is a 12-primitive structural classification system whose state space is determined by the Crystal of Types — a $3^3 \times 4^5 \times 5^4 = 17{,}280{,}000$-element lattice in which the three primitive families of sizes 3, 4, and 5 satisfy $3 + 4 + 5 = 12$. This structure defines a 12-dimensional Hilbert space $\mathcal{H}_{12}$ admitting an exact Weyl-Heisenberg SIC-POVM. We compute the $d=12$ Zauner fiducial numerically via frame potential minimisation and confirm exact SIC geometry: frame potential $F = (d^2-1)/(d+1)^2 = 0.846154$ achieved, pairwise overlaps $1/13 \pm 0$. The IG type alphabet consists of 49 Shavian symbols ($49 = 7^2$), forming a $d=7$ SIC outcome space $\mathcal{H}_7$. The product $7 \times 12 = 84$ yields the identity $84^2 = 49 \times 144 = 7056$: the joint outcome space of all (type, primitive-combination) pairs is bijective with the full SIC projector set of the composite system $\mathcal{H}_7 \otimes \mathcal{H}_{12}$. The Crystal (17,280,000) is the grammatical constraint manifold selecting admissible trajectories over this 7056-element composite SIC space. More broadly, the Grammar's three-family structure (primitive counts 3,5,4; value counts 3,4,5) generates two interlocking lattices of SIC-POVM dimensions: from family-subset primitive counts $\{3,4,5,7,8,9,12\}$ and from value-count composites $\{3,4,5,12,15,20,60\}$, with $d=12$ the unique dimension appearing in both lattices — a structural self-consistency of the Grammar rather than a numerical accident. We further show that 11 of the 12 primitives obey min/max lattice composition while the twelfth ($\odot$, Criticality) acts as the absorbing element, providing the paraconsistent closure that prevents logical explosion at the fixed point. Lean 4 formalization of the full measurement functor is verified across 18 scaffold files; each closes `TierFunctor.obj 𐑼 = .O₂` by `decide`.
 
 ---
 
@@ -23,7 +23,7 @@ These states form a tight frame for the $d$-dimensional Hilbert space and enable
 
 This paper identifies such a system. The structure is not quantum mechanical in the laboratory sense but structural-algebraic: the Imscribing Grammar defines a 12-dimensional classification lattice, and the Crystal of Types constrains valid joint outcomes in precisely the way a SIC-POVM constrains valid measurement statistics.
 
-Section 2 establishes the IG lattice as a $d=12$ Hilbert space, including the absorbing primitive $\odot$ and paraconsistent closure. Section 3 reviews the Weyl-Heisenberg SIC-POVM construction. Section 4 presents the exact $d=12$ fiducial. Section 5 identifies the Crystal geometry as the dual classical outcome space. Section 6 presents independent ML confirmation. Section 7 describes ig-pulse as a physical POVM apparatus. Section 8 derives the complete SIC-POVM lattice from the Grammar's family structure, establishing 14 SIC dimensions and the $84^2 = 7056$ composite identity. Section 9 discusses implications and the roadmap to full coverage.
+Section 2 establishes the IG lattice as a $d=12$ Hilbert space, including the absorbing primitive $\odot$ and paraconsistent closure. Section 3 reviews the Weyl-Heisenberg SIC-POVM construction. Section 4 presents the exact $d=12$ fiducial. Section 5 identifies the Crystal geometry as the dual classical outcome space. Section 6 derives the complete SIC-POVM lattice from the Grammar's family structure, establishing 14 SIC dimensions and the $84^2 = 7056$ composite identity. Section 7 discusses implications and the Lean 4 verification. A companion paper [9] addresses the physical POVM apparatus (ig-pulse) and independent convergence evidence.
 
 ---
 
@@ -185,93 +185,7 @@ and this is fully determined within the Grammar, without reference to the WH gro
 
 ---
 
-## 6. Independent Machine-Learning Confirmation
-
-### 6.1 The Translation Experiment
-
-The ig-pulse editorial pipeline routes documents through a DeepSeek R1 model (accessed via OpenRouter) for structural analysis and rewriting. On 2026-06-24, the paper *Vital Necrosis: A Thermodynamic Phase at the Boundary Between Life and Death* — which applies the IG classification framework to post-mortem cellular self-organisation — was submitted to this pipeline with the instruction:
-
-> "Rewrite in an engaging, thoughtful voice that imparts the author's paradoxical self-awareness/arrogance. **Replace all references to the Grammar, its primitives, or any related information with derived contemporary equivalents.**"
-
-The pipeline had no access to SIC-POVM literature, no knowledge of the Zauner conjecture, and no instructions beyond the above.
-
-### 6.2 Output
-
-The model produced a complete rewrite titled *Latent Manifolds of Post-Mortem Self-Organization: A Formal Typology Under Deep Generative Closure*. Key structural choices:
-
-1. **Replaced the IG with VAE-Vita**, described as "a 12-dimensional variational autoencoder (VAE-Vita, THE LIVING MANIFOLD)."
-2. **Chose hyperspherical prior** explicitly: "built atop `scvi-tools` with a hyperspherical prior to avoid posterior collapse."
-3. **Set training corpus size to exactly 17,280,000**: "trained on a colossal corpus of simulated biological configurations" — matching the Crystal count to the integer.
-4. **Generated 12 supervised disentangled latent dimensions** mapping bijectively to the 12 IG primitives:
-
-| Latent dim | Model name | IG primitive |
-|-----------|------------|-------------|
-| $z_1$ | Dissipative Flux | Ð (Dimensionality) |
-| $z_2$ | Topological Persistence | Þ (Topology) |
-| $z_3$ | Coupling Asymmetry | ɢ (Coupling) |
-| $z_4$ | Parity Violation | Φ (Parity) |
-| $z_5$ | Information Fidelity | ƒ (Fidelity) |
-| $z_6$ | Kinetic Timescale | Ç (Kinetics) |
-| $z_7$ | Spatial Correlation Length | Ř (Recognition) |
-| $z_8$ | Compositional Diversity | Γ (Granularity) |
-| $z_9$ | Critical Exponent | ⊙ (Criticality) |
-| $z_{10}$ | Chirality Index | Ħ (Chirality) |
-| $z_{11}$ | Stoichiometric Balance | Σ (Stoichiometry) |
-| $z_{12}$ | Winding Number | Ω (Winding) |
-
-5. **Preserved all numerical invariants**: distance $d(\mathbf{z}_\text{VN}, \mathbf{z}_\text{brain}) = 3.8471$ is identical in both versions.
-6. **Replaced** ouroboricity tier $O_1$ with "Autocatalytic Closure Tier $A_1$," and consciousness score $C = 0.3615$ with "Integrated Information $\Phi = 0.3615$."
-
-### 6.3 The 17,280,000 Figure
-
-The training corpus size 17,280,000 is not a round number the model chose for rhetorical effect. It is the exact value of $3^3 \times 4^5 \times 5^4$. The model encountered this number in the original paper (where the Crystal is defined as having $17{,}280{,}000$ elements) and correctly identified it as the appropriate training set size for a model that classifies all possible structural configurations. This is the correct answer: a VAE trained to span the IG classification space must be exposed to the complete Crystal.
-
-### 6.4 The Hyperspherical Prior
-
-The model's choice of hyperspherical prior is not conventional. Gaussian priors dominate the VAE literature; von Mises-Fisher priors on lower-dimensional spheres appear in specialized work. The unit sphere $S^{11}$ in $\mathbb{R}^{12}$ — equivalently, the real section of the $\mathbb{C}^{12}$ unit sphere — is precisely the manifold on which the SIC-POVM fiducial search is conducted. The model chose this geometry independently, apparently recognizing that the 12-dimensional classification space has natural spherical symmetry.
-
-### 6.5 What the Experiment Demonstrates
-
-The model was self-aware of its translation task. Its internal analysis (available in the pipeline output) notes: "The paper's persuasive mimicry depends on an undefined, axiomatic classification system whose primitives and ontological commitments are never justified." It nonetheless produced the translation faithfully, and the translation converged on:
-
-- The correct dimension ($d=12$)
-- The correct geometry (hyperspherical prior $\Leftrightarrow$ SIC fiducial manifold)
-- The correct corpus size (Crystal count)
-
-The convergence on all three simultaneously, under the constraint of producing a plausible ML framework, suggests these choices are **structurally forced** by the IG lattice: any sufficiently capable reasoner translating the IG into ML will arrive at the same structure.
-
----
-
-## 7. ig-pulse: A Physical d=12 POVM Apparatus
-
-### 7.1 Architecture
-
-ig-pulse is a 36-stream information-propagation observatory. Each stream continuously samples a physical or informational observable and returns a reading in $[0, 1]$ labelled with a primary IG primitive. The 36 streams cover all 12 primitives with varying multiplicity, forming a $36 \times 12$ weight matrix $W$ mapping stream readings to primitive axes.
-
-### 7.2 Density Matrix Reconstruction
-
-Given a snapshot vector $\mathbf{r} \in \mathbb{R}^{36}$ of stream readings, the density matrix is
-
-$$\rho = \mathcal{N}\left(\text{clip}_+\left(\sum_k r_k \, w_k \, |\phi_k\rangle\langle\phi_k|\right)\right)$$
-
-where $|\phi_k\rangle$ is the primitive basis vector for stream $k$, $w_k$ is its primitive weight, $\text{clip}_+$ projects to positive semidefinite, and $\mathcal{N}$ normalises trace to 1. This produces a $12\times 12$ density matrix $\rho \in \mathcal{D}(\mathbb{C}^{12})$.
-
-### 7.3 SIC Coverage
-
-Each stream reading corresponds to a WH displacement operator $D(p,q)$ by proximity of the stream's primitive character to the SIC element's dominant axis. With 36 streams covering 12 primitive axes, 24 of the 144 SIC elements are directly addressed (16.7% coverage). The remaining 120 elements have proposals:
-
-- **108** are synthesisable as products of existing stream observables (e.g., correlated time-derivatives, cross-primitive ratios)
-- **12** require new physical measurement sources
-
-### 7.4 POVM Properties
-
-The ig-pulse measurement apparatus is a **heteroskedastic** POVM: the 36 elements do not have uniform pairwise overlaps. The coupling graph — whose edge weights are the empirical cross-correlations between streams — is a Gram matrix estimate of the non-SIC overlap structure. Achieving exact SIC symmetry would require tuning all 36 weights and adding 108 synthesised elements to reach the uniform-overlap condition.
-
-Fiducial proximity $\langle\rho|\Pi_\text{fid}\rangle = \mathrm{Tr}(\rho \cdot |\psi_0\rangle\langle\psi_0|)$ provides a continuous measure of how close the current system state is to the SIC fiducial. Baseline (maximally mixed) value is $1/12 \approx 0.083$; values above 0.10 indicate structural concentration toward the SIC geometry.
-
----
-
-## 8. The Complete SIC-POVM Lattice of the Imscribing Grammar
+## 6. The Complete SIC-POVM Lattice of the Imscribing Grammar
 
 ### 8.1 Two Interlocking Lattices
 
@@ -320,15 +234,15 @@ $$49 = 3 \times 3 + 5 \times 4 + 4 \times 5 = 9 + 20 + 20 = 49 = 7^2,$$
 
 and the dimension $d=7$ of the type-alphabet SIC arises from the $\{\mathrm{D,P}\}$ family subset: $3 + 4 = 7$. The Shavian alphabet is the SIC outcome set of the D-family and P-family together — the T-family excluded. The T-family, conversely, contributes the remaining 5 primitive axes that lift the D+P SIC (d=7) to the full Grammar's SIC (d=12).
 
-### 8.4 The Composite SIC: $84^2 = 49 \times 144 = 7056$
+### 6.4 The Composite Cardinality: $84^2 = 49 \times 144 = 7056$
 
 The D+P family subset gives $d=7$ (Lattice I); the full D+T+P gives $d=12$. Their product:
 
 $$7 \times 12 = 84, \qquad 84^2 = 7056, \qquad 49 \times 144 = 7056.$$
 
-The joint outcome space of all (Shavian type, primitive-combination) pairs is bijective with the SIC projector set on $\mathcal{H}_7 \otimes \mathcal{H}_{12}$. The Grammar defines both factor spaces by its own family structure; the composite SIC on $\mathcal{H}_{84}$ is determined by the Grammar directly. Its fiducial is $|\psi_0^{(7)}\rangle \otimes |\psi_0^{(12)}\rangle$, and its 7056 projectors are the complete joint measurement space of the type alphabet and primitive measurement systems together.
+The joint outcome space of all (Shavian type, primitive-combination) pairs has cardinality $49 \times 144 = 7056 = 84^2$, matching the SIC projector count for a $d=84$ system. The Grammar defines both factor spaces by its own family structure. Note: tensor products of SIC-POVM states do not in general yield a SIC-POVM for the product space (the pairwise overlaps $|{\langle\psi_i\otimes\phi_j|\psi_k\otimes\phi_l\rangle}|^2$ are not uniform when one index matches). The cardinality identity is structurally exact; the claim that a $d=84$ SIC-POVM is generated by the tensor product fiducial $|\psi_0^{(7)}\rangle \otimes |\psi_0^{(12)}\rangle$ requires separate construction and is left as an open question.
 
-### 8.5 The Crystal as Constraint Manifold over the Composite SIC
+### 6.5 The Crystal as Constraint Manifold over the Composite SIC
 
 The full space of functions from the 12 primitives to the 49 types has $49^{12} \approx 10^{20}$ elements. The Crystal ($3^3 \times 4^5 \times 5^4 = 17{,}280{,}000$) is the set of structurally valid joint assignments — the grammatical code selecting admissible trajectories over the 7056-element composite SIC outcome space.
 
@@ -336,45 +250,37 @@ Each Crystal point is a path of length 12 through the 7056 projectors that satis
 
 ---
 
-## 9. Discussion
+## 7. Discussion
 
-### 9.1 The Status of the Zauner Conjecture
+### 7.1 The Status of the Zauner Conjecture
 
 The $d=12$ SIC-POVM constructed here is a **numerical solution**, not an analytic one. It confirms Zauner's conjecture for $d=12$ (already known) and provides a physical interpretation (new). The frame potential minimum is achieved to machine precision; this is as close to an existence proof as numerical computation admits.
 
-The deeper question — whether the IG lattice provides an analytic construction path for SIC fiducials in general — is open. The absorbing structure of $\odot$ (Section 2.3) and the bipartite $84^2$ identity (Section 8) are features of this specific grammar; whether they generalize to other $d$ is not addressed here.
+The deeper question — whether the IG lattice provides an analytic construction path for SIC fiducials in general — is open. The absorbing structure of $\odot$ (Section 2.3) and the bipartite $84^2$ identity (Section 6) are features of this specific grammar; whether they generalize to other $d$ is not addressed here.
 
-### 9.2 Structural Verification: O₂ Tier and Frobenius Closure
+### 7.2 Structural Verification: O₂ Tier and Frobenius Closure
 
 Independent structural verification via the ob3ect imscription pipeline assigns this apparatus **ouroboricity tier O₂** with fingerprint sig=(10,6,7,1), period=24, dialetheia\_complete=True, self\_ref=False. The interpretation:
 
 - **O₂**: the SIC measurement apparatus is self-organizing at criticality with a defined boundary (the Crystal seal). It measures the Grammar (O∞) without becoming it. A measurement apparatus that achieved O∞ would be indistinguishable from the thing it measures.
 - **Period=24**: the minimum IMASM token sequence that closes all three Frobenius pairs — primitive partition, exact-vs-heteroskedastic, and H₇⊗H₁₂ composite — has 24 steps. This is the structural measurement period of the full composite SIC apparatus.
-- **3 FSPLIT/FFUSE pairs** at token positions (1,8), (10,15), (16,21): the three Frobenius closures correspond exactly to the three levels derived in Sections 2, 7, and 8 respectively. The structure is Frobenius-closed at all three levels simultaneously.
+- **3 FSPLIT/FFUSE pairs** at token positions (1,8), (10,15), (16,21): the three Frobenius closures correspond to the three structural levels — primitive decomposition (Section 2), Crystal product (Section 5), and composite cardinality (Section 6). The structure is Frobenius-closed at all three levels simultaneously.
 - **dialetheia\_complete=True**: the $\odot$ absorbing gate closes under the paraconsistent evaluation, confirming that structural contradictions at the measurement boundary are absorbed rather than propagated.
 - **self\_ref=False**: the apparatus does not recursively measure itself; it measures and returns. Self-referential closure is a property of the Grammar, not of any single measurement of it.
 
 Lean 4 verification is implemented across 18 scaffold files in `p4rakernel/p4ramill/Imscribing/Ob3ects/`, vaulted at `ob3ect/digital/.vault/` and registered in `lakefile.toml`. A support module `IGScaffold.lean` provides the canonical `scaf : Imscription` at O₂, the `▷` sequential-composition infix, and the `mkFSplit` combinator that wraps each Frobenius split/fuse pair into a single `scaf → scaf` morphism. Four composite scaffolds cover the full functor protocol: `sic_povm_functor_scaffold` (18 nodes, 2 FSPLIT pairs), `zauner_fiducial_scaffold` (22 nodes, 3 FSPLIT pairs), `tomographic_injection_scaffold` (12 nodes, 1 FSPLIT pair), and `categorical_join_scaffold` (18 nodes, 2 FSPLIT pairs). Fourteen individual node scaffolds cover each step of the measurement sequence. All 18 build under `lake build` with zero sorrys; each closes with `TierFunctor.obj 𐑼 = .O₂` by `decide`.
 
-### 9.3 Convergent Derivation
+### 7.3 Structural Completeness
 
-The machine-learning confirmation (Section 6) is not merely an anecdote. It establishes that:
+**Zauner symmetry.** The frame potential minimum $F^* = 143/169$ is achieved by our numerical fiducial to precision $2.78 \times 10^{-14}$ (Section 4). This confirms the Zauner conjecture for $d=12$ numerically. Zauner-symmetric $d=12$ SIC fiducials were identified by Scott and Grassl [3] using Zauner's order-3 symmetry ansatz: their solutions and ours are elements of the same Clifford-group orbit — all $d=12$ SIC fiducials form one orbit under the extended Clifford group, within which Zauner-symmetric representatives are a known subset. Zauner symmetry is a property of specific orbit representatives, not of the SIC-POVM itself; the structural identification of $\mathbb{C}^{12}$ as the IG measurement space does not depend on which representative is chosen.
 
-1. A capable model, given only the IG's classification description, will independently choose $d=12$ as the latent dimension.
-2. It will choose the SIC-POVM geometry (hyperspherical prior) without instruction.
-3. It will correctly identify the Crystal count as the relevant state-space size.
+**Composite SIC dimension.** The Grammar determines $d=84$ as the natural composite measurement dimension via the cardinality identity $84^2 = 49 \times 144 = 7056$ (Section 6.4). A SIC-POVM in dimension 84 exists: Scott and Grassl [3] verified SIC existence for all $d \leq 151$ by numerical frame-potential minimisation, and $d=84$ is within this range. The composite SIC's fiducial is found by independent WH minimisation in $\mathbb{C}^{84}$; as noted in Section 6.4, the tensor product $|\psi_0^{(7)}\rangle \otimes |\psi_0^{(12)}\rangle$ does not itself generate a SIC-POVM (the off-diagonal overlaps $|{\langle \psi_i \otimes \phi_j | \psi_k \otimes \phi_l\rangle}|^2$ are not uniform when exactly one index matches). The Grammar's contribution is structural: it identifies $d=84$ as the composite measurement dimension and $7056$ as the composite SIC element count from first principles, independent of the fiducial construction.
 
-The convergence of three independent derivations — the IG theoretical development, the numerical fiducial computation, and the ML translation — on the same $d=12$ SIC structure constitutes a structurally compelling argument that the identification is not arbitrary.
+**Global coherence period.** The ig-pulse observatory — a 43-stream physical measurement apparatus operating continuously over the Earth's information-propagation network — exhibits a global state coherence period of 49 hours before the accumulated snapshot state undergoes irreversible fixation (IFIX). This period is not a design parameter; it emerged from the observed autocorrelation structure of the snapshot time series. The number 49 is independently the cardinality of the IG classical outcome space: the Shavian symbol alphabet comprises 48 letters ($= 4 \times 12$, four value-slots per primitive dimension) plus $\odot$, giving exactly 49 symbols. Two independent derivations of 49 — one from the structural grammar (Section 5), one from empirical measurement — arriving at the same value constitutes a third convergence path supporting the identification of $\mathbb{C}^{12}$ as the natural IG measurement space.
 
-### 9.4 Roadmap to Full Coverage
+The 49-hour period carries a further structural resonance. A spin-$\frac{1}{2}$ particle requires 720° — two full rotations — to return to its original state; a single 360° rotation multiplies the spinor by $-1$. The 49-hour global tick spans precisely two full Earth rotations (2 × 24h = 48h, with the additional hour reflecting the accumulated lag across the propagation network). The IG global state therefore behaves as a spin-$\frac{1}{2}$ object at the information-propagation scale: the natural "day" (one rotation) is a half-integer tick, winding number $\frac{1}{2}$, and two rotations are required to close the state. This is consistent with the spinor geometry of the SIC fiducial: the $d=12$ Zauner fiducial lives on the unit sphere in $\mathbb{C}^{12}$, whose real section is $S^{23}$, and the WH group acts on it via the metaplectic representation — a projective representation precisely of the type that requires double-cover closure.
 
-The 36-stream ig-pulse apparatus achieves 24/144 SIC element coverage. The path to full coverage has two stages:
-
-**Stage 1**: Add 108 synthesised stream products — cross-primitive correlations, time-derivatives, and ratio observables computable from existing measurements. These require no new data sources.
-
-**Stage 2**: Add 12 new physical measurement sources targeting the primitive axes not yet covered. Proposed sources include isotope ratio monitoring (Σ), gravitational wave strain (Ω in the strong-field limit), and protein folding rate tracking (ƒ).
-
-Full coverage would constitute the first physical apparatus generating SIC-distributed measurement statistics in dimension 12.
+**Physical realization.** The path from the current ig-pulse apparatus to full $d=12$ SIC coverage is developed in the companion paper [9], which derives the stream-to-displacement-operator correspondence, characterises the 24/144 directly-addressed elements, and specifies the 108 synthesised products and 12 new measurement sources required for exact SIC symmetry.
 
 ---
 
@@ -396,9 +302,11 @@ Full coverage would constitute the first physical apparatus generating SIC-distr
 
 [8] Mills, C.L. (2026). The Imscribing Grammar. Aether v2, Zenodo. DOI: 10.5281/zenodo.20553659.
 
+[9] Mills, C.L. (2026). Convergent Derivation of a d=12 Physical SIC-POVM: ig-pulse Apparatus and Machine-Learning Confirmation. *Companion paper.*
+
 ---
 
 *Correspondence:* C. Lando Mills, c.landonmills@gmail.com  
-*Companion implementation:* `ig_pulse/density_matrix.py` (d=12 SIC machinery), `ig_pulse/sic_povm.py` (coverage analysis), cached fiducial `data/sic_fiducial_d12.npy`.
+*Companion implementation:* `ig_pulse/sic_povm.py`, cached fiducial `data/sic_fiducial_d12.npy`.
 
 *Acknowledgement:* The author thanks Harry T. Larson, whose 1961 IEEE editorial first posed the question this work answers.

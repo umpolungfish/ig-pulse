@@ -524,36 +524,68 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return R * 2 * math.asin(min(1.0, math.sqrt(a)))
 
 
+_COASTAL_NETS = {'BK', 'CI', 'UW', 'AK', 'PN', 'NC', 'NN', 'NV', 'OR'}
+
+# Regional event query covers West Coast + Pacific bounding box at lower magnitude
+_USGS_REGIONAL_URL = (
+    "https://earthquake.usgs.gov/fdsnws/event/1/query"
+    "?format=geojson&minmagnitude=3.5&orderby=time&limit=30"
+    "&minlatitude=32&maxlatitude=72&minlongitude=-172&maxlongitude=-110"
+)
+
+
 def _stream_seismic_network(sig: DomainSignal) -> None:
     """IRIS GSN + GEOSCOPE stations as coupling nodes — signals propagate from
     earthquake epicentres outward to receiving stations, weighted by P-wave
     energy decay (1/distance²).  Each activated station emits a reading at its
     own lat/lon so the map shows the full receiver network lighting up.
+
+    Two event queries are merged:
+      • Global M5.0+  (last 2 days, 20 events) — activates GSN/GEOSCOPE
+      • Regional M3.5+ West Coast bounding box  (last 2 days, 30 events)
+        — activates coastal networks BK/CI/UW/AK/PN/NC/NN/NV/OR which are
+          too far from typical global events to cross the global weight floor
     """
     stations = _get_seismic_stations()
     if not stations:
         sig.errors.append("seismic_network: no station catalog")
         return
 
-    url = (
+    global_url = (
         "https://earthquake.usgs.gov/fdsnws/event/1/query"
         f"?format=geojson&starttime={_ago(2)}&endtime={_today()}"
         "&minmagnitude=5.0&orderby=time&limit=20"
     )
-    data = _json(url, timeout=20)
-    if not data or "features" not in data:
+    global_data = _json(global_url, timeout=20)
+    regional_data = _json(_USGS_REGIONAL_URL + f"&starttime={_ago(2)}&endtime={_today()}", timeout=20)
+
+    events = []
+    for dataset in (global_data, regional_data):
+        if dataset and "features" in dataset:
+            events.extend(dataset["features"])
+
+    if not events:
         sig.errors.append("seismic_network: no events")
         return
 
+    # Deduplicate by event id
+    seen_ids: set = set()
+    unique_events = []
+    for ev in events:
+        eid = ev.get("id", "")
+        if eid not in seen_ids:
+            seen_ids.add(eid)
+            unique_events.append(ev)
+
     try:
         import math
-        for event in data["features"]:
+        for event in unique_events:
             props = event.get("properties", {})
             mag = props.get("mag") or 0.0
             coords = event.get("geometry", {}).get("coordinates", [0, 0, 0])
             eq_lon, eq_lat, depth_km = coords[0], coords[1], (coords[2] or 0.0)
             place = props.get("place", "unknown")
-            if mag < 5.0:
+            if mag < 3.5:
                 continue
 
             energy = 10 ** (1.5 * mag)
@@ -564,7 +596,9 @@ def _stream_seismic_network(sig: DomainSignal) -> None:
                     dist_km = 1.0
                 # P-wave energy at station (geometric spreading: 1/r²)
                 weight = min(1.0, energy / (dist_km ** 2) / 1e6)
-                if weight < 0.001:
+                # Coastal networks use lower threshold — they detect regional M3.5+ events
+                threshold = 0.0001 if sta["net"] in _COASTAL_NETS else 0.001
+                if weight < threshold:
                     continue
 
                 origin = {
@@ -2499,6 +2533,366 @@ def _stream_btc_spread(sig: DomainSignal) -> None:
         sig.errors.append(f"btc_spread: {e}")
 
 
+# ── Stream 38: NMDB Oulu Neutron Monitor — galactic cosmic ray flux ───────────
+
+def _stream_neutron_monitor(sig: DomainSignal) -> None:
+    """Oulu neutron monitor (NMDB) → Ω winding, Ħ chirality.
+
+    The Oulu station (65°N, 25°E) has operated since 1964 — longest continuous
+    GCR record on Earth. Count rate is corrected for barometric pressure.
+    Forbush decreases (sudden flux drops during CME passage) are topological
+    events: a heliospheric magnetic flux tube sweeping past Earth.
+
+    GCR flux modulates on:
+      - 27-day (solar rotation) → Ω winding periodicity
+      - 11-year (solar cycle) → long-period Ω
+      - Forbush decrease (CME) → Ħ chirality signature (handed magnetic topology)
+    """
+    import datetime as _dt
+    now = _dt.datetime.utcnow()
+    start = (now - _dt.timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%S")
+    end = now.strftime("%Y-%m-%dT%H:%M:%S")
+    url = (
+        f"https://www.nmdb.eu/nest/api.php?startdate={start}&enddate={end}"
+        "&stations[]=OULU&output=json&tabchoice=revori&dtype=corr_for_efficiency&filter=true"
+    )
+    origin = {"type": "ground", "source": "NMDB/Oulu", "lat": 65.06, "lon": 25.47,
+              "instrument": "neutron monitor", "alt_m": 15}
+    try:
+        data = _json(url, timeout=20)
+        rows = (data or {}).get("rows", [])
+        if not rows:
+            sig.errors.append("neutron_monitor: no rows"); return
+        # Last valid count rate
+        counts = [r[1] for r in rows if r[1] is not None and r[1] > 0]
+        if not counts:
+            sig.errors.append("neutron_monitor: no valid counts"); return
+        rate = counts[-1]
+        # Baseline ~6500 cpm (Oulu STP-corrected); Forbush decrease ≥2% drop
+        baseline = 6500.0
+        rel = (rate - baseline) / baseline
+        if rel < -0.05:
+            sig._set("chirality", 2, "neutron_monitor_oulu", rate, "cpm", origin)
+            sig._set("winding",   2, "neutron_monitor_oulu_forbush", abs(rel), "frac", origin)
+        elif rel < -0.02:
+            sig._set("chirality", 1, "neutron_monitor_oulu", rate, "cpm", origin)
+            sig._set("winding",   1, "neutron_monitor_oulu_forbush", abs(rel), "frac", origin)
+        else:
+            sig._nom("chirality", "neutron_monitor_oulu", rate, "cpm", origin)
+    except Exception as e:
+        sig.errors.append(f"neutron_monitor: {e}")
+
+
+# ── Stream 39: GOES XRS Solar X-ray Flux (continuous photon flux) ─────────────
+
+def _stream_goes_xrs(sig: DomainSignal) -> None:
+    """GOES XRS-B (0.1–0.8 nm) continuous solar X-ray photon flux → Φ parity, ⊙ criticality.
+
+    Distinct from DONKI which detects classified flare events. XRS-B gives the
+    raw continuous coronal photon flux in real time. Flare classification:
+      B (<1e-6 W/m²), C (1e-6–1e-5), M (1e-5–1e-4), X (>1e-4).
+
+    This is the primary instrument for detecting solar flares in real time and
+    provides a continuous chirality signal from the solar corona's photon output.
+    """
+    url = "https://services.swpc.noaa.gov/json/goes/primary/xrays-7-day.json"
+    origin = {"type": "space", "source": "GOES-primary", "instrument": "XRS-B",
+              "band": "0.1-0.8nm", "orbit": "GEO"}
+    try:
+        data = _json(url, timeout=20)
+        if not isinstance(data, list) or not data:
+            sig.errors.append("goes_xrs: no data"); return
+        # XRS-B is the long-channel (0.1-0.8nm)
+        xrsb = [r for r in data[-200:] if r.get("energy", "").startswith("0.1")]
+        if not xrsb:
+            sig.errors.append("goes_xrs: no XRS-B channel"); return
+        flux = xrsb[-1].get("flux", 0) or 0
+        if flux <= 0:
+            sig.errors.append("goes_xrs: zero flux"); return
+        import math as _math
+        log_flux = _math.log10(max(flux, 1e-9))
+        # Classify: B<-6, C:-6–-5, M:-5–-4, X>-4
+        if log_flux >= -4.0:
+            sig._set("parity",     2, "goes_xrs_b", flux,  "W/m2", origin)
+            sig._set("criticality",2, "goes_xrs_b_xclass", abs(log_flux+4), "decades", origin)
+        elif log_flux >= -5.0:
+            sig._set("parity",     1, "goes_xrs_b", flux,  "W/m2", origin)
+            sig._set("criticality",1, "goes_xrs_b_mclass", abs(log_flux+5), "decades", origin)
+        elif log_flux >= -6.0:
+            sig._set("parity",     0, "goes_xrs_b", flux,  "W/m2", origin)
+        else:
+            sig._nom("parity", "goes_xrs_b", flux, "W/m2", origin)
+    except Exception as e:
+        sig.errors.append(f"goes_xrs: {e}")
+
+
+# ── Stream 40: LIGO/Virgo/KAGRA Gravitational Wave Candidates ────────────────
+
+def _stream_ligo_gw(sig: DomainSignal) -> None:
+    """LIGO GraceDB public superevents → Ω winding, Ð dimensionality.
+
+    Gravitational waves are oscillations in the metric tensor — literal winding
+    of spacetime geometry. Compact binary mergers (BNS, BBH, NSBH) collapse
+    distinct dimensional configurations. During O4 the LIGO/Virgo/KAGRA network
+    publishes public candidate events in real time via GraceDB.
+
+    Primitive assignments:
+      Ω (winding)       — spacetime oscillation, h+ × h× polarisation winding
+      Ð (dimensionality) — merger type: BNS=compact, BBH=high-mass, NSBH=hybrid
+      ⊙ (criticality)   — classification probability (HasNS, HasRemnant)
+    """
+    url = "https://gracedb.ligo.org/api/superevents/?ordering=-created&per_page=10&public"
+    origin = {"type": "space", "source": "LIGO/Virgo/KAGRA",
+              "network": "O4", "instrument": "interferometer"}
+    try:
+        data = _json(url, timeout=20)
+        events = (data or {}).get("superevents", [])
+        if not events:
+            sig._nom("winding", "ligo_gw_rate", 0.0, "events", origin); return
+        import datetime as _dt
+        cutoff = _dt.datetime.utcnow() - _dt.timedelta(days=30)
+        recent = []
+        for ev in events:
+            try:
+                t = _dt.datetime.fromisoformat(ev.get("created", "").replace("Z", "+00:00"))
+                if t.replace(tzinfo=None) > cutoff:
+                    recent.append(ev)
+            except Exception:
+                pass
+        rate = len(recent)
+        far_vals = [ev.get("far", None) for ev in recent if ev.get("far") is not None]
+        if rate >= 1:
+            sig._set("winding",       2, "ligo_gw_alert", rate,  "events/30d", origin)
+            sig._set("dimensionality",1, "ligo_gw_alert", rate,  "events/30d", origin)
+            if far_vals:
+                import math as _math
+                min_far = min(far_vals)
+                sig._set("criticality", 2 if min_far < 1e-5 else 1,
+                         "ligo_gw_far", min_far, "Hz", origin)
+        else:
+            sig._nom("winding", "ligo_gw_rate", 0.0, "events/30d", origin)
+    except Exception as e:
+        sig.errors.append(f"ligo_gw: {e}")
+
+
+# ── Stream 41: Fermi GBM Gamma-Ray Burst Triggers ────────────────────────────
+
+def _stream_fermi_grb(sig: DomainSignal) -> None:
+    """Fermi GBM gamma-ray burst triggers → ⊙ criticality, Φ parity.
+
+    GRBs are the most energetic transients in the observable universe.
+    Short GRBs (<2s) originate from compact binary mergers (same progenitors
+    as GW events); long GRBs (>2s) from core-collapse supernovae.
+    Both channels produce parity-violating photon cascades.
+
+    Uses HEASARC Fermi GBM trigger catalog (public, no key required).
+    Filters to events in the last 30 days.
+    """
+    url = (
+        "https://heasarc.gsfc.nasa.gov/cgi-bin/Terse/terse.pl"
+        "?Action=Query&Fields=name,time,t90,fluence,flux_64ms"
+        "&Coordinates=Equatorial&Equinox=2000&NR=CheckCaches"
+        "&format=json&sortvar=time_trigger&order=desc&resultmax=20&table=fermigtrig"
+    )
+    origin = {"type": "space", "source": "Fermi/GBM",
+              "instrument": "NaI+BGO", "orbit": "LEO"}
+    try:
+        data = _json(url, timeout=20)
+        rows = []
+        if isinstance(data, dict):
+            rows = data.get("rows", data.get("data", []))
+        elif isinstance(data, list):
+            rows = data
+        import datetime as _dt
+        cutoff = (_dt.datetime.utcnow() - _dt.timedelta(days=30)).strftime("%Y-%m-%d")
+        recent = []
+        for row in rows:
+            if isinstance(row, dict):
+                t = row.get("time") or row.get("time_trigger") or ""
+                if str(t) >= cutoff:
+                    recent.append(row)
+            elif isinstance(row, list) and len(row) > 1:
+                recent.append(row)
+        rate = len(recent)
+        if rate >= 2:
+            sig._set("criticality", 2, "fermi_grb_rate", rate, "events/30d", origin)
+            sig._set("parity",      1, "fermi_grb_rate", rate, "events/30d", origin)
+        elif rate == 1:
+            sig._set("criticality", 1, "fermi_grb_rate", rate, "events/30d", origin)
+        else:
+            sig._nom("criticality", "fermi_grb_rate", 0.0, "events/30d", origin)
+    except Exception as e:
+        sig.errors.append(f"fermi_grb: {e}")
+
+
+# ── Stream 42: DSCOVR Solar Wind Plasma (density + temperature) ──────────────
+
+def _stream_dscovr_plasma(sig: DomainSignal) -> None:
+    """DSCOVR Faraday cup plasma: proton density + temperature → Σ stoichiometry, Ç kinetics.
+
+    Complements existing DSCOVR Bz helicity stream. Plasma density and thermal
+    speed set the stoichiometric ratio of the solar wind (proton/alpha composition
+    proxy) and the kinetic energy budget driving magnetospheric coupling.
+
+    Primitive assignments:
+      Σ (stoichiometry) — proton number density n_p (particles/cm³)
+      Ç (kinetics)      — proton thermal speed / bulk flow velocity ratio
+    """
+    url = "https://services.swpc.noaa.gov/products/solar-wind/plasma-7-day.json"
+    origin = {"type": "space", "source": "DSCOVR", "instrument": "Faraday cup",
+              "location": "L1", "lat": 0.0, "lon": 0.0}
+    try:
+        data = _json(url, timeout=15)
+        if not isinstance(data, list) or len(data) < 2:
+            sig.errors.append("dscovr_plasma: no data"); return
+        # Format: [time_tag, density, speed, temperature]
+        recent = [r for r in data[1:] if r[1] not in (None, "null", "") and r[3] not in (None, "null", "")]
+        if not recent:
+            sig.errors.append("dscovr_plasma: no valid rows"); return
+        row = recent[-1]
+        density  = float(row[1])   # protons/cm³
+        speed    = float(row[2])   # km/s bulk flow
+        temp_K   = float(row[3])   # K
+        import math as _math
+        # Thermal speed v_th = sqrt(k*T/m_p); proton mass 1.67e-27 kg, k=1.38e-23
+        v_th = _math.sqrt(1.38e-23 * temp_K / 1.67e-27) / 1000.0  # km/s
+        kinetic_ratio = v_th / max(speed, 1.0)
+        # Density thresholds: quiet ~5/cm³, moderate ~10, disturbed ~20+
+        if density > 20.0:
+            sig._set("stoichiometry", 2, "dscovr_sw_density", density, "/cm3", origin)
+        elif density > 10.0:
+            sig._set("stoichiometry", 1, "dscovr_sw_density", density, "/cm3", origin)
+        else:
+            sig._nom("stoichiometry", "dscovr_sw_density", density, "/cm3", origin)
+        # Kinetic ratio: high = thermally hot / slow wind = Ç elevation
+        if kinetic_ratio > 0.15:
+            sig._set("kinetics", 2, "dscovr_sw_kinetics", kinetic_ratio, "v_th/v_bulk", origin)
+        elif kinetic_ratio > 0.08:
+            sig._set("kinetics", 1, "dscovr_sw_kinetics", kinetic_ratio, "v_th/v_bulk", origin)
+        else:
+            sig._nom("kinetics", "dscovr_sw_kinetics", kinetic_ratio, "v_th/v_bulk", origin)
+    except Exception as e:
+        sig.errors.append(f"dscovr_plasma: {e}")
+
+
+# ── Stream 43: NOAA SWPC Polar Geomagnetic Storm ─────────────────────────────
+
+def _stream_polar_geomag(sig: DomainSignal) -> None:
+    """NOAA SWPC polar geomagnetic storm → Ħ chirality, ⊙ criticality, Φ parity.
+
+    Two sources merged:
+
+    1. OVATION aurora forecast (ovation_aurora_latest.json)
+       Per-coordinate aurora intensity 0–100 at every (lon, lat) point.
+       Extracts maximum intensity at north polar cap (|lat| ≥ 70°) and
+       south polar cap separately — asymmetry between poles = Φ parity signal;
+       peak intensity = Ħ chirality (field topology at magnetic pole).
+
+    2. SWPC alerts feed (alerts.json)
+       Parses current geomagnetic storm watches/warnings for G-scale level.
+       G1=watch, G2=warning, G3+=alert → ⊙ criticality gate.
+
+    Primitive assignments:
+      Ħ (chirality)      — aurora peak intensity at polar cap (field handedness)
+      Φ (parity)         — north/south auroral asymmetry (N≠S = parity violation)
+      ⊙ (criticality)    — G-scale storm level threshold crossing
+      Ω (winding)        — oval diameter (poleward expansion of auroral oval = winding)
+    """
+    origin_n = {"type": "space", "source": "NOAA/OVATION", "pole": "north",
+                "lat": 90.0, "lon": 0.0, "instrument": "OVATION Prime 2013"}
+    origin_s = {"type": "space", "source": "NOAA/OVATION", "pole": "south",
+                "lat": -90.0, "lon": 0.0, "instrument": "OVATION Prime 2013"}
+    origin_alert = {"type": "ground", "source": "NOAA/SWPC",
+                    "lat": 40.0, "lon": -105.3, "instrument": "geomagnetic network"}
+
+    # ── 1. OVATION aurora intensity at poles ──
+    try:
+        aurora = _json("https://services.swpc.noaa.gov/json/ovation_aurora_latest.json", timeout=15)
+        coords = (aurora or {}).get("coordinates", [])
+        north_vals, south_vals = [], []
+        for lon, lat, intensity in coords:
+            if intensity is None:
+                continue
+            if lat >= 70:
+                north_vals.append(intensity)
+            elif lat <= -70:
+                south_vals.append(intensity)
+        peak_n = max(north_vals) if north_vals else 0
+        peak_s = max(south_vals) if south_vals else 0
+        # Mean equatorward extent of oval: lowest lat where intensity > 5
+        equator_lats = [abs(lat) for lon, lat, i in coords if i is not None and i > 5]
+        oval_extent = (90.0 - min(equator_lats)) if equator_lats else 0.0
+
+        # Chirality: north polar cap peak intensity
+        if peak_n > 50:
+            sig._set("chirality", 2, "aurora_north_peak", peak_n, "GW", origin_n)
+        elif peak_n > 15:
+            sig._set("chirality", 1, "aurora_north_peak", peak_n, "GW", origin_n)
+        else:
+            sig._nom("chirality", "aurora_north_peak", peak_n, "GW", origin_n)
+
+        if peak_s > 50:
+            sig._set("chirality", 2, "aurora_south_peak", peak_s, "GW", origin_s)
+        elif peak_s > 15:
+            sig._set("chirality", 1, "aurora_south_peak", peak_s, "GW", origin_s)
+        else:
+            sig._nom("chirality", "aurora_south_peak", peak_s, "GW", origin_s)
+
+        # Parity: north/south asymmetry
+        if peak_n + peak_s > 0:
+            asym = abs(peak_n - peak_s) / (peak_n + peak_s)
+            if asym > 0.3:
+                sig._set("parity", 2 if asym > 0.5 else 1,
+                         "aurora_ns_asymmetry", asym, "frac", origin_n)
+            else:
+                sig._nom("parity", "aurora_ns_asymmetry", asym, "frac", origin_n)
+
+        # Winding: oval equatorward expansion
+        if oval_extent > 25:
+            sig._set("winding", 2, "aurora_oval_extent", oval_extent, "deg", origin_n)
+        elif oval_extent > 15:
+            sig._set("winding", 1, "aurora_oval_extent", oval_extent, "deg", origin_n)
+        else:
+            sig._nom("winding", "aurora_oval_extent", oval_extent, "deg", origin_n)
+
+    except Exception as e:
+        sig.errors.append(f"polar_geomag/ovation: {e}")
+
+    # ── 2. SWPC alert feed — G-scale storm level ──
+    try:
+        alerts = _json("https://services.swpc.noaa.gov/products/alerts.json", timeout=12)
+        if not isinstance(alerts, list):
+            return
+        import re as _re, datetime as _dt
+        cutoff = _dt.datetime.utcnow() - _dt.timedelta(hours=48)
+        g_level = 0
+        for alert in alerts:
+            msg = alert.get("message", "")
+            ts  = alert.get("issue_datetime", "")
+            if "Geomagnetic Storm" not in msg and "GEOMAGNETIC STORM" not in msg:
+                continue
+            try:
+                t = _dt.datetime.strptime(ts[:19], "%Y-%m-%d %H:%M:%S")
+                if t < cutoff:
+                    continue
+            except Exception:
+                pass
+            m = _re.search(r"G(\d)", msg)
+            if m:
+                g_level = max(g_level, int(m.group(1)))
+
+        if g_level >= 3:
+            sig._set("criticality", 2, "polar_gstorm_level", g_level, "G-scale", origin_alert)
+            sig._set("chirality",   2, "polar_gstorm_level", g_level, "G-scale", origin_alert)
+        elif g_level >= 1:
+            sig._set("criticality", 1, "polar_gstorm_level", g_level, "G-scale", origin_alert)
+            sig._set("chirality",   1, "polar_gstorm_level", g_level, "G-scale", origin_alert)
+        else:
+            sig._nom("criticality", "polar_gstorm_level", 0, "G-scale", origin_alert)
+    except Exception as e:
+        sig.errors.append(f"polar_geomag/alerts: {e}")
+
+
 # ── Aggregator ────────────────────────────────────────────────────────────────
 
 _ALL_STREAMS = [
@@ -2550,6 +2944,14 @@ _ALL_STREAMS = [
 
     # ── ƒ Fidelity gap fill (37) ──
     ("btc_spread",    _stream_btc_spread),     # ƒ — BTC bid-ask spread (Kraken)
+
+    # ── Extraplanetary (38-43) ──
+    ("polar_geomag",     _stream_polar_geomag),       # Ħ/⊙  — SWPC polar storm + OVATION aurora
+    ("neutron_monitor",  _stream_neutron_monitor),  # Ω/Ħ — NMDB Oulu GCR flux
+    ("goes_xrs",         _stream_goes_xrs),          # Φ/⊙ — GOES XRS-B solar X-ray
+    ("ligo_gw",          _stream_ligo_gw),            # Ω/Ð  — LIGO GW candidates
+    ("fermi_grb",        _stream_fermi_grb),          # ⊙/Φ  — Fermi GBM GRB triggers
+    ("dscovr_plasma",    _stream_dscovr_plasma),      # Σ/Ç  — DSCOVR SW density+temp
 ]
 
 
