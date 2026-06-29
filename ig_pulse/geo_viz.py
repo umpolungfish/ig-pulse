@@ -954,6 +954,131 @@ def create_app(data_dir: str = None) -> Flask:
         warnings.sort(key=lambda w: (-w["trigger_alert"], -abs(w["r"])))
         return jsonify({"warnings": warnings, "ts": snap.ts})
 
+    @app.route("/api/solar-seismic/chains")
+    def api_solar_seismic_chains():
+        import time as _time
+        import datetime as _dt
+        snap = engine._latest_snapshot
+        if not snap:
+            return jsonify({"chains": [], "ts": None})
+
+        readings = snap.readings if hasattr(snap, 'readings') else []
+        rd = {(r.stream, r.primitive): r for r in readings}
+        now = _time.time()
+
+        def active(stream, primitive, alert_min=1):
+            r = rd.get((stream, primitive))
+            return r is not None and r.alert >= alert_min
+
+        def val(stream, primitive):
+            r = rd.get((stream, primitive))
+            return r.value if r else None
+
+        def eta_str(lag_s):
+            t = now + lag_s
+            return _dt.datetime.utcfromtimestamp(t).strftime("%H:%MZ")
+
+        def node(label, glyph, stream, primitive, alert_min=1):
+            a = active(stream, primitive, alert_min)
+            v = val(stream, primitive)
+            return {"label": label, "glyph": glyph, "stream": stream,
+                    "primitive": primitive, "active": a, "value": v}
+
+        # Each chain: list of nodes + list of lags between consecutive nodes (seconds, or None for zero-lag)
+        CHAINS = [
+            {
+                "id": "aurora_seismic",
+                "title": "Aurora → Seismic",
+                "desc": "Winding leads chirality leads topology",
+                "nodes": [
+                    node("oval:Ω", "Ω", "aurora_oval_extent", "winding"),
+                    node("south:Ħ", "Ħ", "aurora_south_peak", "chirality"),
+                    node("seismic:Þ", "Þ", "seismic_IU_GUMO", "topology"),
+                ],
+                "lags": [7264, None],   # Ω→Ħ 7264s observed; Ħ→Þ unknown
+                "r": [0.968, None],
+            },
+            {
+                "id": "knowledge_market",
+                "title": "Knowledge → Market → Event",
+                "desc": "Recognition leads criticality leads coupling",
+                "nodes": [
+                    node("pubmed:Ř", "Ř", "pubmed_pubs", "recognition"),
+                    node("options:⊙", "⊙", "options_iv", "criticality"),
+                    node("gdelt:ɢ", "ɢ", "gdelt_events", "coupling"),
+                ],
+                "lags": [3859, 454],
+                "r": [0.939, 0.931],
+            },
+            {
+                "id": "cosmic_ray_identity",
+                "title": "Cosmic Ray Identity",
+                "desc": "Chirality and winding are degenerate at zero lag",
+                "nodes": [
+                    node("gcr100:Ħ", "Ħ", "goes_gcr_100MeV", "chirality"),
+                    node("gcr500:Ω", "Ω", "goes_gcr_500MeV", "winding"),
+                ],
+                "lags": [0],
+                "r": [1.000],
+            },
+            {
+                "id": "aurora_storm",
+                "title": "Aurora ↔ Polar Storm",
+                "desc": "Winding and criticality locked at zero lag",
+                "nodes": [
+                    node("oval:Ω", "Ω", "aurora_oval_extent", "winding"),
+                    node("storm:⊙", "⊙", "polar_gstorm_level", "criticality"),
+                ],
+                "lags": [0],
+                "r": [1.000],
+            },
+        ]
+
+        # Annotate each chain: which step is the leading edge, what's the ETA for the next node
+        result = []
+        for ch in CHAINS:
+            nodes = ch["nodes"]
+            lags = ch["lags"]
+            rs = ch["r"]
+            active_count = sum(1 for n in nodes if n["active"])
+            # Find furthest active node
+            leading = -1
+            for i, n in enumerate(nodes):
+                if n["active"]:
+                    leading = i
+            eta = None
+            lag_running = None
+            if 0 <= leading < len(nodes) - 1:
+                next_lag = lags[leading]
+                if next_lag and next_lag > 0:
+                    eta = eta_str(next_lag)
+                    lag_running = next_lag
+            # Chain status
+            if active_count == 0:
+                status = "dormant"
+            elif active_count == len(nodes):
+                status = "complete"
+            elif leading == 0:
+                status = "initiated"
+            else:
+                status = "propagating"
+
+            result.append({
+                "id": ch["id"],
+                "title": ch["title"],
+                "desc": ch["desc"],
+                "nodes": nodes,
+                "lags": lags,
+                "r": rs,
+                "status": status,
+                "leading": leading,
+                "next_eta": eta,
+                "lag_running_s": lag_running,
+                "active_count": active_count,
+            })
+
+        return jsonify({"chains": result, "ts": snap.ts})
+
     @app.route("/api/solar-seismic")
     def api_solar_seismic():
         import json as _json

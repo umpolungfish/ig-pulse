@@ -1097,7 +1097,7 @@ def _stream_power_grid(sig: DomainSignal) -> None:
         now = _dt.datetime.utcnow()
         start = (now - _dt.timedelta(hours=2)).strftime('%Y%m%dT%H:%M-0000')
         end = now.strftime('%Y%m%dT%H:%M-0000')
-        url = (f'http://oasis.caiso.com/oasisapi/SingleZip?resultformat=6'
+        url = (f'https://oasis.caiso.com/oasisapi/SingleZip?resultformat=6'
                f'&queryname=SLD_FCST&startdatetime={start}&enddatetime={end}&version=1')
         req = urllib.request.Request(url, headers=_HEADERS)
         with urllib.request.urlopen(req, timeout=25) as r:
@@ -2536,49 +2536,74 @@ def _stream_btc_spread(sig: DomainSignal) -> None:
 # ── Stream 38: NMDB Oulu Neutron Monitor — galactic cosmic ray flux ───────────
 
 def _stream_neutron_monitor(sig: DomainSignal) -> None:
-    """Oulu neutron monitor (NMDB) → Ω winding, Ħ chirality.
+    """GCR proxy via GOES SEP flux → Ω winding, Ħ chirality.
 
-    The Oulu station (65°N, 25°E) has operated since 1964 — longest continuous
-    GCR record on Earth. Count rate is corrected for barometric pressure.
-    Forbush decreases (sudden flux drops during CME passage) are topological
-    events: a heliospheric magnetic flux tube sweeping past Earth.
+    Primary: SWPC GOES integral proton flux (>=1 MeV, 1-day).
+    SEPs and GCR Forbush decreases are driven by the same heliospheric
+    magnetic topology events (CME passage). When solar activity ejects
+    energetic protons, GCR flux drops via Forbush decrease. Both encode
+    Ħ chirality (handed CME flux-rope topology) and Ω winding (27-day
+    solar rotation modulation).
 
-    GCR flux modulates on:
-      - 27-day (solar rotation) → Ω winding periodicity
-      - 11-year (solar cycle) → long-period Ω
-      - Forbush decrease (CME) → Ħ chirality signature (handed magnetic topology)
+    Fallback: NMDB Oulu direct (tried first; blocked/unreachable → SWPC used).
     """
     import datetime as _dt
     now = _dt.datetime.utcnow()
+
+    # --- Try NMDB primary ---
     start = (now - _dt.timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%S")
     end = now.strftime("%Y-%m-%dT%H:%M:%S")
-    url = (
+    nmdb_url = (
         f"https://www.nmdb.eu/nest/api.php?startdate={start}&enddate={end}"
         "&stations[]=OULU&output=json&tabchoice=revori&dtype=corr_for_efficiency&filter=true"
     )
-    origin = {"type": "ground", "source": "NMDB/Oulu", "lat": 65.06, "lon": 25.47,
-              "instrument": "neutron monitor", "alt_m": 15}
+    nmdb_origin = {"type": "ground", "source": "NMDB/Oulu", "lat": 65.06, "lon": 25.47,
+                   "instrument": "neutron monitor", "alt_m": 15}
     try:
-        data = _json(url, timeout=20)
+        data = _json(nmdb_url, timeout=12)
         rows = (data or {}).get("rows", [])
-        if not rows:
-            sig.errors.append("neutron_monitor: no rows"); return
-        # Last valid count rate
-        counts = [r[1] for r in rows if r[1] is not None and r[1] > 0]
-        if not counts:
-            sig.errors.append("neutron_monitor: no valid counts"); return
-        rate = counts[-1]
-        # Baseline ~6500 cpm (Oulu STP-corrected); Forbush decrease ≥2% drop
-        baseline = 6500.0
-        rel = (rate - baseline) / baseline
-        if rel < -0.05:
-            sig._set("chirality", 2, "neutron_monitor_oulu", rate, "cpm", origin)
-            sig._set("winding",   2, "neutron_monitor_oulu_forbush", abs(rel), "frac", origin)
-        elif rel < -0.02:
-            sig._set("chirality", 1, "neutron_monitor_oulu", rate, "cpm", origin)
-            sig._set("winding",   1, "neutron_monitor_oulu_forbush", abs(rel), "frac", origin)
+        counts = [r[1] for r in rows if r[1] is not None and r[1] > 0] if rows else []
+        if counts:
+            rate = counts[-1]
+            baseline = 6500.0
+            rel = (rate - baseline) / baseline
+            if rel < -0.05:
+                sig._set("chirality", 2, "neutron_monitor_oulu", rate, "cpm", nmdb_origin)
+                sig._set("winding",   2, "neutron_monitor_oulu_forbush", abs(rel), "frac", nmdb_origin)
+            elif rel < -0.02:
+                sig._set("chirality", 1, "neutron_monitor_oulu", rate, "cpm", nmdb_origin)
+                sig._set("winding",   1, "neutron_monitor_oulu_forbush", abs(rel), "frac", nmdb_origin)
+            else:
+                sig._nom("chirality", "neutron_monitor_oulu", rate, "cpm", nmdb_origin)
+            return
+    except Exception:
+        pass
+
+    # --- SWPC GOES proton flux fallback ---
+    # Anti-correlated with GCR: elevated SEP flux → Forbush decrease expected.
+    # Thresholds: background ~1–5 pfu; >100 pfu = major SEP event (strong Forbush).
+    swpc_url = "https://services.swpc.noaa.gov/json/goes/primary/integral-protons-1-day.json"
+    swpc_origin = {"type": "space", "source": "SWPC/GOES", "instrument": "EPS",
+                   "proxy_for": "GCR/neutron_monitor"}
+    try:
+        data = _json(swpc_url, timeout=12)
+        if not data:
+            sig.errors.append("neutron_monitor: no data (NMDB blocked, SWPC unavailable)")
+            return
+        # >=1 MeV channel is most sensitive to Forbush-level events
+        mev1 = [d for d in data if d.get("energy") == ">=1 MeV" and d.get("flux") is not None]
+        if not mev1:
+            sig.errors.append("neutron_monitor: no >=1 MeV proton data")
+            return
+        flux = mev1[-1]["flux"]
+        if flux > 100.0:
+            sig._set("chirality", 2, "goes_sep_forbush_proxy", flux, "pfu", swpc_origin)
+            sig._set("winding",   2, "goes_sep_forbush_proxy", flux, "pfu", swpc_origin)
+        elif flux > 10.0:
+            sig._set("chirality", 1, "goes_sep_forbush_proxy", flux, "pfu", swpc_origin)
+            sig._set("winding",   1, "goes_sep_forbush_proxy", flux, "pfu", swpc_origin)
         else:
-            sig._nom("chirality", "neutron_monitor_oulu", rate, "cpm", origin)
+            sig._nom("chirality", "goes_sep_forbush_proxy", flux, "pfu", swpc_origin)
     except Exception as e:
         sig.errors.append(f"neutron_monitor: {e}")
 
@@ -2955,43 +2980,125 @@ _ALL_STREAMS = [
 ]
 
 
+# Per-stream TTL tiers (seconds).  Streams not listed default to 3600.
+# Fast  (90–180s):  sources that update at sub-5-min cadence and host short causal lags
+# Medium (900–1800s): sources that update every 5–15 min; resolve the pubmed→options chain
+# Slow  (3600s+):   daily-ish sources — over-polling wastes quota without new data
+_STREAM_TTL: dict[str, int] = {
+    # ── Fast tier ── resolve 454s arxiv→gdelt chain and Nyquist for 7264s aurora chain
+    "dscovr_plasma":    120,   # 1-min L1 solar wind — fastest changing physical signal
+    "goes_xrs":         120,   # 1-min GOES X-ray flux
+    "solar_wind":       120,   # DSCOVR real-time Bz/speed
+    "seismic":          180,   # USGS real-time; new M2.5+ every few minutes globally
+    "seismic_network":  180,
+    "gdelt":            180,   # 15-min GDELT updates; 3× per update is fine
+    "polar_geomag":     180,   # SWPC Kp + OVATION aurora — drives chirality chain
+
+    # ── Medium tier ── resolve pubmed→options (3859s) and aurora winding→chirality (7264s)
+    "ace_epam":         900,   # 5-min ACE electrons/protons
+    "goes_cr":          900,   # 5-min GOES GCR
+    "stereo_cr":        900,   # STEREO cosmic rays
+    "neutron_monitor":  900,   # NMDB 1-min data, but changes slowly
+    "kp_index":         900,   # 3h Kp but derivative changes matter
+    "options_skew":    1200,   # options market; 15-min during hours
+    "vix":             1200,   # same
+    "options_iv":      1200,
+    "dscovr_helicity": 1200,   # DSCOVR Bz sign-change count — 1-min source
+    "stereo_sept":      900,   # already has internal TTL; outer loop still gates sweeps
+    "lightning":        900,   # Blitzortung near-real-time
+    "tides":           1800,   # tidal forcing changes slowly but 30-min is fine
+
+    # ── Slow tier — sources that publish daily or change on hour+ timescales ──
+    "pubmed":          3600,
+    "arxiv_bio":       3600,
+    "arxiv_ai":        3600,   # has internal 12h TTL; outer 1h is harmless
+    "wiki_chiral":     3600,
+    "wiki_entropy":    3600,   # has internal 6h TTL
+    "bgp_routing":     3600,   # has internal 4h TTL
+    "genbank":         7200,
+    "fda_enforce":     7200,
+    "fear_greed":      3600,
+    "mempool":         1800,   # block times every ~10 min
+    "coingecko":       1800,
+    "coingecko_alts":  1800,
+    "onchain":         3600,
+    "yield_curve":     3600,
+    "shipping":        3600,
+    "power_grid":      3600,
+    "night_lights":   86400,   # VIIRS daily
+    "twitter":         1800,
+    "wikipedia":       1800,
+    "weather":         1800,
+    "hn_sentiment":    1800,
+    "air_quality":     1800,
+    "ligo_gw":         3600,
+    "fermi_grb":       3600,
+    "btc_spread":       900,
+    "donki":           1800,   # NASA DONKI CME/flare — updates as events occur, ~30min fine
+}
+
+
 class DomainStreamAggregator:
     """
-    Fetches all 36 domain streams (15 base + 18 fine-grained + 3 SIC gap fill) and returns a DomainSignal.
+    Fetches all domain streams with per-stream TTL tiering.
 
-    Stream categories:
-      1-15:  Base market/network/space/seismic/social
-     16-23: Fine-grained market & macro (options skew, VIX, yield curve, shipping,
-             power grid, night lights, GDELT, Twitter)
-     24-28: Biological chirality (GenBank, PubMed, Wikipedia chiral, ArXiv q-bio,
-             FDA enforcement)
-     29-33: Astrophysical chirality (STEREO cosmic rays, ACE e/p ratios, GOES GCR,
-             DSCOVR Bz helicity, STEREO/SEPT directional particles)
+    Fast streams (dscovr, seismic, gdelt, polar_geomag) poll every 90–180s to
+    resolve causal chains with lags as short as 454s.  Medium streams poll every
+    15–30 min to resolve the pubmed→options (3859s) and aurora (7264s) chains.
+    Slow streams (daily-ish sources) poll hourly or less.
 
-    Refreshes every `refresh_interval` seconds (default: 3600 = hourly).
-    Network errors degrade gracefully — a failed stream contributes no alerts.
+    The collector loop should run at 90s; this class gates each stream internally
+    so slow APIs are not hammered.  refresh_interval is ignored when force=False —
+    the per-stream TTLs govern everything.
     """
 
     def __init__(self, refresh_interval: int = 3600):
         self._signal: DomainSignal = DomainSignal()
         self._last: Optional[datetime] = None
         self._interval = refresh_interval
+        self._stream_last: dict[str, float] = {}        # stream name → last fetch epoch
+        self._stream_readings: dict[str, list] = {}     # stream name → readings it produced
+
+    def _due(self, name: str) -> bool:
+        import time as _time
+        ttl = _STREAM_TTL.get(name, 3600)
+        last = self._stream_last.get(name, 0.0)
+        return (_time.time() - last) >= ttl
 
     def refresh(self, force: bool = False) -> DomainSignal:
-        if (not force
-                and self._last is not None
-                and (datetime.now() - self._last).total_seconds() < self._interval):
+        import time as _time
+
+        due_streams = [(n, fn) for n, fn in _ALL_STREAMS if force or self._due(n)]
+        if not due_streams:
             return self._signal
 
         sig = DomainSignal(fetched=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        n = len(_ALL_STREAMS)
-        print(f"  [Streams] fetching {n} domain streams …")
+        due_names = {n for n, _ in due_streams}
 
-        for name, fn in _ALL_STREAMS:
+        # Carry forward cached readings for streams not being refreshed this sweep.
+        # Use _stream_readings (keyed by stream name) — avoids fragile r.stream matching.
+        for sname, readings in self._stream_readings.items():
+            if sname not in due_names:
+                sig.readings.extend(readings)
+
+        n_due = len(due_streams)
+        tiers = {"fast": sum(1 for nm, _ in due_streams if _STREAM_TTL.get(nm, 3600) < 300),
+                 "med":  sum(1 for nm, _ in due_streams if 300 <= _STREAM_TTL.get(nm, 3600) < 3600),
+                 "slow": sum(1 for nm, _ in due_streams if _STREAM_TTL.get(nm, 3600) >= 3600)}
+        print(f"  [Streams] {n_due}/{len(_ALL_STREAMS)} due "
+              f"(fast={tiers['fast']} med={tiers['med']} slow={tiers['slow']}) …")
+
+        now = _time.time()
+        for name, fn in due_streams:
+            before = len(sig.readings)
             try:
                 fn(sig)
+                # Record exactly which readings this stream produced.
+                self._stream_readings[name] = list(sig.readings[before:])
+                self._stream_last[name] = now
             except Exception as e:
                 sig.errors.append(f"{name}: unexpected {e}")
+                self._stream_readings[name] = []
 
         self._signal = sig
         self._last   = datetime.now()

@@ -11,10 +11,11 @@ GRAPH_PATH     = DATA_DIR / "graph.json"
 
 def cmd_collect(args) -> None:
     from .collector import collect_once, run
+    data_dir = getattr(args, "data_dir", None)
     if args.once:
-        collect_once(verbose=True)
+        collect_once(verbose=True, data_dir=data_dir)
     else:
-        run(interval_seconds=args.interval)
+        run(interval_seconds=args.interval, data_dir=data_dir)
 
 
 def cmd_couple(args) -> None:
@@ -101,7 +102,8 @@ def main() -> None:
 
     p_collect = sub.add_parser("collect", help="Poll streams and store snapshots")
     p_collect.add_argument("--once", action="store_true", help="Collect one snapshot and exit")
-    p_collect.add_argument("--interval", type=int, default=3600, help="Poll interval in seconds (default 3600)")
+    p_collect.add_argument("--interval", type=int, default=90, help="Collector loop interval in seconds (default 90; per-stream TTLs govern actual fetch rate)")
+    p_collect.add_argument("--data-dir", default=None, help="Path to ig-pulse data directory")
 
     p_couple = sub.add_parser("couple", help="Compute cross-stream coupling from snapshots")
     p_couple.add_argument("--max-lag", type=int, default=259200, help="Maximum lag to test in seconds (default 259200 = 72h)")

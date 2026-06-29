@@ -1,3 +1,190 @@
+Fix: remove dead @property assignment block crashing _fetch_all — 2026-06-29
+
+domain_streams.py _fetch_all (DomainStreamAggregator.refresh):
+  Lines 3104-3109 tried to assign to sig.total_alerts, sig.primitives,
+  and sig.is_b_state after the stream loop. total_alerts and is_b_state
+  are @property on DomainSignal with no setter — crash on every collect
+  cycle: "property 'total_alerts' of 'DomainSignal' object has no setter".
+  sig.primitives was also dead code: snapshot_from_domain_signal() in
+  schema.py builds the primitives dict from the 12 individual int fields
+  (sig.criticality, sig.parity, ...) directly, never touching sig.primitives.
+  Fix: remove entire block. total_alerts / is_b_state / multiplier all
+  compute correctly from the int fields set by _set() calls in each stream.
+
+---
+
+neutron_monitor: SWPC GOES SEP fallback; power_grid: HTTPS — 2026-06-29
+
+domain_streams.py _stream_neutron_monitor:
+  NMDB (www.nmdb.eu) is blocking all connections from this host with
+  connection-reset-by-peer. _json() silently swallowed the error and returned
+  None, which read as empty "rows" → "neutron_monitor: no rows" every tick.
+  Fix: try NMDB first (short 12s timeout); if rows come back, use them.
+  On failure (None returned), fall through to SWPC GOES integral-protons-1-day
+  (>=1 MeV channel) as proxy. SEPs and GCR Forbush decreases are driven by
+  the same CME events; anti-correlation preserves the Ħ/Ω structural signal.
+  Thresholds: >100 pfu = strong Forbush proxy (alert=2); >10 pfu = mild (alert=1).
+
+domain_streams.py _stream_power_grid:
+  CAISO URL was http:// — server redirects to HTTPS, and the HTTPS backend
+  intermittently closes the SSL connection mid-handshake →
+  "SSL: UNEXPECTED_EOF_WHILE_READING". Changed to https:// directly.
+  HTTPS endpoint verified: 200 OK.
+
+---
+
+Fix Pacific arc routing: split arcs at date line — 2026-06-29
+
+Root cause: Leaflet 1.9.4 normalises out-of-range longitudes (e.g. lon=-225)
+back to their [-180,+180] equivalent (+135) when rendering, so arcs sent to the
+Pacific-copy frame appeared on the Eastern-Hemisphere side and routed eastward
+over the Atlantic/Africa/India.
+
+solar_seismic.html:
+  adjLon(): simplified back to standard [-180,+180] normalisation (Leaflet's
+    own range — no more out-of-range shifts).
+  arcPoints() → arcSegments(): computes 24-point westward arc in a continuous
+    frame (lons may go below -180), normalises each point to [-180,+180], then
+    SPLITS into separate polyline segments at each date-line crossing (jump >90°).
+    Returns array of point arrays; render() now iterates and adds each segment.
+    Each segment stays within [-180,+180] so Leaflet renders it without wrapping.
+
+---
+
+Fix Pacific arc routing: interpolated westward arc, robust adjLon — 2026-06-29
+
+solar_seismic.html:
+  adjLon(): replaced `lon > 0 ? lon-360 : lon` with modulo normalization to
+    [-340, +20] — the full Pacific-centric range — handles all edge cases.
+  arcPoints(): replaced 3-point tent with 12-point interpolated arc.
+    Explicitly forces westward routing (`if a2 > a1: a2 -= 360`) before
+    interpolating, so arcs always route over the Pacific regardless of whether
+    Leaflet normalizes the endpoint coordinate. Arc apex uses sin(πt)*28 for
+    smooth bow. All 12 intermediate points are in the adjLon frame (guaranteed
+    negative), eliminating any possibility of Leaflet normalizing them back to
+    positive Eastern-Hemisphere coordinates.
+
+---
+
+Fix: persistent aggregator in run() so per-stream TTLs + carry-forward work — 2026-06-29
+
+collector.py: collect_once() created a new DomainStreamAggregator each call,
+wiping _stream_readings and _stream_last every tick. Per-stream TTL gating and
+carry-forward were completely non-functional as a result.
+
+Fix: run() now instantiates one aggregator and calls _write_snapshot() in a loop.
+First tick forces a full fetch; subsequent ticks let per-stream TTLs govern which
+streams actually re-fetch vs carry forward cached readings.
+collect_once() retains its own fresh aggregator (force=True) for one-shot CLI use.
+
+---
+
+Auto-refresh main map data every 60s — 2026-06-29
+
+solar_seismic.html: wrapped one-time /api/solar-seismic fetch in loadMapData();
+added setInterval(loadMapData, 60000) matching warnings/chains cadence.
+Map edges and stations now update without a page reload.
+
+---
+
+Fix carry-forward reading loss (kinetics/recognition/fidelity dropping) — 2026-06-29
+
+Bug: on non-force sweeps, the aggregator tried to match r.stream values like
+"block_time", "pm2_5", "grid_peak" against _ALL_STREAMS names like "mempool",
+"air_quality", "power_grid". Most didn't match → those readings were silently
+dropped → kinetics, recognition, fidelity fell to 0 after the first sweep.
+
+Fix: _stream_readings dict (stream_name → readings list) is populated when each
+stream runs (slice sig.readings[before:after]). Carry-forward now iterates this
+dict directly — no r.stream matching, no false negatives. Streams not in the
+current sweep's due_names have their cached readings appended to sig verbatim.
+
+Warnings/chain visibility fix — 2026-06-29
+
+Diagnosed: live API returns ts=null (no snapshot — collector --data-dir fix not yet
+redeployed). Even after redeploy, quiet conditions made both bars invisible.
+
+solar_seismic.html:
+  chain-bar: always visible (removed max-height:0 collapse); status line shows
+    "PRIMITIVE CHAINS · ALL DORMANT · <ts>" or "N ACTIVE" — never silently blank.
+  warnings-bar: when ts exists but warnings=[] (nominal conditions), shows a
+    dimmed "NOMINAL — no active alerts" row so user can confirm system is live.
+  When ts=null (no snapshot), warnings bar stays hidden and chain bar shows
+    "NO DATA · DEPLOY COLLECTOR".
+Synced to personal_site/ and imscribe.com/index/.
+
+Tiered per-stream sampling — 2026-06-29
+
+domain_streams.py: _STREAM_TTL dict assigns each of 44 streams to a fetch tier.
+  Fast  (120–180s, 7 streams): dscovr_plasma, goes_xrs, solar_wind, seismic,
+    seismic_network, gdelt, polar_geomag — resolves 454s arxiv→gdelt chain.
+  Medium (900–1800s, 21 streams): ace_epam, goes_cr, kp_index, stereo_cr,
+    stereo_sept, neutron_monitor, btc_spread, options_skew, vix, dscovr_helicity,
+    lightning, mempool, coingecko/alts, tides, weather, wikipedia, twitter,
+    hn_sentiment, air_quality, donki — resolves 3859s pubmed→options chain.
+  Slow (3600–86400s, 16 streams): pubmed, arxiv, genbank, wiki_entropy, bgp,
+    fda, night_lights, fear_greed, yield_curve, shipping, power_grid, etc.
+
+DomainStreamAggregator: per-stream TTL gating via _stream_last dict.
+  refresh() skips streams whose TTL hasn't expired; carries forward previous
+  readings for non-due streams so the merged signal is always complete.
+  Recomputes total_alerts / primitives / is_b_state from merged readings.
+  Log line shows fast/med/slow counts per sweep.
+
+collector.py: loop interval dropped 3600s → 90s (fast tier needs it).
+cli.py: --interval default updated to 90.
+Dockerfile, README, USER_GUIDE: 3600 → 90 throughout.
+
+Primitive chain monitor — 2026-06-29
+
+geo_viz.py: /api/solar-seismic/chains endpoint
+  4 known chains from coupling data:
+    aurora_seismic:   oval:Ω →[7264s]→ south:Ħ →[?]→ seismic:Þ
+    knowledge_market: pubmed:Ř →[3859s]→ options:⊙ →[454s]→ gdelt:ɢ
+    cosmic_ray:       gcr100:Ħ =[0s]= gcr500:Ω  (identity, r=1.000)
+    aurora_storm:     oval:Ω  =[0s]= storm:⊙   (identity, r=1.000)
+  Each node: active/inactive based on live snapshot readings.
+  Chain status: dormant / initiated / propagating / complete.
+  When leading node fires but next hasn't: ETA for next node computed from lag.
+  Zero-lag links shown as = (identity) in purple; causal lags as → in orange.
+
+solar_seismic.html: #chain-bar panel above header
+  Collapsed when all chains dormant; expands when ≥1 non-dormant.
+  Card per chain colored by status (orange=initiated, amber=propagating, green=complete).
+  Node glyphs (Ω Ħ Þ Ř ⊙ ɢ) lit/dim by active state.
+  Lag labels on arrows (hours/minutes). ETA for next node when clock is running.
+  Polls /api/solar-seismic/chains every 60s.
+
+Fix: add --data-dir to collect subcommand — 2026-06-29
+
+cli.py: add --data-dir argument to p_collect; cmd_collect passes it to collect_once/run.
+collector.py: _snapshots_path(data_dir) helper resolves path (mkdir if needed);
+  collect_once and run accept optional data_dir kwarg.
+Fixes Fly.io startup error: "unrecognized arguments: --data-dir /app/data" on collect.
+
+---
+
+Mobile layout fix for solar_seismic.html — 2026-06-28
+
+solar_seismic.html:
+  - Add viewport meta tag (was missing — page rendered as desktop-scaled on mobile)
+  - Sidebar: position:fixed overlay on mobile (≤768px) instead of squeezing map
+  - sb-toggle: position:fixed at 50vh on mobile so it's always tappable above sidebar
+  - Header: subtitle + nav link hidden on mobile to reduce height
+  - Auto-collapse sidebar + header on page load when width ≤ 768px
+  - Warning station chips: larger touch targets on mobile
+Synced to imscribe.com/index/ and personal_site/
+
+---
+
+Strip manual section numbers from sic_povm_d12.md — 2026-06-28
+
+sic_povm_d12.md: removed all `N.` and `N.N` prefixes from ## and ### headings;
+pipeline handles numbering — no more double-count in rendered output.
+Broken subsection labels 8.1/8.2/8.3 (should have been 6.1/6.2/6.3) fixed as part of same pass.
+
+---
+
 Fix Pacific arc routing, collapse UI, API_BASE auto-detect, deploy scaffolding — 2026-06-28
 
 solar_seismic.html:

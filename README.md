@@ -165,7 +165,7 @@ value **B** (Both True and False) — a stable fixed point of the FDE bi-lattice
 python -m ig_pulse.cli collect --once
 
 # Run continuously (hourly, matching synfin cadence)
-python -m ig_pulse.cli collect --interval 3600
+python -m ig_pulse.cli collect --interval 90
 
 # Compute cross-stream coupling after enough data accumulates
 # (need ≥20 snapshots; recommends ~336 = 2 weeks hourly for robust results)

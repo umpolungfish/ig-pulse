@@ -14,4 +14,6 @@ RUN pip install --no-cache-dir flask flask-cors numpy scipy networkx requests ha
 
 EXPOSE 8080
 
-CMD ["ig-pulse", "geo-viz", "--port", "8080", "--data-dir", "/app/data"]
+# Collect one snapshot on startup then keep collecting hourly in background;
+# geo-viz serves the data as it accumulates.
+CMD ["sh", "-c", "ig-pulse collect --once --data-dir /app/data && ig-pulse collect --interval 90 --data-dir /app/data & ig-pulse geo-viz --port 8080 --data-dir /app/data"]

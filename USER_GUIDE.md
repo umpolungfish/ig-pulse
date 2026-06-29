@@ -19,7 +19,7 @@ pip install -e .
 python -m ig_pulse.cli collect --once
 
 # Continuous collection (hourly)
-python -m ig_pulse.cli collect --interval 3600
+python -m ig_pulse.cli collect --interval 90
 
 # After 20+ snapshots accumulate: compute coupling
 python -m ig_pulse.cli couple
@@ -106,7 +106,7 @@ The `DomainStreamAggregator` in `_ALL_STREAMS` registers them for collection.
 
 ```
 python -m ig_pulse.cli collect --once     # Single snapshot
-python -m ig_pulse.cli collect --interval 3600  # Hourly continuous
+python -m ig_pulse.cli collect --interval 90  # Hourly continuous
 ```
 
 Collect fetches all 33 streams concurrently. Failed streams contribute errors but
@@ -231,7 +231,7 @@ ig-pulse is the primary signal source for the fin3r prediction engine:
 ```python
 from ig_pulse.domain_streams import DomainStreamAggregator
 
-aggregator = DomainStreamAggregator(refresh_interval=3600)
+aggregator = DomainStreamAggregator()
 signal = aggregator.refresh()
 
 # signal.readings — list of DomainSignal readings, each with .stream, .primitive, .value, .alert
