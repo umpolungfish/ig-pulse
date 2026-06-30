@@ -271,6 +271,28 @@ PROJECTION_MAP = {
 }
 
 
+# ── Megalithic Reference Sites ────────────────────────────────────────────────
+# Landmark ancient / sacred sites added as a static reference layer.
+# Option-B ley-line analysis (2026-06-29): Stonehenge and Teotihuacan rank
+# highest for correlation-arc great-circle intersections in the current
+# coupling graph.
+MEGALITHIC_SITES = {
+    "Stonehenge":       {"lat":  51.179, "lon":  -1.826, "region": "Wiltshire, UK",      "tier": "A"},
+    "Avebury":          {"lat":  51.428, "lon":  -1.854, "region": "Wiltshire, UK",      "tier": "A"},
+    "Newgrange":        {"lat":  53.695, "lon":  -6.476, "region": "County Meath, IE",   "tier": "A"},
+    "Carnac":           {"lat":  47.589, "lon":  -3.074, "region": "Brittany, FR",       "tier": "A"},
+    "Great Pyramid":    {"lat":  29.979, "lon":  31.134, "region": "Giza, EG",           "tier": "A"},
+    "Göbekli Tepe":     {"lat":  37.223, "lon":  38.922, "region": "Anatolia, TR",       "tier": "A"},
+    "Angkor Wat":       {"lat":  13.412, "lon": 103.867, "region": "Siem Reap, KH",      "tier": "A"},
+    "Teotihuacan":      {"lat":  19.692, "lon": -98.844, "region": "State of Mexico, MX","tier": "A"},
+    "Machu Picchu":     {"lat": -13.163, "lon": -72.545, "region": "Cusco, PE",          "tier": "A"},
+    "Tiwanaku":         {"lat": -16.554, "lon": -68.674, "region": "La Paz, BO",         "tier": "A"},
+    "Easter Island":    {"lat": -27.113, "lon":-109.350, "region": "Rapa Nui, CL",       "tier": "A"},
+    "Nazca Lines":      {"lat": -14.739, "lon": -75.130, "region": "Ica, PE",            "tier": "A"},
+    "Chichen Itza":     {"lat":  20.684, "lon": -88.568, "region": "Yucatan, MX",        "tier": "A"},
+}
+
+
 # Per-primitive colors — each of the 12 primitives has a fixed hue
 PRIMITIVE_COLOR = {
     "recognition":    "#ff6200",  # Ř — electric orange
@@ -598,6 +620,24 @@ class GeoVizEngine:
             })
         return {"type": "FeatureCollection", "features": features}
 
+    def get_megalithic_geojson(self) -> dict:
+        """Static layer: megalithic / ancient sacred sites as GeoJSON points."""
+        features = []
+        for name, site in MEGALITHIC_SITES.items():
+            features.append({
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [site["lon"], site["lat"]]},
+                "properties": {
+                    "name": name,
+                    "region": site["region"],
+                    "origin_type": "megalithic",
+                    "label": name,
+                    "radius": 8,
+                    "color": "#ffd700",
+                },
+            })
+        return {"type": "FeatureCollection", "features": features}
+
     def get_heatmap_data(self) -> List[list]:
         """Build alert-weighted [lat, lon, weight] array for heatmap layer."""
         self._load_if_needed()
@@ -817,6 +857,7 @@ def create_app(data_dir: str = None) -> Flask:
             "edges": engine.get_edges_geojson(),
             "space": engine.get_space_geojson(),
             "seismic_stations": engine.get_seismic_stations_geojson(),
+            "megalithic": engine.get_megalithic_geojson(),
             "heatmap": engine.get_heatmap_data(),
             "stats": engine.get_stats(),
             "primitives": engine.get_primitives(),

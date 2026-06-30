@@ -353,10 +353,11 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
 }).addTo(map);
 
 // ── Layer Groups ──────────────────────────────────────────────────────────────
-const edgeLayer    = L.layerGroup().addTo(map);
-const nodeLayer    = L.layerGroup().addTo(map);
-const spaceLayer   = L.layerGroup().addTo(map);
-const seismicLayer = L.layerGroup().addTo(map);
+const edgeLayer        = L.layerGroup().addTo(map);
+const nodeLayer        = L.layerGroup().addTo(map);
+const spaceLayer       = L.layerGroup().addTo(map);
+const seismicLayer     = L.layerGroup().addTo(map);
+const megalithicLayer  = L.layerGroup().addTo(map);
 let heatLayer = null;
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -391,6 +392,7 @@ const spaceIcons = {
 
 // ── Seismic Station Layer ─────────────────────────────────────────────────────
 let _seismicStationsLoaded = false;
+let _megalithicLoaded = false;
 function renderSeismicStations(geojson) {
   if (!geojson || !geojson.features) return;
   if (_seismicStationsLoaded) return;   // static — load once
@@ -404,6 +406,28 @@ function renderSeismicStations(geojson) {
       `<b>${p.label}</b><br>${p.name}<br><span style="color:#64748b;font-size:0.65rem">GSN / GEOSCOPE station</span>`
     );
     marker.addTo(seismicLayer);
+  }
+}
+
+// ── Render Megalithic Sites ───────────────────────────────────────────────────
+function renderMegalithic(geojson) {
+  if (!geojson || !geojson.features) return;
+  if (_megalithicLoaded) return;
+  _megalithicLoaded = true;
+  megalithicLayer.clearLayers();
+  for (const f of geojson.features) {
+    const p = f.properties;
+    const [lon, lat] = f.geometry.coordinates;
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="background:#ffd700;width:10px;height:10px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 8px #ffd700aa;"></div>`,
+      iconSize: [14, 14], iconAnchor: [7, 7],
+    });
+    const marker = L.marker([lat, lon], { icon });
+    marker.bindPopup(
+      `<b>${p.name}</b><br><span style="color:#64748b;font-size:0.7rem">${p.region}</span><br><span style="color:#ffd700;font-size:0.65rem">Megalithic reference site</span>`
+    );
+    marker.addTo(megalithicLayer);
   }
 }
 
@@ -736,6 +760,7 @@ async function refresh() {
   if (data.edges) renderEdges(data.edges);
   if (data.space) renderSpace(data.space);
   if (data.seismic_stations) renderSeismicStations(data.seismic_stations);
+  if (data.megalithic) renderMegalithic(data.megalithic);
   if (data.heatmap) renderHeatmap(data.heatmap);
   if (data.stats) {
     updatePanel(data.stats, data.rho || {});
@@ -795,6 +820,7 @@ L.control.layers(null, {
   'Signal Nodes':        nodeLayer,
   'Space Layer':         spaceLayer,
   'Seismic Stations':    seismicLayer,
+  'Megalithic Sites':    megalithicLayer,
 }, { position: 'bottomleft', collapsed: true }).addTo(map);
 
 // ── Fit-to-bounds button ──────────────────────────────────────────────────────

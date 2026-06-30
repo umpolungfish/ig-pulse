@@ -1,0 +1,11 @@
+{
+  "accuracy": 0.30032166666666665,
+  "mean_sic_overlap": 0.08399148285388947,
+  "frame_potential": 0.08408308029174805,
+  "sic_deviation": 0.007068405930812538,
+  "sic_target": 0.07692307692307693,
+  "welch_satisfied": true,
+  "mean_kappa": 2.4679079055786133,
+  "overlap_std": 0.10537253320217133,
+  "elapsed": 26447.34621167183
+}

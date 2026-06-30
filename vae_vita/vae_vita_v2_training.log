@@ -1,0 +1,367 @@
+Step    200: loss=15.84 recon=15.75 kl=0.004 sic=0.011209 lr=5.00e-04 [193s]
+Step    400: loss=15.89 recon=15.70 kl=0.031 sic=0.011184 lr=5.00e-04 [370s]
+Step    600: loss=15.95 recon=15.68 kl=0.008 sic=0.011182 lr=5.00e-04 [545s]
+Step    800: loss=16.02 recon=15.66 kl=0.005 sic=0.011185 lr=4.99e-04 [718s]
+Step   1000: loss=16.08 recon=15.63 kl=0.000 sic=0.011188 lr=4.99e-04 [891s]
+  ── Val @ 1000 (891s) ── Acc: 29.98%  SIC ov: 0.084249  Dev: 0.007326  κ: 2.47
+    ✓ Saved (SIC dev=0.007326)
+Step   1200: loss=16.20 recon=15.67 kl=0.001 sic=0.011171 lr=4.98e-04 [1063s]
+Step   1400: loss=16.29 recon=15.67 kl=0.001 sic=0.011163 lr=4.97e-04 [1247s]
+Step   1600: loss=16.39 recon=15.67 kl=0.001 sic=0.011142 lr=4.97e-04 [1419s]
+Step   1800: loss=16.47 recon=15.66 kl=0.002 sic=0.011222 lr=4.96e-04 [1593s]
+Step   2000: loss=16.58 recon=15.68 kl=0.002 sic=0.011184 lr=4.95e-04 [1769s]
+  ── Val @ 2000 (1769s) ── Acc: 29.85%  SIC ov: 0.084193  Dev: 0.007270  κ: 2.46
+    ✓ Saved (SIC dev=0.007270)
+Step   2200: loss=16.63 recon=15.65 kl=0.000 sic=0.011130 lr=4.93e-04 [1950s]
+Step   2400: loss=16.73 recon=15.65 kl=0.000 sic=0.011172 lr=4.92e-04 [2130s]
+Step   2600: loss=16.82 recon=15.65 kl=0.002 sic=0.011194 lr=4.91e-04 [2309s]
+Step   2800: loss=16.87 recon=15.63 kl=0.008 sic=0.011131 lr=4.89e-04 [2486s]
+Step   3000: loss=17.00 recon=15.66 kl=0.004 sic=0.011148 lr=4.88e-04 [2646s]
+  ── Val @ 3000 (2646s) ── Acc: 29.94%  SIC ov: 0.084053  Dev: 0.007130  κ: 2.46
+    ✓ Saved (SIC dev=0.007130)
+Step   3200: loss=17.09 recon=15.66 kl=0.023 sic=0.011164 lr=4.86e-04 [2819s]
+Step   3400: loss=17.17 recon=15.65 kl=0.003 sic=0.011150 lr=4.84e-04 [2994s]
+Step   3600: loss=17.23 recon=15.63 kl=0.000 sic=0.011117 lr=4.83e-04 [3167s]
+Step   3800: loss=17.32 recon=15.63 kl=0.000 sic=0.011098 lr=4.81e-04 [3331s]
+Step   4000: loss=17.43 recon=15.65 kl=0.001 sic=0.011150 lr=4.79e-04 [3499s]
+  ── Val @ 4000 (3499s) ── Acc: 29.68%  SIC ov: 0.083856  Dev: 0.006933  κ: 2.46
+    ✓ Saved (SIC dev=0.006933)
+Step   4200: loss=17.53 recon=15.65 kl=0.000 sic=0.011178 lr=4.76e-04 [3664s]
+Step   4400: loss=17.58 recon=15.62 kl=0.000 sic=0.011162 lr=4.74e-04 [3835s]
+Step   4600: loss=17.67 recon=15.62 kl=0.002 sic=0.011133 lr=4.72e-04 [4001s]
+Step   4800: loss=17.77 recon=15.64 kl=0.001 sic=0.011137 lr=4.69e-04 [4174s]
+Step   5000: loss=17.87 recon=15.64 kl=0.000 sic=0.011147 lr=4.67e-04 [4341s]
+  ── Val @ 5000 (4341s) ── Acc: 29.89%  SIC ov: 0.083997  Dev: 0.007074  κ: 2.46
+Step   5200: loss=17.90 recon=15.65 kl=0.005 sic=0.011233 lr=4.64e-04 [4510s]
+Step   5400: loss=17.88 recon=15.64 kl=0.000 sic=0.011184 lr=4.61e-04 [4687s]
+Step   5600: loss=17.88 recon=15.66 kl=0.001 sic=0.011132 lr=4.59e-04 [4857s]
+Step   5800: loss=17.89 recon=15.66 kl=0.002 sic=0.011167 lr=4.56e-04 [5030s]
+Step   6000: loss=17.85 recon=15.62 kl=0.001 sic=0.011160 lr=4.53e-04 [5206s]
+  ── Val @ 6000 (5206s) ── Acc: 29.78%  SIC ov: 0.083952  Dev: 0.007028  κ: 2.46
+Step   6200: loss=17.86 recon=15.62 kl=0.002 sic=0.011195 lr=4.50e-04 [5378s]
+Step   6400: loss=17.86 recon=15.63 kl=0.000 sic=0.011172 lr=4.46e-04 [5549s]
+Step   6600: loss=17.89 recon=15.66 kl=0.004 sic=0.011156 lr=4.43e-04 [5713s]
+Step   6800: loss=17.88 recon=15.63 kl=0.001 sic=0.011210 lr=4.40e-04 [5884s]
+Step   7000: loss=17.87 recon=15.63 kl=0.001 sic=0.011168 lr=4.36e-04 [6044s]
+  ── Val @ 7000 (6045s) ── Acc: 29.64%  SIC ov: 0.084002  Dev: 0.007079  κ: 2.47
+Step   7200: loss=17.86 recon=15.63 kl=0.002 sic=0.011190 lr=4.33e-04 [6212s]
+Step   7400: loss=17.88 recon=15.64 kl=0.000 sic=0.011210 lr=4.29e-04 [6370s]
+Step   7600: loss=17.87 recon=15.63 kl=0.004 sic=0.011161 lr=4.26e-04 [6533s]
+Step   7800: loss=17.89 recon=15.65 kl=0.001 sic=0.011191 lr=4.22e-04 [6699s]
+Step   8000: loss=17.87 recon=15.64 kl=0.002 sic=0.011176 lr=4.18e-04 [6880s]
+  ── Val @ 8000 (6880s) ── Acc: 29.71%  SIC ov: 0.084027  Dev: 0.007104  κ: 2.46
+Step   8200: loss=17.87 recon=15.64 kl=0.000 sic=0.011149 lr=4.14e-04 [7054s]
+Step   8400: loss=17.87 recon=15.63 kl=0.000 sic=0.011163 lr=4.10e-04 [7227s]
+Step   8600: loss=17.88 recon=15.65 kl=0.004 sic=0.011162 lr=4.06e-04 [7398s]
+Step   8800: loss=17.83 recon=15.61 kl=0.003 sic=0.011106 lr=4.02e-04 [7568s]
+Step   9000: loss=17.85 recon=15.61 kl=0.003 sic=0.011179 lr=3.98e-04 [7748s]
+  ── Val @ 9000 (7748s) ── Acc: 29.75%  SIC ov: 0.084135  Dev: 0.007212  κ: 2.46
+Step   9200: loss=17.88 recon=15.65 kl=0.001 sic=0.011137 lr=3.94e-04 [7927s]
+Step   9400: loss=17.88 recon=15.64 kl=0.000 sic=0.011169 lr=3.89e-04 [8101s]
+Step   9600: loss=17.86 recon=15.63 kl=0.001 sic=0.011146 lr=3.85e-04 [8279s]
+Step   9800: loss=17.87 recon=15.64 kl=0.000 sic=0.011149 lr=3.81e-04 [8459s]
+Step  10000: loss=17.88 recon=15.65 kl=0.000 sic=0.011169 lr=3.76e-04 [8638s]
+  ── Val @ 10000 (8638s) ── Acc: 29.63%  SIC ov: 0.084093  Dev: 0.007170  κ: 2.46
+Step  10200: loss=17.82 recon=15.61 kl=0.000 sic=0.011087 lr=3.72e-04 [8818s]
+Step  10400: loss=17.90 recon=15.66 kl=0.001 sic=0.011167 lr=3.67e-04 [8999s]
+Step  10600: loss=17.88 recon=15.65 kl=0.002 sic=0.011139 lr=3.63e-04 [9177s]
+Step  10800: loss=17.87 recon=15.65 kl=0.000 sic=0.011135 lr=3.58e-04 [9356s]
+Step  11000: loss=17.86 recon=15.63 kl=0.000 sic=0.011132 lr=3.53e-04 [9535s]
+  ── Val @ 11000 (9536s) ── Acc: 29.91%  SIC ov: 0.084010  Dev: 0.007087  κ: 2.46
+Step  11200: loss=17.85 recon=15.62 kl=0.000 sic=0.011128 lr=3.48e-04 [9712s]
+Step  11400: loss=17.87 recon=15.64 kl=0.000 sic=0.011161 lr=3.44e-04 [9891s]
+Step  11600: loss=17.88 recon=15.65 kl=0.001 sic=0.011176 lr=3.39e-04 [10071s]
+Step  11800: loss=17.88 recon=15.65 kl=0.001 sic=0.011166 lr=3.34e-04 [10251s]
+Step  12000: loss=17.90 recon=15.66 kl=0.001 sic=0.011212 lr=3.29e-04 [10429s]
+  ── Val @ 12000 (10429s) ── Acc: 29.86%  SIC ov: 0.083994  Dev: 0.007071  κ: 2.46
+Step  12200: loss=17.87 recon=15.64 kl=0.000 sic=0.011173 lr=3.24e-04 [10608s]
+Step  12400: loss=17.87 recon=15.64 kl=0.003 sic=0.011126 lr=3.19e-04 [10787s]
+Step  12600: loss=17.88 recon=15.65 kl=0.000 sic=0.011152 lr=3.14e-04 [10964s]
+Step  12800: loss=17.89 recon=15.65 kl=0.000 sic=0.011184 lr=3.09e-04 [11139s]
+Step  13000: loss=17.86 recon=15.62 kl=0.000 sic=0.011191 lr=3.04e-04 [11318s]
+  ── Val @ 13000 (11318s) ── Acc: 29.80%  SIC ov: 0.084135  Dev: 0.007211  κ: 2.46
+Step  13200: loss=17.87 recon=15.64 kl=0.001 sic=0.011150 lr=2.99e-04 [11495s]
+Step  13400: loss=17.89 recon=15.66 kl=0.000 sic=0.011171 lr=2.94e-04 [11678s]
+Step  13600: loss=17.87 recon=15.65 kl=0.001 sic=0.011128 lr=2.89e-04 [11851s]
+Step  13800: loss=17.90 recon=15.65 kl=0.000 sic=0.011231 lr=2.84e-04 [12028s]
+Step  14000: loss=17.87 recon=15.64 kl=0.000 sic=0.011145 lr=2.78e-04 [12206s]
+  ── Val @ 14000 (12206s) ── Acc: 29.70%  SIC ov: 0.084028  Dev: 0.007105  κ: 2.47
+Step  14200: loss=17.85 recon=15.62 kl=0.001 sic=0.011135 lr=2.73e-04 [12390s]
+Step  14400: loss=17.87 recon=15.65 kl=0.000 sic=0.011108 lr=2.68e-04 [12564s]
+Step  14600: loss=17.84 recon=15.61 kl=0.000 sic=0.011149 lr=2.63e-04 [12732s]
+Step  14800: loss=17.88 recon=15.66 kl=0.000 sic=0.011120 lr=2.58e-04 [12910s]
+Step  15000: loss=17.88 recon=15.64 kl=0.000 sic=0.011175 lr=2.52e-04 [13083s]
+  ── Val @ 15000 (13083s) ── Acc: 29.56%  SIC ov: 0.084118  Dev: 0.007194  κ: 2.47
+Step  15200: loss=17.86 recon=15.63 kl=0.003 sic=0.011154 lr=2.47e-04 [13255s]
+Step  15400: loss=17.89 recon=15.64 kl=0.000 sic=0.011212 lr=2.42e-04 [13429s]
+Step  15600: loss=17.87 recon=15.63 kl=0.000 sic=0.011188 lr=2.37e-04 [13603s]
+Step  15800: loss=17.88 recon=15.65 kl=0.000 sic=0.011169 lr=2.32e-04 [13778s]
+Step  16000: loss=17.88 recon=15.65 kl=0.000 sic=0.011161 lr=2.27e-04 [13950s]
+  ── Val @ 16000 (13950s) ── Acc: 29.70%  SIC ov: 0.083948  Dev: 0.007025  κ: 2.47
+Step  16200: loss=17.88 recon=15.66 kl=0.001 sic=0.011111 lr=2.21e-04 [14122s]
+Step  16400: loss=17.85 recon=15.63 kl=0.001 sic=0.011110 lr=2.16e-04 [14298s]
+Step  16600: loss=17.88 recon=15.65 kl=0.000 sic=0.011174 lr=2.11e-04 [14471s]
+Step  16800: loss=17.87 recon=15.63 kl=0.000 sic=0.011182 lr=2.06e-04 [14648s]
+Step  17000: loss=17.85 recon=15.62 kl=0.000 sic=0.011159 lr=2.01e-04 [14818s]
+  ── Val @ 17000 (14818s) ── Acc: 29.70%  SIC ov: 0.084106  Dev: 0.007183  κ: 2.47
+Step  17200: loss=17.87 recon=15.64 kl=0.001 sic=0.011175 lr=1.96e-04 [14998s]
+Step  17400: loss=17.84 recon=15.62 kl=0.000 sic=0.011119 lr=1.91e-04 [15182s]
+Step  17600: loss=17.87 recon=15.63 kl=0.000 sic=0.011166 lr=1.86e-04 [15364s]
+Step  17800: loss=17.85 recon=15.62 kl=0.000 sic=0.011148 lr=1.81e-04 [15549s]
+Step  18000: loss=17.88 recon=15.64 kl=0.000 sic=0.011168 lr=1.76e-04 [15729s]
+  ── Val @ 18000 (15729s) ── Acc: 29.80%  SIC ov: 0.084078  Dev: 0.007155  κ: 2.47
+Step  18200: loss=17.85 recon=15.62 kl=0.001 sic=0.011124 lr=1.71e-04 [15912s]
+Step  18400: loss=17.87 recon=15.64 kl=0.001 sic=0.011163 lr=1.66e-04 [16094s]
+Step  18600: loss=17.87 recon=15.65 kl=0.000 sic=0.011097 lr=1.61e-04 [16277s]
+Step  18800: loss=17.86 recon=15.63 kl=0.000 sic=0.011163 lr=1.57e-04 [16463s]
+Step  19000: loss=17.88 recon=15.64 kl=0.000 sic=0.011189 lr=1.52e-04 [16643s]
+  ── Val @ 19000 (16643s) ── Acc: 29.64%  SIC ov: 0.084012  Dev: 0.007088  κ: 2.47
+Step  19200: loss=17.83 recon=15.60 kl=0.000 sic=0.011168 lr=1.47e-04 [16825s]
+Step  19400: loss=17.87 recon=15.64 kl=0.000 sic=0.011168 lr=1.42e-04 [17009s]
+Step  19600: loss=17.89 recon=15.64 kl=0.000 sic=0.011223 lr=1.38e-04 [17186s]
+Step  19800: loss=17.84 recon=15.62 kl=0.000 sic=0.011101 lr=1.33e-04 [17366s]
+Step  20000: loss=17.85 recon=15.62 kl=0.000 sic=0.011134 lr=1.29e-04 [17543s]
+  ── Val @ 20000 (17543s) ── Acc: 29.65%  SIC ov: 0.083983  Dev: 0.007059  κ: 2.47
+Step  20200: loss=17.85 recon=15.63 kl=0.000 sic=0.011128 lr=1.24e-04 [17720s]
+Step  20400: loss=17.86 recon=15.63 kl=0.000 sic=0.011143 lr=1.20e-04 [17890s]
+Step  20600: loss=17.87 recon=15.63 kl=0.001 sic=0.011199 lr=1.16e-04 [18067s]
+Step  20800: loss=17.86 recon=15.63 kl=0.000 sic=0.011121 lr=1.11e-04 [18230s]
+Step  21000: loss=17.85 recon=15.62 kl=0.000 sic=0.011147 lr=1.07e-04 [18402s]
+  ── Val @ 21000 (18402s) ── Acc: 29.51%  SIC ov: 0.084135  Dev: 0.007212  κ: 2.47
+Step  21200: loss=17.82 recon=15.59 kl=0.000 sic=0.011102 lr=1.03e-04 [18572s]
+Step  21400: loss=17.86 recon=15.63 kl=0.000 sic=0.011139 lr=9.88e-05 [18743s]
+Step  21600: loss=17.90 recon=15.66 kl=0.000 sic=0.011194 lr=9.47e-05 [18924s]
+Step  21800: loss=17.88 recon=15.64 kl=0.000 sic=0.011184 lr=9.08e-05 [19110s]
+Step  22000: loss=17.83 recon=15.60 kl=0.000 sic=0.011121 lr=8.69e-05 [19283s]
+  ── Val @ 22000 (19283s) ── Acc: 29.87%  SIC ov: 0.084143  Dev: 0.007220  κ: 2.47
+Step  22200: loss=17.90 recon=15.66 kl=0.000 sic=0.011211 lr=8.31e-05 [19467s]
+Step  22400: loss=17.86 recon=15.63 kl=0.000 sic=0.011151 lr=7.93e-05 [19649s]
+Step  22600: loss=17.89 recon=15.65 kl=0.000 sic=0.011208 lr=7.57e-05 [19829s]
+Step  22800: loss=17.91 recon=15.65 kl=0.000 sic=0.011280 lr=7.21e-05 [20012s]
+Step  23000: loss=17.89 recon=15.66 kl=0.000 sic=0.011144 lr=6.86e-05 [20191s]
+  ── Val @ 23000 (20191s) ── Acc: 29.95%  SIC ov: 0.084115  Dev: 0.007192  κ: 2.47
+Step  23200: loss=17.84 recon=15.62 kl=0.000 sic=0.011143 lr=6.51e-05 [20374s]
+Step  23400: loss=17.88 recon=15.65 kl=0.000 sic=0.011152 lr=6.18e-05 [20556s]
+Step  23600: loss=17.86 recon=15.63 kl=0.000 sic=0.011148 lr=5.85e-05 [20736s]
+Step  23800: loss=17.89 recon=15.65 kl=0.000 sic=0.011178 lr=5.54e-05 [20914s]
+Step  24000: loss=17.83 recon=15.61 kl=0.000 sic=0.011100 lr=5.23e-05 [21094s]
+  ── Val @ 24000 (21094s) ── Acc: 29.66%  SIC ov: 0.084076  Dev: 0.007153  κ: 2.47
+Step  24200: loss=17.89 recon=15.66 kl=0.000 sic=0.011145 lr=4.93e-05 [21280s]
+Step  24400: loss=17.87 recon=15.64 kl=0.000 sic=0.011155 lr=4.64e-05 [21457s]
+Step  24600: loss=17.88 recon=15.64 kl=0.000 sic=0.011201 lr=4.35e-05 [21642s]
+Step  24800: loss=17.86 recon=15.62 kl=0.000 sic=0.011192 lr=4.08e-05 [21827s]
+Step  25000: loss=17.86 recon=15.63 kl=0.000 sic=0.011156 lr=3.82e-05 [22013s]
+  ── Val @ 25000 (22013s) ── Acc: 29.54%  SIC ov: 0.084216  Dev: 0.007293  κ: 2.47
+Step  25200: loss=17.87 recon=15.64 kl=0.000 sic=0.011185 lr=3.56e-05 [22194s]
+Step  25400: loss=17.86 recon=15.62 kl=0.000 sic=0.011223 lr=3.32e-05 [22372s]
+Step  25600: loss=17.87 recon=15.64 kl=0.000 sic=0.011146 lr=3.08e-05 [22546s]
+Step  25800: loss=17.88 recon=15.65 kl=0.000 sic=0.011153 lr=2.86e-05 [22732s]
+Step  26000: loss=17.87 recon=15.64 kl=0.000 sic=0.011159 lr=2.64e-05 [22913s]
+  ── Val @ 26000 (22913s) ── Acc: 29.56%  SIC ov: 0.083973  Dev: 0.007049  κ: 2.47
+Step  26200: loss=17.85 recon=15.62 kl=0.000 sic=0.011183 lr=2.43e-05 [23085s]
+Step  26400: loss=17.85 recon=15.63 kl=0.000 sic=0.011128 lr=2.24e-05 [23269s]
+Step  26600: loss=17.85 recon=15.62 kl=0.000 sic=0.011136 lr=2.05e-05 [23448s]
+Step  26800: loss=17.84 recon=15.61 kl=0.000 sic=0.011135 lr=1.88e-05 [23621s]
+Step  27000: loss=17.86 recon=15.62 kl=0.000 sic=0.011162 lr=1.71e-05 [23801s]
+  ── Val @ 27000 (23801s) ── Acc: 29.98%  SIC ov: 0.084168  Dev: 0.007245  κ: 2.47
+Step  27200: loss=17.85 recon=15.63 kl=0.000 sic=0.011139 lr=1.56e-05 [23976s]
+Step  27400: loss=17.87 recon=15.64 kl=0.000 sic=0.011137 lr=1.41e-05 [24145s]
+Step  27600: loss=17.87 recon=15.65 kl=0.000 sic=0.011135 lr=1.28e-05 [24315s]
+Step  27800: loss=17.89 recon=15.65 kl=0.000 sic=0.011181 lr=1.15e-05 [24490s]
+Step  28000: loss=17.85 recon=15.61 kl=0.000 sic=0.011179 lr=1.04e-05 [24662s]
+  ── Val @ 28000 (24663s) ── Acc: 30.03%  SIC ov: 0.083854  Dev: 0.006931  κ: 2.47
+    ✓ Saved (SIC dev=0.006931)
+Step  28200: loss=17.83 recon=15.61 kl=0.000 sic=0.011127 lr=9.38e-06 [24847s]
+Step  28400: loss=17.82 recon=15.59 kl=0.000 sic=0.011149 lr=8.47e-06 [25029s]
+Step  28600: loss=17.87 recon=15.64 kl=0.000 sic=0.011173 lr=7.66e-06 [25209s]
+Step  28800: loss=17.84 recon=15.61 kl=0.000 sic=0.011168 lr=6.95e-06 [25382s]
+Step  29000: loss=17.86 recon=15.63 kl=0.000 sic=0.011133 lr=6.36e-06 [25562s]
+  ── Val @ 29000 (25562s) ── Acc: 29.71%  SIC ov: 0.084048  Dev: 0.007125  κ: 2.47
+Step  29200: loss=17.84 recon=15.62 kl=0.000 sic=0.011142 lr=5.87e-06 [25744s]
+Step  29400: loss=17.85 recon=15.63 kl=0.000 sic=0.011114 lr=5.49e-06 [25926s]
+Step  29600: loss=17.87 recon=15.64 kl=0.000 sic=0.011154 lr=5.22e-06 [26095s]
+Step  29800: loss=17.85 recon=15.62 kl=0.000 sic=0.011133 lr=5.05e-06 [26216s]
+Step  30000: loss=17.88 recon=15.64 kl=0.000 sic=0.011156 lr=5.00e-06 [26333s]
+  ── Val @ 30000 (26333s) ── Acc: 29.78%  SIC ov: 0.083863  Dev: 0.006940  κ: 2.47
+
+Done! Best SIC dev: 0.006931
+67 kl=0.000 sic=0.011162 lr=1.38e-04 17149s
+  Step  19800/30000 loss=17.87 recon=15.64 kl=0.000 sic=0.011156 lr=1.33e-04 17325s
+  Step  20000/30000 loss=17.87 recon=15.64 kl=0.000 sic=0.011111 lr=1.29e-04 17505s
+
+  ── Validation at step 20000 (17507s) ──
+      Accuracy:          29.98%
+      Mean SIC overlap:  0.083999  (target: 0.076923)
+      Frame potential:   0.084090
+      SIC deviation:     0.007076
+      Mean κ:            2.47
+      Overlap σ:         0.105355
+      Welch satisfied:   True
+
+  Step  20200/30000 loss=17.84 recon=15.62 kl=0.000 sic=0.011066 lr=1.24e-04 17693s
+  Step  20400/30000 loss=17.86 recon=15.63 kl=0.000 sic=0.011151 lr=1.20e-04 17872s
+  Step  20600/30000 loss=17.85 recon=15.61 kl=0.000 sic=0.011157 lr=1.16e-04 18048s
+  Step  20800/30000 loss=17.84 recon=15.61 kl=0.000 sic=0.011118 lr=1.11e-04 18229s
+  Step  21000/30000 loss=17.88 recon=15.64 kl=0.000 sic=0.011196 lr=1.07e-04 18395s
+
+  ── Validation at step 21000 (18397s) ──
+      Accuracy:          29.95%
+      Mean SIC overlap:  0.084072  (target: 0.076923)
+      Frame potential:   0.084164
+      SIC deviation:     0.007149
+      Mean κ:            2.47
+      Overlap σ:         0.105473
+      Welch satisfied:   True
+
+  Step  21200/30000 loss=17.89 recon=15.65 kl=0.000 sic=0.011219 lr=1.03e-04 18564s
+  Step  21400/30000 loss=17.87 recon=15.63 kl=0.000 sic=0.011173 lr=9.88e-05 18733s
+  Step  21600/30000 loss=17.87 recon=15.64 kl=0.000 sic=0.011145 lr=9.47e-05 18904s
+  Step  21800/30000 loss=17.86 recon=15.63 kl=0.000 sic=0.011158 lr=9.08e-05 19070s
+  Step  22000/30000 loss=17.87 recon=15.63 kl=0.000 sic=0.011204 lr=8.69e-05 19253s
+
+  ── Validation at step 22000 (19255s) ──
+      Accuracy:          29.96%
+      Mean SIC overlap:  0.084053  (target: 0.076923)
+      Frame potential:   0.084145
+      SIC deviation:     0.007130
+      Mean κ:            2.47
+      Overlap σ:         0.105440
+      Welch satisfied:   True
+
+  Step  22200/30000 loss=17.87 recon=15.65 kl=0.000 sic=0.011081 lr=8.31e-05 19435s
+  Step  22400/30000 loss=17.82 recon=15.60 kl=0.000 sic=0.011119 lr=7.93e-05 19619s
+  Step  22600/30000 loss=17.85 recon=15.62 kl=0.000 sic=0.011149 lr=7.57e-05 19794s
+  Step  22800/30000 loss=17.88 recon=15.64 kl=0.000 sic=0.011176 lr=7.21e-05 19981s
+  Step  23000/30000 loss=17.88 recon=15.65 kl=0.000 sic=0.011136 lr=6.86e-05 20164s
+
+  ── Validation at step 23000 (20166s) ──
+      Accuracy:          29.88%
+      Mean SIC overlap:  0.084011  (target: 0.076923)
+      Frame potential:   0.084103
+      SIC deviation:     0.007088
+      Mean κ:            2.47
+      Overlap σ:         0.105378
+      Welch satisfied:   True
+
+  Step  23200/30000 loss=17.86 recon=15.63 kl=0.000 sic=0.011142 lr=6.51e-05 20351s
+  Step  23400/30000 loss=17.86 recon=15.63 kl=0.000 sic=0.011146 lr=6.18e-05 20529s
+  Step  23600/30000 loss=17.83 recon=15.61 kl=0.000 sic=0.011115 lr=5.85e-05 20707s
+  Step  23800/30000 loss=17.90 recon=15.67 kl=0.000 sic=0.011171 lr=5.54e-05 20894s
+  Step  24000/30000 loss=17.86 recon=15.63 kl=0.000 sic=0.011140 lr=5.23e-05 21072s
+
+  ── Validation at step 24000 (21073s) ──
+      Accuracy:          30.02%
+      Mean SIC overlap:  0.084043  (target: 0.076923)
+      Frame potential:   0.084135
+      SIC deviation:     0.007120
+      Mean κ:            2.47
+      Overlap σ:         0.105445
+      Welch satisfied:   True
+
+  Step  24200/30000 loss=17.85 recon=15.62 kl=0.000 sic=0.011179 lr=4.93e-05 21250s
+  Step  24400/30000 loss=17.86 recon=15.62 kl=0.000 sic=0.011188 lr=4.64e-05 21427s
+  Step  24600/30000 loss=17.87 recon=15.64 kl=0.000 sic=0.011154 lr=4.35e-05 21605s
+  Step  24800/30000 loss=17.83 recon=15.60 kl=0.000 sic=0.011132 lr=4.08e-05 21787s
+  Step  25000/30000 loss=17.84 recon=15.61 kl=0.000 sic=0.011118 lr=3.82e-05 21975s
+
+  ── Validation at step 25000 (21977s) ──
+      Accuracy:          30.11%
+      Mean SIC overlap:  0.084093  (target: 0.076923)
+      Frame potential:   0.084185
+      SIC deviation:     0.007170
+      Mean κ:            2.47
+      Overlap σ:         0.105470
+      Welch satisfied:   True
+
+  Step  25200/30000 loss=17.87 recon=15.64 kl=0.000 sic=0.011149 lr=3.56e-05 22163s
+  Step  25400/30000 loss=17.85 recon=15.62 kl=0.000 sic=0.011142 lr=3.32e-05 22347s
+  Step  25600/30000 loss=17.86 recon=15.64 kl=0.000 sic=0.011106 lr=3.08e-05 22531s
+  Step  25800/30000 loss=17.85 recon=15.62 kl=0.000 sic=0.011144 lr=2.86e-05 22706s
+  Step  26000/30000 loss=17.85 recon=15.61 kl=0.000 sic=0.011176 lr=2.64e-05 22881s
+
+  ── Validation at step 26000 (22882s) ──
+      Accuracy:          29.95%
+      Mean SIC overlap:  0.084089  (target: 0.076923)
+      Frame potential:   0.084181
+      SIC deviation:     0.007166
+      Mean κ:            2.47
+      Overlap σ:         0.105466
+      Welch satisfied:   True
+
+  Step  26200/30000 loss=17.84 recon=15.61 kl=0.000 sic=0.011152 lr=2.43e-05 23068s
+  Step  26400/30000 loss=17.86 recon=15.63 kl=0.000 sic=0.011126 lr=2.24e-05 23249s
+  Step  26600/30000 loss=17.86 recon=15.63 kl=0.000 sic=0.011142 lr=2.05e-05 23426s
+  Step  26800/30000 loss=17.88 recon=15.64 kl=0.000 sic=0.011193 lr=1.88e-05 23601s
+  Step  27000/30000 loss=17.89 recon=15.64 kl=0.000 sic=0.011215 lr=1.71e-05 23780s
+
+  ── Validation at step 27000 (23783s) ──
+      Accuracy:          30.12%
+      Mean SIC overlap:  0.084029  (target: 0.076923)
+      Frame potential:   0.084120
+      SIC deviation:     0.007106
+      Mean κ:            2.47
+      Overlap σ:         0.105395
+      Welch satisfied:   True
+
+  Step  27200/30000 loss=17.84 recon=15.61 kl=0.000 sic=0.011160 lr=1.56e-05 23956s
+  Step  27400/30000 loss=17.85 recon=15.62 kl=0.000 sic=0.011163 lr=1.41e-05 24132s
+  Step  27600/30000 loss=17.88 recon=15.64 kl=0.000 sic=0.011195 lr=1.28e-05 24306s
+  Step  27800/30000 loss=17.84 recon=15.62 kl=0.000 sic=0.011145 lr=1.15e-05 24474s
+  Step  28000/30000 loss=17.84 recon=15.60 kl=0.000 sic=0.011186 lr=1.04e-05 24644s
+
+  ── Validation at step 28000 (24646s) ──
+      Accuracy:          29.97%
+      Mean SIC overlap:  0.084031  (target: 0.076923)
+      Frame potential:   0.084123
+      SIC deviation:     0.007108
+      Mean κ:            2.47
+      Overlap σ:         0.105392
+      Welch satisfied:   True
+
+  Step  28200/30000 loss=17.84 recon=15.61 kl=0.000 sic=0.011122 lr=9.38e-06 24822s
+  Step  28400/30000 loss=17.85 recon=15.62 kl=0.000 sic=0.011124 lr=8.47e-06 24999s
+  Step  28600/30000 loss=17.84 recon=15.62 kl=0.000 sic=0.011121 lr=7.66e-06 25177s
+  Step  28800/30000 loss=17.84 recon=15.62 kl=0.000 sic=0.011096 lr=6.95e-06 25358s
+  Step  29000/30000 loss=17.84 recon=15.61 kl=0.000 sic=0.011173 lr=6.36e-06 25542s
+
+  ── Validation at step 29000 (25544s) ──
+      Accuracy:          30.02%
+      Mean SIC overlap:  0.084131  (target: 0.076923)
+      Frame potential:   0.084223
+      SIC deviation:     0.007208
+      Mean κ:            2.47
+      Overlap σ:         0.105495
+      Welch satisfied:   True
+
+  Step  29200/30000 loss=17.85 recon=15.62 kl=0.000 sic=0.011159 lr=5.87e-06 25716s
+  Step  29400/30000 loss=17.85 recon=15.62 kl=0.000 sic=0.011170 lr=5.49e-06 25898s
+  Step  29600/30000 loss=17.86 recon=15.62 kl=0.000 sic=0.011208 lr=5.22e-06 26084s
+  Step  29800/30000 loss=17.86 recon=15.63 kl=0.000 sic=0.011161 lr=5.05e-06 26260s
+  Step  30000/30000 loss=17.86 recon=15.63 kl=0.000 sic=0.011173 lr=5.00e-06 26445s
+
+  ── Validation at step 30000 (26447s) ──
+      Accuracy:          30.11%
+      Mean SIC overlap:  0.083974  (target: 0.076923)
+      Frame potential:   0.084066
+      SIC deviation:     0.007051
+      Mean κ:            2.47
+      Overlap σ:         0.105352
+      Welch satisfied:   True
+
+==================================================================
+  Training complete (26447s)
+  Best SIC deviation: 0.007046
+  Best accuracy:      30.29%
+  Target overlap:     1/13 = 0.076923
+
+  Final validation (50K samples)...
+    accuracy: 0.30032166666666665
+    mean_sic_overlap: 0.08399148285388947
+    frame_potential: 0.08408308029174805
+    sic_deviation: 0.007068405930812538
+    sic_target: 0.07692307692307693
+    welch_satisfied: True
+    mean_kappa: 2.4679079055786133
+    overlap_std: 0.10537253320217133
+  Metrics saved to vae_vita/vae_vita_v2.metrics.v2.json
+  Model saved to vae_vita/vae_vita_v2.pt
