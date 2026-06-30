@@ -565,7 +565,7 @@ def _stream_seismic_network(sig: DomainSignal) -> None:
             events.extend(dataset["features"])
 
     if not events:
-        sig.errors.append("seismic_network: no events")
+        sig._nom("topology", "seismic_network", 0.0, "events", {"type": "seismic"})
         return
 
     # Deduplicate by event id
@@ -1092,17 +1092,32 @@ def _stream_power_grid(sig: DomainSignal) -> None:
     Cycling pattern = winding periodicity.
     """
     # CAISO OASIS — Western US grid demand, no API key required
-    import zipfile, io as _io, datetime as _dt
+    import zipfile, io as _io, datetime as _dt, ssl as _ssl, time as _time
+    now = _dt.datetime.utcnow()
+    start = (now - _dt.timedelta(hours=2)).strftime('%Y%m%dT%H:%M-0000')
+    end = now.strftime('%Y%m%dT%H:%M-0000')
+    url = (f'https://oasis.caiso.com/oasisapi/SingleZip?resultformat=6'
+           f'&queryname=SLD_FCST&startdatetime={start}&enddatetime={end}&version=1')
+    # CAISO SSL is flaky (EOF mid-handshake); retry once with a fresh context.
+    ctx = _ssl.create_default_context()
+    ctx.set_ciphers('DEFAULT')
+    content = None
+    last_err = None
+    for attempt in range(2):
+        try:
+            req = urllib.request.Request(url, headers=_HEADERS)
+            with urllib.request.urlopen(req, timeout=25, context=ctx) as r:
+                zf = zipfile.ZipFile(_io.BytesIO(r.read()))
+                content = zf.read(zf.namelist()[0]).decode()
+            break
+        except Exception as e:
+            last_err = e
+            if attempt == 0:
+                _time.sleep(2)
+    if content is None:
+        sig.errors.append(f'power_grid: {last_err}')
+        return
     try:
-        now = _dt.datetime.utcnow()
-        start = (now - _dt.timedelta(hours=2)).strftime('%Y%m%dT%H:%M-0000')
-        end = now.strftime('%Y%m%dT%H:%M-0000')
-        url = (f'https://oasis.caiso.com/oasisapi/SingleZip?resultformat=6'
-               f'&queryname=SLD_FCST&startdatetime={start}&enddatetime={end}&version=1')
-        req = urllib.request.Request(url, headers=_HEADERS)
-        with urllib.request.urlopen(req, timeout=25) as r:
-            zf = zipfile.ZipFile(_io.BytesIO(r.read()))
-            content = zf.read(zf.namelist()[0]).decode()
         rows = list(csv.DictReader(content.strip().split('\n')))
         rtm = [row for row in rows if row.get('LABEL') == 'RTM 5Min Load Forecast']
         if not rtm:
@@ -1149,16 +1164,34 @@ def _stream_gdelt(sig: DomainSignal) -> None:
     Event diversity = granularity = Γ signal.
     """
     # GDELT v2 raw 15-min event export CSV — no rate limiting on this endpoint
-    import zipfile, io as _io
+    import zipfile, io as _io, datetime as _dt, urllib.error as _uerr
     try:
         meta = _text('http://data.gdeltproject.org/gdeltv2/lastupdate.txt', timeout=10)
         if not meta:
             sig.errors.append('gdelt: no data'); return
         export_url = meta.strip().split('\n')[0].split(' ')[2]
-        req = urllib.request.Request(export_url, headers=_HEADERS)
-        with urllib.request.urlopen(req, timeout=30) as r:
-            zf = zipfile.ZipFile(_io.BytesIO(r.read()))
-            content = zf.read(zf.namelist()[0]).decode('latin-1')
+        # GDELT sometimes publishes the index before the file is available → 404.
+        # Fall back to the previous 15-min window, constructed from the URL timestamp.
+        def _gdelt_prev(url: str) -> str:
+            import re as _re
+            m = _re.search(r'(\d{14})', url)
+            if not m: return url
+            ts = _dt.datetime.strptime(m.group(1), '%Y%m%d%H%M%S')
+            prev = (ts - _dt.timedelta(minutes=15)).strftime('%Y%m%d%H%M%S')
+            return url.replace(m.group(1), prev)
+        content = None
+        for candidate in (export_url, _gdelt_prev(export_url)):
+            try:
+                req = urllib.request.Request(candidate, headers=_HEADERS)
+                with urllib.request.urlopen(req, timeout=30) as r:
+                    zf = zipfile.ZipFile(_io.BytesIO(r.read()))
+                    content = zf.read(zf.namelist()[0]).decode('latin-1')
+                break
+            except _uerr.HTTPError as he:
+                if he.code != 404:
+                    raise
+        if content is None:
+            sig.errors.append('gdelt: 404 on current + prev window'); return
         rows = list(csv.reader(content.strip().split('\n'), delimiter='\t'))
         count = len(rows)
         tones, goldsteins = [], []
@@ -3099,6 +3132,16 @@ class DomainStreamAggregator:
             except Exception as e:
                 sig.errors.append(f"{name}: unexpected {e}")
                 self._stream_readings[name] = []
+
+        # Replay ALL readings (carried-forward + freshly fetched) into the 12 int
+        # fields.  Due-stream calls to _set() already updated the fields during
+        # execution; this pass catches carried-forward readings whose streams were
+        # not due this sweep and whose alert levels would otherwise be lost.
+        _glyphs = set(DomainSignal._GLYPHS)
+        for r in sig.readings:
+            if r.alert > 0 and r.primitive in _glyphs:
+                current = getattr(sig, r.primitive, 0)
+                setattr(sig, r.primitive, max(current, r.alert))
 
         self._signal = sig
         self._last   = datetime.now()

@@ -1183,7 +1183,9 @@ def create_app(data_dir: str = None) -> Flask:
             'dscovr_sw_kinetics':           {'lat': 28.3, 'lon': -80.6, 'label':'DSCOVR SW kinetics (L1)',      'cat':'extraplanetary'},
         }
         # Build edge features — all seismic coupling edges
+        # Deduplicate: multiple primitives can produce the same (stream-pair, lag, r) display row.
         features = []
+        _seen_display = set()
         for e in sorted(hits, key=lambda x: abs(x['strength_r']), reverse=True):
             src = e['source_stream']; tgt = e['target_stream']
             if src in seismic_keys:
@@ -1204,6 +1206,10 @@ def create_app(data_dir: str = None) -> Flask:
             if not partner or not sei:
                 continue
             lag_h = e['lag_seconds'] / 3600
+            _display_key = (sei_stream, partner_stream, round(lag_h, 1), round(e['strength_r'], 3))
+            if _display_key in _seen_display:
+                continue
+            _seen_display.add(_display_key)
             features.append({
                 'partner_stream': partner_stream,
                 'seismic_stream': sei_stream,

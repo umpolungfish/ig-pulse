@@ -1,3 +1,58 @@
+geo_viz.py: deduplicate solar-seismic edge display rows — 2026-06-29
+
+api_solar_seismic() builds display rows from coupling.json edges.
+Multiple primitives (e.g. topology and dimensionality) on the same
+(cme_speed, seismic_II_GAR) pair at the same lag and r produce
+visually identical rows: stream name / station name / r p lag.
+Added _seen_display set keyed on (sei_stream, partner_stream,
+round(lag_h,1), round(r,3)); first edge (strongest |r| sort order)
+wins, subsequent primitive-duplicates are skipped.
+
+---
+
+seismic_network: quiet period is nominal, not an error — 2026-06-29
+
+No M5.0+ events in the last 2 days is a valid heliospheric state.
+Changed from sig.errors.append to sig._nom so quiet periods are
+recorded as nominal topology readings instead of error noise.
+
+---
+
+gdelt: fall back to previous 15-min window on 404 — 2026-06-29
+
+GDELT publishes the index entry in lastupdate.txt before the export
+file is fully uploaded; the first download attempt gets HTTP 404.
+Fix: on 404, reconstruct the previous 15-min window URL from the
+timestamp embedded in the filename and try that. Only surfaces an
+error if both the current and previous window return 404.
+
+---
+
+power_grid: retry on SSL EOF; fresh context per attempt — 2026-06-29
+
+CAISO OASIS HTTPS endpoint intermittently closes the SSL connection
+mid-handshake (EOF_WHILE_READING). Switched from a single urlopen call
+to a 2-attempt retry loop: on failure, sleep 2s then open a fresh
+ssl.create_default_context() for the second attempt. Parse errors
+kept separate so a retry-success doesn't mask a CSV parse failure.
+
+---
+
+Fix: carry-forward readings lost from primitive int fields — 2026-06-29
+
+domain_streams.py DomainStreamAggregator.refresh:
+  When a stream is not due (TTL not expired), its cached readings are carried
+  forward into sig.readings. But the 12 int primitive fields (sig.kinetics etc.)
+  start at 0 on every fresh DomainSignal and are only updated by _set() calls
+  inside due-stream functions. Carried-forward readings were in sig.readings but
+  never replayed into int fields — kinetics, recognition, fidelity (and others fed
+  by slow streams) silently dropped to 0 on every non-forced sweep.
+  Fix: after the stream loop, replay all readings (carried + fresh) into the int
+  fields via max(current, r.alert). Due-stream fields are already set and the max
+  is idempotent; carried fields get their correct alert level restored.
+
+---
+
 Fix: remove dead @property assignment block crashing _fetch_all — 2026-06-29
 
 domain_streams.py _fetch_all (DomainStreamAggregator.refresh):

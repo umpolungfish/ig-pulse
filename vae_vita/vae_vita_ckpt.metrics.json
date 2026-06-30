@@ -1,0 +1,9 @@
+{
+  "accuracy": 0.254975,
+  "mean_sic_overlap": NaN,
+  "frame_potential": NaN,
+  "sic_deviation": NaN,
+  "sic_target": 0.07692307692307693,
+  "frame_target": 0.07692307692307693,
+  "elapsed": 416.27463459968567
+}
