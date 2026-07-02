@@ -802,7 +802,9 @@ def create_app(data_dir: str = None) -> Flask:
     try:
         from flask_cors import CORS
         CORS(app, resources={r"/api/*": {"origins": ["https://imscribe.com", "https://www.imscribe.com",
-                                                      "https://igpulse.imscribe.com", "http://localhost:5050",
+                                                      "https://igpulse.imscribe.com",
+                                                      "https://landomills.com", "https://www.landomills.com",
+                                                      "http://localhost:5050",
                                                       "http://localhost:*"]}})
     except ImportError:
         pass
