@@ -8,6 +8,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ && \
 COPY pyproject.toml /app/
 COPY ig_pulse/ /app/ig_pulse/
 COPY data/     /app/data/
+# Fly has no persistent volume and scales to zero, so seed the live snapshot file
+# with one recent snapshot. This gives warnings/nodes data on every cold start
+# (before `collect` finishes its first pass); collect then appends fresh data.
+# The full accumulated snapshots.jsonl is .dockerignored (it is ~230MB).
+COPY data/seed_snapshots.jsonl /app/data/snapshots.jsonl
 
 RUN pip install --no-cache-dir flask flask-cors numpy scipy networkx requests hatchling && \
     pip install --no-cache-dir .
