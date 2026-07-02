@@ -896,6 +896,7 @@ def create_app(data_dir: str = None) -> Flask:
     @app.route("/api/solar-seismic/warnings")
     def api_solar_seismic_warnings():
         import time as _time, json as _json
+        engine._load_if_needed()   # warnings page never hits /api/all, so load the snapshot here
         snap = engine._latest_snapshot
         if not snap:
             return jsonify({"warnings": [], "ts": None})
@@ -1002,6 +1003,7 @@ def create_app(data_dir: str = None) -> Flask:
     def api_solar_seismic_chains():
         import time as _time
         import datetime as _dt
+        engine._load_if_needed()   # chains page never hits /api/all, so load the snapshot here
         snap = engine._latest_snapshot
         if not snap:
             return jsonify({"chains": [], "ts": None})
