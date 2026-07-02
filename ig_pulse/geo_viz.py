@@ -35,6 +35,12 @@ from flask import Flask, jsonify, render_template, request, send_from_directory
 from .schema import Snapshot, ReadingRecord, load_snapshots
 from .density_matrix import metrics_from_snapshot
 
+import re as _re
+# Per-station seismic stream, e.g. seismic_IU_GUMO (uppercase NET_STA). Thousands
+# of these dominate the payload; the static seismic_stations layer already shows
+# them all, so baseline ones are dropped from nodes and from the sidebar.
+_STATION_SEISMIC = _re.compile(r"^seismic_[A-Z0-9]+_[A-Z0-9]+$")
+
 # ── Constants ──────────────────────────────────────────────────────────────────
 
 # Space-based "origins" — fixed locations for celestial data sources
@@ -562,7 +568,26 @@ class GeoVizEngine:
     def get_nodes_geojson(self) -> dict:
         """GeoJSON FeatureCollection of signal origins."""
         nodes = self._extract_geo_nodes()
-        features = [n.to_geojson() for n in nodes]
+        # Drop baseline (alert 0) per-station seismic nodes — they're the bulk of
+        # the payload and are already drawn by the static seismic_stations layer.
+        # Activated stations (alert >= 1) are kept so the network still "lights up".
+        # Emit only the properties the client actually reads (it computes its own
+        # color/size); label/ts/radius/color are omitted to shrink the payload.
+        features = []
+        for n in nodes:
+            if _STATION_SEISMIC.match(n.stream) and n.alert == 0:
+                continue
+            features.append({
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [round(n.lon, 4), round(n.lat, 4)]},
+                "properties": {
+                    "stream": n.stream,
+                    "primitive": n.primitive,
+                    "value": n.value,
+                    "alert": n.alert,
+                    "origin_type": n.origin_type,
+                },
+            })
         return {
             "type": "FeatureCollection",
             "features": features,
@@ -709,7 +734,8 @@ class GeoVizEngine:
                 "level": max(r["alert"] for r in readings),
                 "stream_count": len(readings),
                 "alert_count": sum(1 for r in readings if r["alert"] > 0),
-                "readings": readings,
+                # "readings" list omitted — the client only uses the counts above,
+                # and it duplicated all ~9k readings (~0.8MB) into the payload.
             }
         return {"primitives": result, "snapshot_ts": snap.ts, "multiplier": snap.multiplier}
 
@@ -750,6 +776,10 @@ class GeoVizEngine:
         by_stream: Dict[str, dict] = {}
         for r in snap.readings:
             key = r.stream
+            # Per-station seismic (thousands) would flood the sidebar and ~double
+            # the payload; skip them here (the map still shows them as canvas dots).
+            if _STATION_SEISMIC.match(key):
+                continue
             if key not in by_stream:
                 by_stream[key] = {
                     "stream": key,
@@ -847,28 +877,43 @@ def create_app(data_dir: str = None) -> Flask:
     def api_streams():
         return jsonify(engine.get_streams())
 
+    # Cache the assembled /api/all body. Building it (6000+ geo nodes + heatmap +
+    # density matrix) is expensive and it barely changes between snapshots, but
+    # every open browser polls it — so recomputing per request melts the machine.
+    # Rebuild only when the latest snapshot changes (or every 90s as a safety net).
+    _all_cache = {"key": None, "body": None, "built": 0.0}
+
     @app.route("/api/all")
     def api_all():
-        """Single endpoint returning all data for the dashboard."""
-        rho_metrics = {}
+        """Single endpoint returning all data for the dashboard (cached per snapshot)."""
+        import json as _json
+        engine._load_if_needed()
         snap = engine._latest_snapshot
-        if snap:
-            try:
-                rho_metrics = metrics_from_snapshot(snap)
-            except Exception:
-                pass
-        return jsonify({
-            "nodes": engine.get_nodes_geojson(),
-            "edges": engine.get_edges_geojson(),
-            "space": engine.get_space_geojson(),
-            "seismic_stations": engine.get_seismic_stations_geojson(),
-            "megalithic": engine.get_megalithic_geojson(),
-            "heatmap": engine.get_heatmap_data(),
-            "stats": engine.get_stats(),
-            "primitives": engine.get_primitives(),
-            "streams": engine.get_streams(),
-            "rho": rho_metrics,
-        })
+        key = getattr(snap, "ts", None) if snap else None
+        now = time.time()
+        if _all_cache["body"] is None or _all_cache["key"] != key or (now - _all_cache["built"]) > 90:
+            rho_metrics = {}
+            if snap:
+                try:
+                    rho_metrics = metrics_from_snapshot(snap)
+                except Exception:
+                    pass
+            payload = {
+                "nodes": engine.get_nodes_geojson(),
+                "edges": engine.get_edges_geojson(),
+                "space": engine.get_space_geojson(),
+                "seismic_stations": engine.get_seismic_stations_geojson(),
+                "megalithic": engine.get_megalithic_geojson(),
+                "heatmap": engine.get_heatmap_data(),
+                "stats": engine.get_stats(),
+                "primitives": engine.get_primitives(),
+                "streams": engine.get_streams(),
+                "rho": rho_metrics,
+            }
+            _all_cache["body"] = _json.dumps(payload)
+            _all_cache["key"] = key
+            _all_cache["built"] = now
+        return app.response_class(_all_cache["body"], mimetype="application/json")
 
     @app.route("/api/density_matrix")
     def api_density_matrix():
