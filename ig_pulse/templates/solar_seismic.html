@@ -234,36 +234,39 @@ function lagColor(lag_h) {
 
 function rColor(r) { return r >= 0 ? '#00ff88' : '#ff1744'; }
 
-// Keep lon in standard [-180, +180] (Leaflet normalizes out-of-range values).
+// Longitude frame: the map is Pacific-centred (VIEW_CENTER_LON), so instead of
+// forcing lon into [-180,+180] (which puts Asia off the far side and forces the
+// date line through the middle of arcs), we bring every lon into the continuous
+// 360°-wide window centred on the view. Nodes and arc endpoints then share one
+// frame and nothing has to be split.
+const VIEW_CENTER_LON = -160;
 function adjLon(lon) {
-  return ((lon + 180) % 360 + 360) % 360 - 180;
+  while (lon - VIEW_CENTER_LON >  180) lon -= 360;
+  while (lon - VIEW_CENTER_LON < -180) lon += 360;
+  return lon;
 }
 
-// Build Pacific arc as segments that never cross the date line within a single
-// polyline — Leaflet can't handle cross-dateline polylines. Strategy:
-//   1. Force westward routing (shift lon2 until it's west of lon1).
-//   2. Interpolate 24 points in the continuous "westward" frame (lons may go < -180).
-//   3. Normalise each point back to [-180,+180] and split into a new segment
-//      whenever the normalisation causes a large longitude jump (date-line crossing).
-// Result: array of point-arrays, each renderable as a plain L.polyline.
+// A single continuous great-circle-ish arc. Both endpoints are placed in the
+// Pacific frame, the far endpoint is nudged to whichever side gives the SHORTER
+// path, and we interpolate without ever normalising or splitting — so the line
+// crosses the date line intact instead of being clipped into gapped segments.
 function arcSegments(lat1, lon1, lat2, lon2) {
-  let a2 = lon2;
-  while (a2 > lon1) a2 -= 360;   // force westward
+  const p1 = adjLon(lon1);
+  let   p2 = adjLon(lon2);
+  if (p2 - p1 >  180) p2 -= 360;   // take the short way round
+  if (p2 - p1 < -180) p2 += 360;
 
-  const N = 24;
-  const segs = [[]];
+  const N = 32;
+  const pts = [];
   for (let i = 0; i <= N; i++) {
-    const t  = i / N;
-    let   lon = lon1 + (a2 - lon1) * t;
-    const lat = lat1 + (lat2 - lat1) * t + Math.sin(Math.PI * t) * 28;
-    lon = ((lon + 180) % 360 + 360) % 360 - 180;   // normalise to [-180,+180]
-    const cur = segs[segs.length - 1];
-    if (cur.length && Math.abs(lon - cur[cur.length - 1][1]) > 90) {
-      segs.push([]);   // date-line split
-    }
-    segs[segs.length - 1].push([lat, lon]);
+    const t   = i / N;
+    const lon = p1 + (p2 - p1) * t;
+    let   lat = lat1 + (lat2 - lat1) * t + Math.sin(Math.PI * t) * 22;
+    if (lat >  84) lat =  84;        // stay inside Mercator limits
+    if (lat < -84) lat = -84;
+    pts.push([lat, lon]);
   }
-  return segs.filter(s => s.length > 1);
+  return [pts];   // one polyline, never split, never cut
 }
 
 function rThresh() { return parseInt(document.getElementById('r_thresh').value) / 100; }

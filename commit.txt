@@ -25,6 +25,12 @@ geo_viz.py
   Also guard all_stations = [] if the station catalog import fails.
 
 templates/solar_seismic.html
+- Fixed coupling arcs being cut at the date line / map edges. arcSegments()
+  used to force every arc westward, normalize to [-180,180], and split into
+  gapped segments at date-line crossings. Rewrote it to draw one continuous
+  polyline in a Pacific-centred longitude frame (VIEW_CENTER_LON=-160), taking
+  the shorter direction, with no normalization and no splitting. adjLon() now
+  brings lon into that same 360-wide window so nodes and arc endpoints align.
 - Mobile: 100dvh; chain cards scroll horizontally instead of stacking; map keeps
   a min 45vh slice; warnings bar starts collapsed on mobile.
 - Warnings bar now fully collapsible (header strip + count badge + chevron);
