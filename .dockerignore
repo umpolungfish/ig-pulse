@@ -1,0 +1,16 @@
+# Accumulated/runtime data — the container regenerates snapshots via `collect`,
+# and the Fly machine has no persistent volume, so shipping these just bloats the
+# build context (snapshots.jsonl alone is ~230MB). coupling.json / graph.json /
+# sic_fiducial_d12.npy are intentionally kept: they are precomputed and served.
+data/snapshots.jsonl
+data/snapshots.zip
+data/snapshots*.json
+
+# Local dev cruft
+.venv/
+.git/
+__pycache__/
+*.pyc
+*.log
+geoviz.log
+.pytest_cache/

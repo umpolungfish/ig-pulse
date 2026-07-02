@@ -3,3 +3,10 @@ __pycache__/
 *.egg-info/
 .venv/
 dist/
+
+# Runtime/accumulated data — do not commit (snapshots.jsonl is >200MB and blocks
+# GitHub's 100MB limit). coupling.json / graph.json / *.npy stay tracked.
+data/snapshots.jsonl
+data/snapshots.zip
+data/snapshots*.json
+*.log
