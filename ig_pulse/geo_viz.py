@@ -32,7 +32,7 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 from flask import Flask, jsonify, render_template, request, send_from_directory
 
-from .schema import Snapshot, ReadingRecord, load_snapshots
+from .schema import Snapshot, ReadingRecord, load_snapshots, load_latest_snapshot
 from .density_matrix import metrics_from_snapshot
 
 import re as _re
@@ -445,10 +445,11 @@ class GeoVizEngine:
             return
         self._last_load = time.time()
 
-        # Load latest snapshot
-        snaps = load_snapshots(self.snapshots_path)
-        if snaps:
-            self._latest_snapshot = snaps[-1]
+        # Load latest snapshot (tail-read only — the file is append-only and
+        # grows without bound, so never parse the whole thing here).
+        latest = load_latest_snapshot(self.snapshots_path)
+        if latest:
+            self._latest_snapshot = latest
 
         # Load coupling edges
         if self.coupling_path.exists():
@@ -1366,7 +1367,10 @@ def main():
     app = create_app(data_dir=args.data_dir)
     print(f"🌍 Geo-Viz Dashboard: http://{args.host}:{args.port}")
     print(f"   API: http://{args.host}:{args.port}/api/all")
-    app.run(host=args.host, port=args.port, debug=args.debug)
+    # threaded=True so concurrent pollers (every open map polls /api/all every
+    # 5s) don't serialize behind one another and pile up to Fly's 25-request
+    # hard limit — the failure that blanks the maps.
+    app.run(host=args.host, port=args.port, debug=args.debug, threaded=True)
 
 
 if __name__ == "__main__":

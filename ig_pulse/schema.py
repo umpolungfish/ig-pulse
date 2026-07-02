@@ -101,3 +101,46 @@ def load_snapshots(path: Path) -> List[Snapshot]:
                 except Exception:
                     pass
     return snaps
+
+
+def load_latest_snapshot(path: Path) -> "Snapshot | None":
+    """Return only the most recent snapshot, reading from the end of the file.
+
+    ``snapshots.jsonl`` is append-only and grows without bound, so parsing the
+    whole file just to take ``[-1]`` (as ``load_snapshots`` does) gets slower
+    over time. This seeks backward from EOF and parses only the last non-empty
+    JSON line, keeping the cost constant regardless of history length.
+    """
+    if not path.exists():
+        return None
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, 2)  # end of file
+            end = f.tell()
+            if end == 0:
+                return None
+            buf = b""
+            block = 8192
+            pos = end
+            # Read backward in blocks until we have at least one complete line
+            # (a newline preceding some content), or we reach the start.
+            while pos > 0:
+                step = min(block, pos)
+                pos -= step
+                f.seek(pos)
+                buf = f.read(step) + buf
+                # Need a newline that is not the trailing one to isolate the last line.
+                if buf.count(b"\n") >= (2 if buf.endswith(b"\n") else 1):
+                    break
+            for line in reversed(buf.splitlines()):
+                line = line.strip()
+                if line:
+                    try:
+                        return Snapshot.from_dict(json.loads(line))
+                    except Exception:
+                        continue
+    except Exception:
+        # Fall back to the exhaustive loader on any I/O/seek surprise.
+        snaps = load_snapshots(path)
+        return snaps[-1] if snaps else None
+    return None

@@ -1,3 +1,28 @@
+fix: stop the Datanado map API from hanging under concurrent polling — 2026-07-02
+
+Root cause of the blank geographic maps: /api/all (polled every 5s by every open
+map) hung until requests piled up to Fly's 25-concurrent hard limit, at which
+point the proxy reported "PR01 no known healthy instances" and everything timed
+out. Two compounding causes, both fixed:
+
+1. Single-threaded server. geo_viz.main() ran app.run() without threaded=True, so
+   the Flask dev server handled one request at a time — any slow request stalled
+   all others. Now runs with threaded=True.
+2. Whole-file re-parse every reload. GeoEngine._load_if_needed() called
+   load_snapshots(), parsing the entire append-only snapshots.jsonl (local copy
+   ~400 MB, each snapshot ~6500 readings) just to take [-1], every 5s. Added
+   schema.load_latest_snapshot(), which seeks backward from EOF and parses only
+   the last non-empty line — constant cost (~0.4s vs a multi-minute, multi-GB
+   full parse). geo_viz now uses it; load_snapshots unchanged (coupler/cli still
+   need full history).
+
+Verified: load_latest_snapshot matches `tail -n 1` on the real ~400 MB file and
+handles empty/missing files + missing trailing newline; geo_viz imports clean.
+Remaining optional follow-up: cap/rotate snapshots.jsonl in the collector so the
+file stops growing unbounded. Restart the live server to pick up the change.
+
+---
+
 coupler performance + map UX (mobile, collapsible warnings, explainers) — 2026-07-01
 
 coupler.py
