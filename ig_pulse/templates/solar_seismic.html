@@ -8,10 +8,19 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-body { background:#030712; color:#e2e8f0; font-family:'JetBrains Mono',monospace,sans-serif; height:100vh; display:flex; flex-direction:column; }
+body { background:#030712; color:#e2e8f0; font-family:'JetBrains Mono',monospace,sans-serif; height:100vh; height:100dvh; display:flex; flex-direction:column; }
 #warnings-bar { background:#0a0f1a; border-bottom:2px solid #ff6200; padding:0; overflow:hidden; max-height:0; transition:max-height 0.3s ease; }
-#warnings-bar.has-warnings { max-height:300px; }
-#warnings-inner { padding:8px 14px; display:flex; flex-direction:column; gap:5px; }
+#warnings-bar.has-warnings { max-height:328px; }
+#warnings-bar.has-warnings.collapsed { max-height:28px; }
+#warnings-head { display:none; align-items:center; gap:8px; height:28px; padding:0 12px; cursor:pointer; user-select:none; border-bottom:1px solid #1e293b; }
+#warnings-bar.has-warnings #warnings-head { display:flex; }
+#warnings-bar.collapsed #warnings-head { border-bottom-color:transparent; }
+#warnings-head:hover { background:#0f1626; }
+#warnings-title { font-size:0.62rem; font-weight:700; letter-spacing:0.06em; color:#ff8800; }
+#warnings-count { font-size:0.58rem; color:#94a3b8; background:#1e293b; border-radius:8px; padding:0 7px; }
+#warnings-chevron { margin-left:auto; font-size:0.7rem; color:#475569; transition:transform 0.2s ease; }
+#warnings-bar.collapsed #warnings-chevron { transform:rotate(-90deg); }
+#warnings-inner { padding:8px 14px; display:flex; flex-direction:column; gap:5px; max-height:300px; overflow-y:auto; }
 .warn-item { display:flex; gap:10px; align-items:flex-start; padding:5px 8px; border-radius:3px; border-left:3px solid; font-size:0.62rem; line-height:1.5; }
 .warn-item.critical { background:rgba(255,23,68,0.08); border-color:#ff1744; }
 .warn-item.elevated { background:rgba(255,98,0,0.08); border-color:#ff6200; }
@@ -116,11 +125,38 @@ body { background:#030712; color:#e2e8f0; font-family:'JetBrains Mono',monospace
   #hdr-show { right: 44px; }
   /* bigger touch targets for station chips */
   .warn-sta { padding: 3px 7px; font-size: 0.65rem; }
+  /* chain cards scroll sideways instead of stacking into a tall wall
+     that eats the whole screen and squeezes the map to nothing */
+  #chain-bar { max-height: 118px; }
+  #chain-inner { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+  .chain-card { flex: 0 0 auto; min-width: 150px; }
+  /* guarantee the map always keeps a usable slice of the viewport */
+  #map { min-height: 45vh; }
 }
+/* ── About / explanation modal ── */
+.about-ctrl a { background:#0a0f1a !important; color:#ff6200 !important; font-weight:700; font-size:16px; width:30px; height:30px; line-height:30px; text-align:center; }
+.about-ctrl a:hover { background:#0f1626 !important; }
+#about-modal { position:fixed; inset:0; z-index:12000; background:rgba(2,6,15,0.82); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; padding:16px; }
+#about-modal.open { display:flex; }
+.about-card { background:#0a0f1a; border:1px solid #1e293b; border-radius:12px; max-width:640px; width:100%; max-height:86vh; overflow-y:auto; padding:20px 22px; box-shadow:0 8px 40px rgba(0,0,0,0.6); }
+.about-card h2 { font-size:0.95rem; color:#ff6200; letter-spacing:0.04em; margin-bottom:3px; }
+.about-card .about-sub { font-size:0.64rem; color:#475569; margin-bottom:14px; }
+.about-sec { margin-bottom:14px; }
+.about-sec h3 { font-size:0.7rem; color:#00e5ff; letter-spacing:0.05em; margin-bottom:5px; }
+.about-sec p { font-size:0.72rem; line-height:1.65; color:#cbd5e1; }
+.about-close { float:right; background:none; border:1px solid #334155; color:#94a3b8; border-radius:4px; padding:2px 9px; font-size:0.8rem; cursor:pointer; font-family:inherit; }
+.about-close:hover { color:#e2e8f0; border-color:#64748b; }
 </style>
 </head>
 <body>
-<div id="warnings-bar"><div id="warnings-inner"></div></div>
+<div id="warnings-bar">
+  <div id="warnings-head" onclick="toggleWarnings()">
+    <span id="warnings-title">⚠ WARNINGS</span>
+    <span id="warnings-count"></span>
+    <span id="warnings-chevron">▾</span>
+  </div>
+  <div id="warnings-inner"></div>
+</div>
 <div id="chain-bar"><div id="chain-status-line" id="chain-status">PRIMITIVE CHAINS · LOADING…</div><div id="chain-inner"></div></div>
 <div id="header">
   <h1>⚡ SEISMIC COUPLING OBSERVATORY</h1>
@@ -375,6 +411,7 @@ function loadWarnings() {
     .then(d => {
       const bar = document.getElementById('warnings-bar');
       const inner = document.getElementById('warnings-inner');
+      const countEl = document.getElementById('warnings-count');
       inner.innerHTML = '';
       if (!d.warnings || !d.warnings.length) {
         if (!d.ts) {
@@ -383,6 +420,8 @@ function loadWarnings() {
         } else {
           // Snapshot exists but conditions nominal — show quiet state
           bar.classList.add('has-warnings');
+          countEl.textContent = 'nominal';
+          document.getElementById('warnings-title').textContent = '⬡ STATUS';
           const div = document.createElement('div');
           div.className = 'warn-item elevated';
           div.style.opacity = '0.45';
@@ -392,6 +431,8 @@ function loadWarnings() {
         return;
       }
       bar.classList.add('has-warnings');
+      document.getElementById('warnings-title').textContent = '⚠ WARNINGS';
+      countEl.textContent = d.warnings.length;
       for (const w of d.warnings) {
         const rSign = w.r >= 0 ? '+' : '';
         const div = document.createElement('div');
@@ -507,6 +548,7 @@ if (window.innerWidth <= 768) {
   document.getElementById('sb-toggle').textContent = '◀ edges';
   document.getElementById('header').classList.add('collapsed');
   document.getElementById('hdr-show').style.display = 'block';
+  document.getElementById('warnings-bar').classList.add('collapsed');
   setTimeout(() => map.invalidateSize(), 50);
 }
 
@@ -517,6 +559,10 @@ function toggleHeader() {
   btn.style.display = hdr.classList.contains('collapsed') ? 'block' : 'none';
   map.invalidateSize();
 }
+function toggleWarnings() {
+  document.getElementById('warnings-bar').classList.toggle('collapsed');
+  map.invalidateSize();
+}
 function toggleSidebar() {
   const sb  = document.getElementById('sidebar');
   const btn = document.getElementById('sb-toggle');
@@ -524,6 +570,40 @@ function toggleSidebar() {
   btn.textContent = sb.classList.contains('collapsed') ? '◀ edges' : '▶ edges';
   map.invalidateSize();
 }
+
+// ── About / explanation modal ──
+function openAbout()  { document.getElementById('about-modal').classList.add('open'); }
+function closeAbout() { document.getElementById('about-modal').classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAbout(); });
+const AboutControl = L.Control.extend({
+  onAdd: function () {
+    const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control about-ctrl');
+    const a = L.DomUtil.create('a', '', div);
+    a.href = '#'; a.innerHTML = '?'; a.title = 'What am I looking at?';
+    L.DomEvent.on(a, 'click', L.DomEvent.stop).on(a, 'click', openAbout);
+    return div;
+  }
+});
+new AboutControl({ position: 'topleft' }).addTo(map);
 </script>
+<div id="about-modal" onclick="if(event.target===this)closeAbout()">
+  <div class="about-card">
+    <button class="about-close" onclick="closeAbout()">✕</button>
+    <h2>Seismic Coupling Observatory</h2>
+    <div class="about-sub">solar · financial · environmental · informational · biological → seismic network</div>
+    <div class="about-sec">
+      <h3>1 · What you are seeing</h3>
+      <p>Sources on one side (solar and space weather, financial, environmental, informational, biological) and seismic receiver networks on the other, joined by lag correlated arcs. Each arc states that one primitive activation leads a seismic network's response by a measured delay, and it carries an ETA. The warnings bar at the top flags active lag rule triggers. The Primitive Chain Monitor tracks multi step chains as they light up.</p>
+    </div>
+    <div class="about-sec">
+      <h3>2 · How this is possible</h3>
+      <p>A solar flare and a seismograph trace are imscribed into the same twelve structural primitives (⊙ Φ Ç Þ ɢ Ð Σ Γ Ω Ħ Ř ƒ), so they become directly comparable objects instead of incommensurable measurements. The thousands of individual stations collapse to their networks for the coupling analysis, and cross correlation over lags recovers which precursor leads which seismic response.</p>
+    </div>
+    <div class="about-sec">
+      <h3>3 · What it implies</h3>
+      <p>A space weather or environmental precursor that leads a seismic network by a fixed lag is a forecastable structural chain, an ETA on a primitive propagation rather than a claim of physical causation. The observatory reads the shared grammar beneath phenomena that geology and heliophysics treat as unrelated.</p>
+    </div>
+  </div>
+</div>
 </body>
 </html>

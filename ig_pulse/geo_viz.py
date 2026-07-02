@@ -796,6 +796,9 @@ def create_app(data_dir: str = None) -> Flask:
     app = Flask(__name__,
                 template_folder=str(Path(__file__).parent / "templates"),
                 static_folder=str(Path(__file__).parent / "static"))
+    # Pick up template edits without a full restart (Jinja caches otherwise).
+    app.config["TEMPLATES_AUTO_RELOAD"] = True
+    app.jinja_env.auto_reload = True
     try:
         from flask_cors import CORS
         CORS(app, resources={r"/api/*": {"origins": ["https://imscribe.com", "https://www.imscribe.com",
@@ -1139,7 +1142,24 @@ def create_app(data_dir: str = None) -> Flask:
             all_stations = _get_seismic_stations()
             station_map = {f"{s['net']}_{s['sta']}": s for s in all_stations}
         except Exception:
+            all_stations = []
             station_map = {}
+        # Coupling collapses per-station seismic streams to seismic_net_{NET}
+        # (see coupler._coupling_stream_name), so resolve a network to the
+        # centroid of its stations. Longitude uses a circular mean so globe-
+        # spanning networks (IU/II/G) don't average to a bogus mid-ocean point.
+        import math as _math
+        _net_groups: dict = {}
+        for s in all_stations:
+            _net_groups.setdefault(s['net'], []).append(s)
+        net_map = {}
+        for net, lst in _net_groups.items():
+            lat = sum(x['lat'] for x in lst) / len(lst)
+            cx = sum(_math.cos(_math.radians(x['lon'])) for x in lst)
+            cy = sum(_math.sin(_math.radians(x['lon'])) for x in lst)
+            lon = _math.degrees(_math.atan2(cy, cx)) if (cx or cy) else 0.0
+            net_map[net] = {'lat': lat, 'lon': lon,
+                            'name': f'{net} network ({len(lst)} stations)'}
         # Coordinates + category for every non-seismic stream that couples with seismic
         # category drives colour in the frontend: solar / financial / environmental / info / bio
         partner_coords = {
@@ -1242,8 +1262,10 @@ def create_app(data_dir: str = None) -> Flask:
                     if partner_stream.startswith(key):
                         partner = {**val, 'label': f"{val['label']} / {partner_stream[len(key):].lstrip('_')}"}
                         break
-            sei_key = sei_stream.replace('seismic_', '', 1)
-            sei = station_map.get(sei_key)
+            if sei_stream.startswith('seismic_net_'):
+                sei = net_map.get(sei_stream[len('seismic_net_'):])
+            else:
+                sei = station_map.get(sei_stream.replace('seismic_', '', 1))
             if not partner or not sei:
                 continue
             lag_h = e['lag_seconds'] / 3600

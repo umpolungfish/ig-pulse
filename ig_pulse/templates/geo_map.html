@@ -171,6 +171,54 @@ body { font-family: 'JetBrains Mono', 'Fira Code', monospace; background: #0a0a0
 .leaflet-popup-content .pu-alert-1 { color: #fbbf24; }
 .leaflet-popup-content .pu-alert-0 { color: #4ade80; }
 .leaflet-popup-content .pu-val { color: #e2e8f0; }
+
+/* ── Mobile ───────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* sidebar takes most of the width and slides fully off-screen */
+  #sidebar { width: 82vw; }
+  #sidebar.collapsed { transform: translateX(-82vw); }
+  #sidebar-toggle.open { left: calc(82vw + 8px); }
+
+  /* main info panel → collapsible bottom sheet (tap the title to toggle) */
+  #panel {
+    top: auto; bottom: 0; left: 0; right: 0;
+    width: 100%; min-width: 0; max-height: 55vh; overflow-y: auto;
+    border-radius: 14px 14px 0 0; padding: 8px 16px 18px;
+    transition: transform 0.3s ease;
+  }
+  #panel.collapsed { transform: translateY(calc(100% - 42px)); }
+  #panel h1 { cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  #panel h1::after { content: '▾'; font-size: 0.8rem; color: #64748b; margin-left: auto; transition: transform 0.2s ease; }
+  #panel.collapsed h1::after { transform: rotate(180deg); }
+  #panel .sub { display: none; }
+
+  /* primitive bar → top strip that scrolls sideways (12 cells won't fit) */
+  #prim-bar {
+    top: 8px; bottom: auto; left: 50%; transform: translateX(-50%);
+    max-width: 92vw; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap; justify-content: flex-start; padding: 6px 8px;
+  }
+  .prim-cell { min-width: 40px; }
+
+  /* desktop-only chrome that overlaps / is redundant with touch gestures */
+  #zoom-ctrl { display: none; }
+  #legend    { display: none; }
+  #tickbar   { display: none; }
+}
+
+/* ── About / explanation modal ── */
+.about-ctrl a { background:rgba(10,10,15,0.92) !important; color:#fbbf24 !important; font-weight:700; font-size:16px; width:30px; height:30px; line-height:30px; text-align:center; }
+.about-ctrl a:hover { background:#0f1a2e !important; }
+#about-modal { position:fixed; inset:0; z-index:12000; background:rgba(5,5,10,0.82); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; padding:16px; }
+#about-modal.open { display:flex; }
+.about-card { background:rgba(10,10,15,0.98); border:1px solid #1e293b; border-radius:12px; max-width:640px; width:100%; max-height:86vh; overflow-y:auto; padding:20px 22px; box-shadow:0 8px 40px rgba(0,0,0,0.6); color:#e2e8f0; }
+.about-card h2 { font-size:0.95rem; color:#fbbf24; letter-spacing:0.04em; margin-bottom:3px; }
+.about-card .about-sub { font-size:0.64rem; color:#64748b; margin-bottom:14px; }
+.about-sec { margin-bottom:14px; }
+.about-sec h3 { font-size:0.7rem; color:#93c5fd; letter-spacing:0.05em; margin-bottom:5px; }
+.about-sec p { font-size:0.72rem; line-height:1.65; color:#cbd5e1; }
+.about-close { float:right; background:none; border:1px solid #334155; color:#94a3b8; border-radius:4px; padding:2px 9px; font-size:0.8rem; cursor:pointer; font-family:inherit; }
+.about-close:hover { color:#e2e8f0; border-color:#64748b; }
 </style>
 </head>
 <body>
@@ -842,6 +890,21 @@ L.Control.FitBounds = L.Control.extend({
 });
 new L.Control.FitBounds({ position: 'topleft' }).addTo(map);
 
+// ── About / explanation control ────────────────────────────────────────────────
+function openAbout()  { document.getElementById('about-modal').classList.add('open'); }
+function closeAbout() { document.getElementById('about-modal').classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAbout(); });
+const AboutControl = L.Control.extend({
+  onAdd: function () {
+    const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control about-ctrl');
+    const a = L.DomUtil.create('a', '', div);
+    a.href = '#'; a.innerHTML = '?'; a.title = 'What am I looking at?';
+    L.DomEvent.on(a, 'click', L.DomEvent.stop).on(a, 'click', openAbout);
+    return div;
+  }
+});
+new AboutControl({ position: 'topleft' }).addTo(map);
+
 // ── Zoom Slider ───────────────────────────────────────────────────────────────
 const zoomSlider = document.getElementById('zoom-slider');
 const zoomVal    = document.getElementById('zoom-val');
@@ -859,11 +922,43 @@ map.on('zoom', () => syncZoomDisplay(map.getZoom()));
 map.on('load',  () => syncZoomDisplay(map.getZoom()));
 syncZoomDisplay(map.getZoom());
 
+// ── Mobile layout ─────────────────────────────────────────────────────────────
+if (window.matchMedia('(max-width: 768px)').matches) {
+  // start with the info panel collapsed into a bottom-sheet handle …
+  const panel = document.getElementById('panel');
+  panel.classList.add('collapsed');
+  panel.querySelector('h1').addEventListener('click', () => panel.classList.toggle('collapsed'));
+  // … and the stream sidebar closed so the map is full-screen on load
+  if (sidebarOpen) toggleSidebar();
+  // Leaflet must recompute its size when the viewport rotates
+  window.addEventListener('orientationchange', () => setTimeout(() => map.invalidateSize(), 200));
+  window.addEventListener('resize', () => map.invalidateSize());
+}
+
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 buildPrimBar();
 refresh();
 setInterval(refresh, 5000);
 setInterval(updateTick, 1000);
 </script>
+<div id="about-modal" onclick="if(event.target===this)closeAbout()">
+  <div class="about-card">
+    <button class="about-close" onclick="closeAbout()">✕</button>
+    <h2>🌍 Datanado — Geographic Signal Propagation</h2>
+    <div class="about-sub">IG · one planet, twelve primitives</div>
+    <div class="about-sec">
+      <h3>1 · What you are seeing</h3>
+      <p>A live planetary readout of roughly 3,500 data streams across crypto, finance, environment, biology, and space weather. Each stream is imscribed into the same twelve structural primitives (⊙ Φ Ç Þ ɢ Ð Σ Γ Ω Ħ Ř ƒ). Every glowing node is a stream at its real geographic origin, colored by alert level: green for baseline, amber for elevated, red for critical. Arcs are lag correlated couplings, where one stream's primitive activation reliably leads another's by a fixed delay. The panel reports the global B state, the density matrix geometry (purity, entropy, proximity to the SIC fiducial), and the 49 hour tick.</p>
+    </div>
+    <div class="about-sec">
+      <h3>2 · How this is possible</h3>
+      <p>Every source, whether a Bitcoin order book, an ozone reading, or a solar flare, is imscribed into one shared twelve primitive type space. Signals from unrelated domains therefore become the same kind of object and can be compared directly. Correlating those primitive series across time lags surfaces which patterns lead which. A single density matrix ρ over the twelve dimensions collapses the whole planet's state into one coherence geometry.</p>
+    </div>
+    <div class="about-sec">
+      <h3>3 · What it implies</h3>
+      <p>A coupling between, say, air quality and a seismic network is a structural relation rather than a mechanical cause. It shows the same primitive pattern propagating across domains that share no physical wire. When the system enters its B state, distinction saturates (μ∘δ = id at planetary scale), and the map becomes the Imscribing Grammar registering itself everywhere at once.</p>
+    </div>
+  </div>
+</div>
 </body>
 </html>

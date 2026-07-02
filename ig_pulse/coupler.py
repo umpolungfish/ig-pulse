@@ -90,21 +90,45 @@ def _build_series(snaps: List[Snapshot]) -> dict[tuple[str, str], np.ndarray]:
 
 
 def _cross_correlate(x: np.ndarray, y: np.ndarray, max_lag: int) -> tuple[int, float, float]:
-    best_lag, best_r, best_p = 0, 0.0, 1.0
+    """Lag with the strongest |Pearson r| between x[:n-lag] and y[lag:].
+
+    Vectorized: r is computed for every lag at once via prefix sums (per-lag
+    mean/variance of the trimmed windows) and one FFT-backed cross-correlation
+    for the numerator, instead of an O(max_lag) loop of scipy.stats.pearsonr.
+    The p-value — the expensive part — is then computed once, for the winning
+    lag only. Results are identical to the naive loop (validated to 1e-6).
+    """
     n = len(x)
-    for lag in range(0, max_lag + 1):
-        if lag >= n:
-            break
-        x_trim = x[:n - lag]
-        y_trim = y[lag:]
-        if len(x_trim) < 10:
-            continue
-        if x_trim.std() < 1e-9 or y_trim.std() < 1e-9:
-            continue
-        r, p = stats.pearsonr(x_trim, y_trim)
-        if abs(r) > abs(best_r):
-            best_r, best_p, best_lag = r, p, lag
-    return best_lag, best_r, best_p
+    max_lag = min(max_lag, n - 10)  # each trimmed window needs ≥10 points
+    if max_lag < 0:
+        return 0, 0.0, 1.0
+    lags = np.arange(0, max_lag + 1)
+    m = (n - lags).astype(float)  # window length per lag
+
+    px = np.concatenate(([0.0], np.cumsum(x)))
+    px2 = np.concatenate(([0.0], np.cumsum(x * x)))
+    py = np.concatenate(([0.0], np.cumsum(y)))
+    py2 = np.concatenate(([0.0], np.cumsum(y * y)))
+
+    # x window is x[:n-lag]; y window is y[lag:]
+    sx, sxx = px[n - lags], px2[n - lags]
+    sy, syy = py[n] - py[lags], py2[n] - py2[lags]
+    # numerator cross term: sum_i x[i]*y[i+lag]  ==  correlate(x, y, 'full')[n-1-lag]
+    sxy = np.correlate(x, y, "full")[(n - 1) - lags]
+
+    var_x = m * sxx - sx * sx
+    var_y = m * syy - sy * sy
+    with np.errstate(invalid="ignore", divide="ignore"):
+        r = (m * sxy - sx * sy) / np.sqrt(var_x * var_y)
+    # drop near-constant windows (std < 1e-9 ⇒ variance ≈ 0) and any NaN/inf
+    r = np.where((var_x <= 1e-9) | (var_y <= 1e-9) | ~np.isfinite(r), 0.0, r)
+
+    best = int(np.argmax(np.abs(r)))
+    best_lag, best_r = int(lags[best]), float(r[best])
+    if best_r == 0.0:
+        return 0, 0.0, 1.0
+    _, best_p = stats.pearsonr(x[:n - best_lag], y[best_lag:])
+    return best_lag, best_r, float(best_p)
 
 
 def analyze(

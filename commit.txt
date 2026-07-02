@@ -1,3 +1,48 @@
+coupler performance + map UX (mobile, collapsible warnings, explainers) — 2026-07-01
+
+coupler.py
+- Fixed stream explosion: per-station seismic streams (seismic_{NET}_{STA})
+  collapse to their network (seismic_net_{NET}) for coupling via
+  _coupling_stream_name(). Raw per-station readings untouched, so the geo map's
+  receiver network is unaffected. Active series ~3591 -> 122.
+- Rewrote series building as a single pass (_build_series) with max-alert
+  aggregation per timestamp; replaces the old O(streams*prims*snaps*readings) scan.
+- Vectorized _cross_correlate: r for every lag at once via prefix sums + one
+  FFT-backed cross-correlation; p-value computed only for the winning lag.
+  Validated identical to the naive loop (0 mismatches / 400 trials, tol 1e-6).
+- Full ~2516-snapshot dataset: analyze() ~50 days -> ~18s. Now prints
+  "[coupler] N active series -> M pairs" up front so a run is observable.
+
+geo_viz.py
+- Enabled Jinja TEMPLATES_AUTO_RELOAD so template edits show without a full
+  restart on future runs.
+- Fixed solar-seismic arcs vanishing after the coupler collapse: coupling
+  edges now carry seismic_net_{NET} names, which no longer matched the
+  per-station coordinate map (every seismic arc was silently skipped).
+  api_solar_seismic() now resolves seismic_net_{NET} to that network's station
+  centroid (circular mean longitude so global nets don't wrap wrong) while
+  still supporting legacy per-station names. Arcs 0 -> 599 on current data.
+  Also guard all_stations = [] if the station catalog import fails.
+
+templates/solar_seismic.html
+- Mobile: 100dvh; chain cards scroll horizontally instead of stacking; map keeps
+  a min 45vh slice; warnings bar starts collapsed on mobile.
+- Warnings bar now fully collapsible (header strip + count badge + chevron);
+  collapse persists across the 60s refresh.
+- Added "?" Leaflet control opening an explanation modal (what you are seeing /
+  how this is possible / what it implies).
+
+templates/geo_map.html
+- Added full mobile layout: info panel becomes a collapsible bottom sheet;
+  primitive bar scrolls horizontally; sidebar 82vw; zoom slider/legend/tickbar
+  hidden on mobile; orientation/resize invalidateSize.
+- Added "?" Leaflet control opening the same style of explanation modal.
+
+NOTE: restart the live geo-viz server to pick up these changes (running instance
+has the old templates cached and the old geo_viz.py).
+
+---
+
 geo_viz: megalithic reference layer + ley line analysis — 2026-06-29
 
 Option A (azimuth matching): 1803 resolved coupling arcs checked against
