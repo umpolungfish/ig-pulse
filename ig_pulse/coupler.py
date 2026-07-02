@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -49,16 +50,43 @@ def _infer_interval_seconds(snaps: List[Snapshot]) -> int:
     return max(1, int(np.median(diffs)))
 
 
-def _stream_primitive_series(snaps: List[Snapshot], stream: str, primitive: str) -> np.ndarray:
-    series = []
-    for s in snaps:
-        val = 0
+# Per-station seismic streams are named seismic_{NET}_{STA} (e.g. seismic_IU_SLBS).
+# The geo map wants every station as its own node, but for coupling they all
+# measure the same earthquakes — thousands of them would blow the O(keys^2)
+# correlation loop up to millions of pairs. Collapse each to its network so the
+# analysis stays bounded (~14 networks) while preserving inter-network structure.
+# NET/STA are uppercase, so this never matches seismic_energy / seismic_major.
+_SEISMIC_STATION_RE = re.compile(r"^seismic_([A-Z0-9]+)_[A-Z0-9]+$")
+
+
+def _coupling_stream_name(stream: str) -> str:
+    """Normalize a raw stream name to its coupling-analysis identity."""
+    m = _SEISMIC_STATION_RE.match(stream)
+    if m:
+        return f"seismic_net_{m.group(1)}"
+    return stream
+
+
+def _build_series(snaps: List[Snapshot]) -> dict[tuple[str, str], np.ndarray]:
+    """Single pass: build a per-(coupling stream, primitive) alert series.
+
+    Streams are normalized via _coupling_stream_name; when several raw streams
+    collapse to the same coupling name (per-station seismic), the alert values
+    are combined by max per timestamp (any station firing = network active).
+    All-zero series are dropped.
+    """
+    n = len(snaps)
+    series: dict[tuple[str, str], np.ndarray] = {}
+    for i, s in enumerate(snaps):
         for r in s.readings:
-            if r.stream == stream and r.primitive == primitive:
-                val = r.alert
-                break
-        series.append(val)
-    return np.array(series, dtype=float)
+            key = (_coupling_stream_name(r.stream), r.primitive)
+            arr = series.get(key)
+            if arr is None:
+                arr = np.zeros(n)
+                series[key] = arr
+            if r.alert > arr[i]:
+                arr[i] = float(r.alert)
+    return {k: v for k, v in series.items() if v.sum() > 0}
 
 
 def _cross_correlate(x: np.ndarray, y: np.ndarray, max_lag: int) -> tuple[int, float, float]:
@@ -93,20 +121,11 @@ def analyze(
     max_lag_snapshots = max(1, max_lag_seconds // interval_seconds)
     print(f"  [coupler] interval={interval_seconds}s | max_lag={max_lag_seconds}s ({max_lag_snapshots} snapshots)")
 
-    # Build per-(stream, primitive) alert series
-    series: dict[tuple[str, str], np.ndarray] = {}
-    seen_streams = set()
-    for s in snaps:
-        for r in s.readings:
-            seen_streams.add(r.stream)
-
-    for stream in seen_streams:
-        for prim in PRIMITIVES:
-            arr = _stream_primitive_series(snaps, stream, prim)
-            if arr.sum() > 0:
-                series[(stream, prim)] = arr
-
+    # Build per-(stream, primitive) alert series (per-station seismic collapsed
+    # to per-network — see _coupling_stream_name).
+    series = _build_series(snaps)
     keys = list(series.keys())
+    print(f"  [coupler] {len(keys)} active series → {len(keys) * (len(keys) - 1)} pairs")
     edges = []
     for src in keys:
         for tgt in keys:
