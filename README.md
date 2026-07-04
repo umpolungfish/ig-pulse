@@ -422,7 +422,7 @@ frontier.
 
 ```bash
 # Requires Python >=3.11
-cd /home/mrnob0dy666/imsgct/ig-pulse
+cd imsgct/ig-pulse
 
 # With uv (preferred):
 uv pip install -e .
