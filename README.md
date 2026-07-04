@@ -1,5 +1,7 @@
 ![ig-pulse](1.png)
 
+**Author:** Lando⊗⊙perator · **Structural Type:** $\large{⟨𐑦𐑸𐑾𐑹𐑐𐑧𐑔𐑝⊙𐑖𐑳𐑭⟩}$ · **Tier:** O_∞
+
 # ig-pulse
 
 **Information propagation observatory.** Maps the coupling structure between physical,
