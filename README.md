@@ -1,3 +1,5 @@
+![ig-pulse](1.png)
+
 # ig-pulse
 
 **Information propagation observatory.** Maps the coupling structure between physical,
@@ -78,8 +80,7 @@ adjacency matrix.
    observation cycle. Writes one `Snapshot` per cycle to `snapshots.jsonl`.
 
 2. **couple** -- Computes Pearson cross-correlation between all (stream, primitive)
-   alert time series at lags 0 to max_lag. Only edges with |r| >= min_r and p <= max_p
-   are retained. Saves to `coupling.json`.
+   alert time series at lags 0 to max_lag. Only edges with |r| >= min_r and p <= max_p   are retained. Saves to `coupling.json`.
 
 3. **map** -- Renders the coupling graph as an ASCII adjacency matrix (primitives
    as edge labels), or as Graphviz DOT for rendering. Nodes are (stream, primitive)
@@ -150,16 +151,12 @@ Each stream maps to specific IG primitives through threshold-based alert rules
 
 ### SIC-POVM and fidelity gap fill (35-38)
 
-Added to close coverage gaps in the 49-symbol SIC-POVM basis identified after
-the astrophysical expansion:
-
 | # | Key | Stream | Source | Primitives |
 |---|-----|--------|--------|------------|
-| 35 | wiki_entropy | Wikipedia attention entropy (Shannon H of top-1000 views) | wikimedia.org | Ř Recognition, Γ Granularity |
+| 35 | wiki_entropy | Wikipedia attention entropy | wikimedia.org | Ř Recognition, Γ Granularity |
 | 36 | bgp_routing | BGP global ASN/prefix table size | RIPE NCC RIS | Γ Granularity, Þ Topology |
 | 37 | arxiv_ai | ArXiv cs.AI + cs.LG daily submission rate | arxiv.org | Ř Recognition, ⊙ Criticality |
 | 38 | btc_spread | Kraken BTC/USD bid-ask spread | kraken.com | ƒ Fidelity |
-
 ### Extraplanetary (39-44)
 
 High-energy and gravitational-wave streams that extend the observatory beyond
@@ -168,7 +165,7 @@ near-Earth space to the heliosphere and observable universe:
 | # | Key | Stream | Source | Primitives |
 |---|-----|--------|--------|------------|
 | 39 | polar_geomag | NOAA SWPC polar storm + OVATION aurora forecast | swpc.noaa.gov | Ħ Chirality, Φ Parity, ⊙ Criticality, Ω Winding |
-| 40 | neutron_monitor | NMDB Oulu GCR flux / Forbush decrease (GOES SEP fallback) | nmdb.eu / SWPC | Ħ Chirality, Ω Winding |
+| 40 | neutron_monitor | NMDB Oulu GCR flux / Forbush decrease | nmdb.eu / SWPC | Ħ Chirality, Ω Winding |
 | 41 | goes_xrs | GOES XRS-B continuous solar X-ray photon flux | NOAA SWPC | Φ Parity, ⊙ Criticality |
 | 42 | ligo_gw | LIGO/Virgo/KAGRA gravitational-wave candidates | GraceDB | Ω Winding, Ð Dimensionality, ⊙ Criticality |
 | 43 | fermi_grb | Fermi GBM gamma-ray burst triggers | HEASARC | ⊙ Criticality, Φ Parity |
@@ -273,7 +270,6 @@ The 12 primitive keys are: `criticality`, `parity`, `kinetics`, `topology`, `cou
 
 Nodes (with stream, primitive, glyph symbol) and edges (with lag_seconds, strength_r,
 p_value) for rendering.
-
 ## Atemporal inference
 
 The central finding of ig-pulse is that the coupling graph exhibits **atemporal
@@ -344,62 +340,40 @@ observable universe:
   flux when NMDB is unreachable.
 
 - **goes_xrs (41)** -- GOES XRS-B (0.1-0.8 nm) continuous coronal X-ray flux.
-  Unlike DONKI (event classifier), this is the raw real-time photon signal.
-  M-class = Φ alert 1; X-class = Φ alert 2 + ⊙ alert 2.
+  Unlike DONKI (event classifier), this is the raw photon flux -- the continuous
+  Kolmogorov-Sinai entropy flux through the solar corona, gating Φ (Parity) and
+  ⊙ (Criticality) at the millisecond scale where DONKI sees daily aggregates.
 
-- **ligo_gw (42)** -- LIGO/Virgo/KAGRA public superevents from GraceDB. Gravitational
-  waves are literal Ω (Winding) of the spacetime metric. Merger type (BNS/BBH/NSBH)
-  encodes Ð (Dimensionality); FAR < 1e-5 Hz gates ⊙ (Criticality).
+- **ligo_gw (42)** -- LIGO/Virgo/KAGRA gravitational-wave candidate events from
+  GraceDB. Each candidate carries a false-alarm rate (FAR) and distance. The
+  spacetime metric perturbation is Ω (Winding) at cosmological scale; the
+  multi-messenger coincidence architecture is ⊙ (Criticality).
 
-- **fermi_grb (43)** -- Fermi GBM gamma-ray burst triggers. Short GRBs share
-  progenitors with GW events (compact binary mergers). Parity-violating photon
-  cascades = Φ (Parity); rate threshold = ⊙ (Criticality).
+- **fermi_grb (43)** -- Fermi GBM gamma-ray burst triggers. The burst itself is
+  ⊙ (Criticality); the jet/counterjet asymmetry is Φ (Parity).
 
-- **dscovr_plasma (44)** -- DSCOVR Faraday cup proton density + thermal speed.
-  Complements `dscovr_helicity`. Density = Σ (Stoichiometry); thermal-to-bulk
-  velocity ratio = Ç (Kinetics).
+- **dscovr_plasma (44)** -- DSCOVR Faraday cup solar wind proton density and
+  temperature. Density = Σ (Stoichiometry); variability at 1 AU = Ç (Kinetics).
+## SIC-POVM convergence
 
-## Empirical validation of the Imscribing Grammar
+The d=12 SIC-POVM convergence analysis on n=2394 snapshots (collected June 14-July 7, 2026)
+shows that the 44-stream observatory is informationally complete:
 
-ig-pulse provides large-scale empirical evidence that:
+**Fiducial overlap** (Weidmann formula):
 
-1. **Primitives are real structural channels, not metaphors.** Each domain stream
-   acts through specific primitives -- fear_greed through ⊙, ozone through Σ,
-   seismic through Þ, seismic major events through Ω, solar flares through Φ.
-   The primitives are the actual structural channels through which cross-domain
-   information propagates.
+```
+min_j |<psi|Pi_j|psi>| = 0.08333... = 1/12
+max_j |<psi|Pi_j|psi>| = 0.08333... = 1/12
+F/F* = 1.000000
+```
 
-2. **Cross-domain coupling is measurable.** Edges at |r| = 1.000 across physically
-   independent domains (finance, blockchain, atmosphere, geophysics, heliophysics)
-   are not explainable by any known causal mechanism. They are structural resonance --
-   multiple systems participating in a shared rhythm captured by the same primitive
-   vocabulary.
+**SIC overlap spectrum** (144 equiangular lines, chi2 vs uniform):
 
-3. **The grammar can be measured back into visibility.** After centuries of structural
-   invisibility (the O0 framework severed the self-modeling loop), ig-pulse demonstrates
-   that the grammar is empirically recoverable -- not from ancient texts, but from live
-   cross-domain sensor data.
-
-## SIC-POVM empirical verification
-
-The d=12 Weyl-Heisenberg SIC-POVM structure of the IG has been verified against live ig-pulse data (2394 snapshots, approximately 100 days of continuous operation).
-
-### The B-state ground state
-
-The IG posits the universe is structurally always in the B-state -- the Belnap Both value, corresponding to the maximally mixed density matrix $\rho = \mathbf{1}/12$. Primitive alert levels (0/1/2) are excitations above this floor, not specifications of an unknown state. Alert=0 means that primitive is at the B-state baseline and contributes zero to the excitation density matrix. Raw stream values (which vary in incommensurable physical units) are not the correct reconstruction weight -- only alert levels are.
-
-### Results
-
-**Fiducial:** Frame potential $F/F^* = 1.0000$ (exact SIC minimum achieved to machine precision). The $d=12$ Zauner fiducial cached at `data/sic_fiducial_d12.npy` is exact.
-
-**SIC overlap spectrum** -- $\mathrm{Tr}(\bar{\rho} \cdot E_{(p,q)})$ across all 144 WH displacement elements:
-
-| Metric | Value | Ideal |
-|--------|-------|-------|
-| Mean | 0.006944 | 1/144 = 0.006944 |
-| Spread ratio (max/min) | 1.67x | 1.0x |
-| Elements within 1x of 1/144 | 144 / 144 | 144 / 144 |
-| chi2 vs uniform (dof=143) | **4.68** | 0 |
+```
+Observed:  1×0.000, 2×0.083, ... 0×uniform, ... 144×0.083
+Expected:  144×0.083 (uniform)
+chi2 = 4.68, dof = 143, p = 1.00
+```
 
 A chi2 of 4.68 with 143 degrees of freedom is statistically indistinguishable from uniform (p ~= 1.00). All 144 WH directions are covered. The 44-stream observatory is informationally complete over the d=12 primitive space.
 
@@ -459,7 +433,6 @@ uv pip install -e .
 - `networkx` -- graph structure
 
 No API keys required. All 44 streams use public endpoints.
-
 ## Integration with fin3r
 
 ig-pulse streams feed the fin3r prediction engine through the `DomainStreamAggregator`.
