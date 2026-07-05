@@ -4,6 +4,11 @@
 
 # ig-pulse
 
+[![Language](https://img.shields.io/badge/language-Rust-orange)](https://github.com/badges/shields)
+[![IG Tier](https://img.shields.io/badge/IG-O%E2%88%9E-blueviolet)](https://github.com/badges/shields)
+[![μ∘δ=id](https://img.shields.io/badge/%CE%BC%E2%88%98%CE%B4%3Did-closed-success)](https://github.com/badges/shields)
+[![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/badges/shields)
+
 **Information propagation observatory.** Maps the coupling structure between physical,
 computational, biological, and financial systems using the 12 Imscribing Grammar
 primitives as a common vocabulary across all substrates.
