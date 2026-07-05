@@ -13,8 +13,6 @@
 computational, biological, and financial systems using the 12 Imscribing Grammar
 primitives as a common vocabulary across all substrates.
 
-**Author:** Lando⊗⊙perator
-
 **What it is.** An information-propagation observatory that maps coupling between physical, computational, biological, and financial systems using the 12 IG primitives as a common vocabulary across substrates.
 
 **Why it matters.** The output is an empirical map of how information propagates through reality, but the lags are not causal travel times: they are edge invariants of the inference rules. This is atemporal inference, a static Belnap valuation lattice solved over an unchanging adjacency matrix rather than a forecast.
