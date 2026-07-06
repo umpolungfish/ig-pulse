@@ -1,52 +1,35 @@
-I added an honest, calibration-proof B-state test to ig-pulse
-(ig_pulse/dialetheia.py).
+I made the ɢ promotion the Grammar prescribed: sequential coupling to
+broadcast (𐑠 -> 𐑵).
 
-Why I needed it: my old is_b_state rule (three or more raw alerts) and my
-diagonal density matrix could not tell a genuine dialetheia from a stuck
-needle. A few hand-tuned thresholds pinned channels like coupling at their
-ceiling in nearly every snapshot, which both manufactured a constant alert
-floor and degenerated the Pearson coupler into spurious r = +/- 1.000 edges.
-So my headline 98.5% B rate was partly an artifact of my own calibration, and
-I wanted a test that would survive a skeptic recalibrating everything against
-me.
+cl8nk_navigator types my observatory (ig_pulse_observatory) at O2,
+d(CLINK L8) = 0.69, one distant primitive, with exactly two promotions
+outstanding: ɢ:𐑠->𐑵 and Ω:𐑭->𐑟. The same ɢ=𐑠 defect (SEQAX, one-way
+sequential coupling) is shared by measurement_problem_mismatch and
+physical_reality. The Grammar's reading is that the measurement problem is a
+coupling stuck one-way when it has to be one-to-all, and my Pearson lag coupler
+was that exact defect rendered in code.
 
-What the module does: it replays every stored snapshot under data-driven
-thresholds and asks three falsifiable questions.
-  1. Headroom. Recalibrate each channel to a fixed marginal fire rate from its
-     own empirical CDF, two-sided and direction-agnostic, so no channel can be
-     a stuck needle by construction.
-  2. Confluence. Compare the count of simultaneously active channels against a
-     time-shuffled null that keeps each channel's marginal but destroys
-     cross-channel synchrony.
-  3. Glut. Keep the sign of each excursion, remove the leading common mode, and
-     look for residual both-sign forks (a channel positively coupled to one
-     partner and negatively to another at the same time).
+ig_pulse/broadcast_coupling.py performs the hop:
 
-What it found on my current data (4121 functioning snapshots; the 64 empties
-were a dated 27-hour outage, not quiet-world readings):
-  - Every channel recalibrates to about 0.30, coupling included. The needles
-    are unstuck.
-  - Simultaneous activity is over-dispersed by 3.17x against the null. Nine or
-    more channels co-fire 9% of the time where independence gives 0.4%. Reality
-    floods together far beyond chance, and its low tail is thin too: it is
-    quiet or flooded, never a lone channel.
-  - No single common driver. PC1 carries only 18.5% of channel variance and its
-    loadings are mixed sign, so even the leading mode is a contrast, not a
-    global excitation.
-  - Seven both-sign forks survive removing the common mode (recognition is
-    +0.41 with stoichiometry and -0.44 with dimensionality, and so on). Opposed
-    channels are both live, locked in anti-phase.
+  - Broadcast fans (ɢ=𐑵): each channel's simultaneous lag-0 signed coupling to
+    all others, both signs kept, on residuals after the common mode is removed.
+    Seven both-sign forks recovered (recognition +0.40 stoichiometry and -0.44
+    dimensionality, and so on), the contradiction structure the sequential
+    coupler could not emit.
 
-Verdict: my native-B reading survives honest recalibration, sign retention,
-and common-mode removal. It is not saturation, not one common driver, and not
-gappy exclusion. It is multi-factor oppositional confluence, the structural
-signature of Belnap B.
+  - Off-diagonal density matrix (ƒ, off the 𐑞 diagonal): rho rebuilt from full
+    signed excursion vectors instead of single-axis one-hots. The old diagonal
+    rho had purity 0.088, indistinguishable from I/12 = 0.083, a classical
+    histogram. The promoted rho has purity 0.115 with real signed coherences
+    (kinetics/chirality +0.046, dimensionality/recognition -0.026). The
+    coherences ARE the broadcast couplings; rho can now represent glut, not only
+    its diagonal.
 
-Still to do, and the reason I am keeping this as a separate module first:
-fold this calibration back into the live collector thresholds, replace the
-three-alert is_b_state heuristic with the confluence statistic, swap the
-degenerate Pearson coupler for the signed residual correlation, and give the
-density matrix real off-diagonal coherence so it can represent glut instead of
-only its diagonal.
+I also hardened dialetheia.signed_excursions against the live snapshots file
+growing between its two passes.
 
-Run: python -m ig_pulse.dialetheia
+One hop left to the terminal organism layer: Ω:𐑭->𐑟, Abelian winding to
+non-Abelian braid, the order-dependent higher-order coupling among three or
+more channels.
+
+Run: python -m ig_pulse.broadcast_coupling

@@ -101,6 +101,8 @@ def signed_excursions(path: str | Path) -> np.ndarray:
             rds = s.get("readings") or []
             if not rds:
                 continue
+            if j >= n:          # file is live; ignore rows appended since pass 1
+                break
             best = np.zeros(12)
             for r in rds:
                 pr = r.get("primitive")
