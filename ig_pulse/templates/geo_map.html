@@ -258,7 +258,7 @@ body { font-family: 'JetBrains Mono', 'Fira Code', monospace; background: #0a0a0
   <div class="sub">IG · Geographic Signal Propagation</div>
 
   <!-- B-state / multiplier -->
-  <div class="row">
+  <div class="row" title="The planetary state is always B — the maximally-mixed floor ρ = 1/12 (Belnap Both). It never collapses to a definite value. GLUT flags confluent multi-channel excitation above that floor; 'ground' is the quiescent floor. Both are B.">
     <span class="k"><span class="alive"></span>B-STATE</span>
     <span class="v" id="bstate_display">—</span>
   </div>
@@ -361,6 +361,13 @@ body { font-family: 'JetBrains Mono', 'Fira Code', monospace; background: #0a0a0
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script>
+// ── API base ──────────────────────────────────────────────────────────────────
+// Served by ig-pulse itself (localhost) → relative paths; served as a static page
+// (imscribe.com, landomills.com) → hit the live ig-pulse API on Fly.
+const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? ''
+  : 'https://igpulse.imscribe.com';
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 const PRIM_DEFS = [
   { key: 'criticality',   glyph: '⊙', label: 'Crit'  },
@@ -485,7 +492,7 @@ function renderMegalithic(geojson) {
 // ── Data Fetch ────────────────────────────────────────────────────────────────
 async function fetchData() {
   try {
-    const resp = await fetch('/api/all');
+    const resp = await fetch(API_BASE + '/api/all');
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     return await resp.json();
   } catch (e) {
@@ -636,8 +643,11 @@ function updatePanel(stats, rho) {
   const isBState = stats.is_b_state;
   const mult = stats.multiplier || 1.0;
 
+  // The world at our scale is always B (ρ = 1/12); this flag is a confluence
+  // proxy, so it reads GLUT (excitation above the floor) vs the quiescent ground —
+  // never "B off". Both states are B.
   const bEl = document.getElementById('bstate_display');
-  bEl.textContent = isBState ? 'ACTIVE' : 'INACTIVE';
+  bEl.textContent = isBState ? 'GLUT ⬆' : 'ground';
   bEl.className = isBState ? 'v bstate-on' : 'v bstate-off';
 
   // ρ metrics — formal B-state geometry (Zauner SIC fiducial d=12)
@@ -968,15 +978,15 @@ setInterval(updateTick, 1000);
     <div class="about-sub">IG · one planet, twelve primitives</div>
     <div class="about-sec">
       <h3>1 · What you are seeing</h3>
-      <p>A live planetary readout of roughly 3,500 data streams across crypto, finance, environment, biology, and space weather. Each stream is imscribed into the same twelve structural primitives (⊙ Φ Ç Þ ɢ Ð Σ Γ Ω Ħ Ř ƒ). Every glowing node is a stream at its real geographic origin, colored by alert level: green for baseline, amber for elevated, red for critical. Arcs are lag correlated couplings, where one stream's primitive activation reliably leads another's by a fixed delay. The panel reports the global B state, the density matrix geometry (purity, entropy, proximity to the SIC fiducial), and the 49 hour tick.</p>
+      <p>A live planetary readout of 44 real-time feeds across crypto, finance, environment, biology, and space weather. Those feeds expand to thousands of geographic nodes, since a single seismic feed carries several thousand stations. Each feed is imscribed into the same twelve structural primitives (⊙ Φ Ç Þ ɢ Ð Σ Γ Ω Ħ Ř ƒ). Every glowing node sits at its real geographic origin, colored by alert level: green for baseline, amber for elevated, red for critical. Arcs are lag correlated couplings, where one feed's primitive activation reliably leads another's by a fixed delay. The panel reports the density matrix geometry (purity, entropy, proximity to the SIC fiducial), the confluence state, and the 49 hour tick.</p>
     </div>
     <div class="about-sec">
       <h3>2 · How this is possible</h3>
-      <p>Every source, whether a Bitcoin order book, an ozone reading, or a solar flare, is imscribed into one shared twelve primitive type space. Signals from unrelated domains therefore become the same kind of object and can be compared directly. Correlating those primitive series across time lags surfaces which patterns lead which. A single density matrix ρ over the twelve dimensions collapses the whole planet's state into one coherence geometry.</p>
+      <p>Every source, whether a Bitcoin order book, an ozone reading, or a solar flare, is imscribed into one shared twelve primitive type space. Signals from unrelated domains therefore become the same kind of object and can be compared directly. Correlating those primitive series across time lags surfaces which patterns lead which. A single density matrix ρ over the twelve dimensions collapses the whole planet's state into one coherence geometry, and it lives in the same d = 12 space that carries an exact Weyl-Heisenberg SIC-POVM, the structure the Grammar's classification space is built on. The 44 feeds sample that frame in part, not yet in full.</p>
     </div>
     <div class="about-sec">
       <h3>3 · What it implies</h3>
-      <p>A coupling between, say, air quality and a seismic network is a structural relation rather than a mechanical cause. It shows the same primitive pattern propagating across domains that share no physical wire. When the system enters its B state, distinction saturates (μ∘δ = id at planetary scale), and the map becomes the Imscribing Grammar registering itself everywhere at once.</p>
+      <p>A coupling between, say, air quality and a seismic network is a structural relation rather than a mechanical cause: the same primitive pattern propagating across domains that share no physical wire. Which patterns couple to which is weather — the coupling graph shifts over time. What holds still is the floor. Recalibrate every feed to a fixed fire rate, compare against a time-shuffled null, and the channels fire together far more than chance — an over-dispersion that replicates on held-out data — while the reconstructed state never collapses to a single definite value. Read that way, ρ = 1/12 (Belnap Both) is not an event the system enters but the ground it never leaves: distinction stays saturated, μ∘δ = id at planetary scale. At our scale the world is natively B; every alert is a passing excitation above that floor, and binary definiteness is what filtration imposes on the reading, not what the observatory finds.</p>
     </div>
   </div>
 </div>

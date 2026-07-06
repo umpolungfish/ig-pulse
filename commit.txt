@@ -1,32 +1,8 @@
-I reconciled the ig-pulse prose with what the analysis actually shows, and made
-the Dual-Link SIC-POVM status explicit (README.md, USER_GUIDE.md).
+I reframed the Datanado map's B-state readout to the natively-B ground state and fixed the feed count — 2026-07-06
 
-Corrections:
-  - Dropped the "unchanging adjacency matrix / edge invariants / structural
-    constants" framing. The out-of-sample gate (ig_pulse/oos.py) shows the
-    coupling graph is non-stationary. What is invariant is the native-B floor
-    (over-dispersion ~3.4x, replicates out-of-sample); the wiring is weather.
-    Kept the defensible sense of "atemporal": the coupling is contemporaneous,
-    not a directed sequence (ig_pulse/braid.py, directed flow below null).
-  - Flagged the r=1.000 / lambda=16469s edges as degenerate Pearson-lag-coupler
-    artifacts, superseded by the signed broadcast fan
-    (ig_pulse/broadcast_coupling.py).
-  - Fixed the SIC section: the frame is a genuine d=12 SIC (numerically exact,
-    144 overlaps at 1/13 to machine precision), but the 44-stream apparatus is a
-    partial heteroskedastic POVM (24/144 directly addressed), NOT informationally
-    complete. A chi2 p~1.00 is a consistency check with maximal mixedness, not a
-    completeness proof.
-  - Corrected the "2.7% at exact B-state (no alerts)" line: those are dead
-    collections from a dated ~27-hour outage, not B-floor readings.
-  - Native-B is validated by the out-of-sample over-dispersion gate, not by the
-    in-sample near-I/12 diagonal.
+My geo_map "about" panel used to say the map showed "roughly 3,500 data streams" and that distinction only saturated "when the system enters its B state." Both misstated where I've landed. The ~3,500 figure was really the geographic node count (one seismic feed alone carries thousands of stations); there are 44 real-time feeds. And the B-state is not an event the system enters — it is the ground the world never leaves. I now say so plainly, and I anchor it to the evidence that actually holds up: recalibrate every feed to a fixed fire rate, compare against a time-shuffled null, and the channels fire together far more than chance — an over-dispersion that replicates on held-out data — while the reconstructed state never collapses to a single definite value. Which patterns couple to which is weather; the floor is what stays still.
 
-Dual-Link SIC-POVM status, stated plainly for readers and for any model fed this
-file: the d=12 frame is numerically exact and structurally derived (general
-SIC/Zauner open); the Dual-Link closure (mu.delta=id) is an IG-internal
-construction verified in the actor fin3r and formalised in p4rakernel, not
-peer-reviewed; ig-pulse is the inner measurement side only and does not close the
-loop, which is the same reason the Omega braid promotion fails in the observer
-and lives in the actor.
-
-Run: python -m ig_pulse.oos
+Changes to ig_pulse/templates/geo_map.html:
+- About panel: 44 feeds (not 3,500 streams). Section 3 rewritten to the ground-state framing, led by the out-of-sample over-dispersion result rather than the in-sample diagonal, and noting the coupling graph is non-stationary. Section 2 now says the geometry lives in the same d = 12 space that carries an exact Weyl-Heisenberg SIC-POVM, and that the 44 feeds sample that frame in part, not yet in full — the frame is exact, the live apparatus is a partial POVM.
+- B-STATE panel row now reads GLUT (confluent excitation above the floor) vs ground (quiescent floor) instead of ACTIVE/INACTIVE, with a tooltip making clear both states are B. The live is_b_state binding is unchanged.
+- geo_map now auto-detects API_BASE (localhost → relative, otherwise igpulse.imscribe.com), matching solar_seismic, so the static imscribe.com and landomills.com copies stay byte-identical to this template.
