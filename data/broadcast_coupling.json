@@ -1,0 +1,251 @@
+{
+  "fans": {
+    "criticality": {
+      "broadcast_plus": [
+        [
+          "recognition",
+          0.17045758573261494
+        ]
+      ],
+      "broadcast_minus": [],
+      "is_fork": false
+    },
+    "parity": {
+      "broadcast_plus": [],
+      "broadcast_minus": [
+        [
+          "stoichiometry",
+          -0.19721794631324518
+        ]
+      ],
+      "is_fork": false
+    },
+    "kinetics": {
+      "broadcast_plus": [
+        [
+          "recognition",
+          0.20128788301635903
+        ],
+        [
+          "coupling",
+          0.18222301120215426
+        ]
+      ],
+      "broadcast_minus": [
+        [
+          "dimensionality",
+          -0.2887633634414681
+        ],
+        [
+          "granularity",
+          -0.27290828344318635
+        ],
+        [
+          "chirality",
+          -0.20620956416012914
+        ]
+      ],
+      "is_fork": true
+    },
+    "topology": {
+      "broadcast_plus": [
+        [
+          "fidelity",
+          0.3050113573273183
+        ],
+        [
+          "chirality",
+          0.2774962561149572
+        ]
+      ],
+      "broadcast_minus": [],
+      "is_fork": false
+    },
+    "coupling": {
+      "broadcast_plus": [
+        [
+          "stoichiometry",
+          0.32587117002478455
+        ],
+        [
+          "chirality",
+          0.2791467662177637
+        ],
+        [
+          "kinetics",
+          0.18222301120215426
+        ]
+      ],
+      "broadcast_minus": [],
+      "is_fork": false
+    },
+    "dimensionality": {
+      "broadcast_plus": [
+        [
+          "granularity",
+          0.16870109547929413
+        ]
+      ],
+      "broadcast_minus": [
+        [
+          "recognition",
+          -0.4370836521329978
+        ],
+        [
+          "stoichiometry",
+          -0.30128673288848823
+        ],
+        [
+          "kinetics",
+          -0.2887633634414681
+        ],
+        [
+          "fidelity",
+          -0.15803326512131163
+        ]
+      ],
+      "is_fork": true
+    },
+    "stoichiometry": {
+      "broadcast_plus": [
+        [
+          "recognition",
+          0.4047403258673083
+        ],
+        [
+          "coupling",
+          0.32587117002478455
+        ]
+      ],
+      "broadcast_minus": [
+        [
+          "dimensionality",
+          -0.30128673288848823
+        ],
+        [
+          "parity",
+          -0.19721794631324518
+        ],
+        [
+          "granularity",
+          -0.18274186286584623
+        ]
+      ],
+      "is_fork": true
+    },
+    "granularity": {
+      "broadcast_plus": [
+        [
+          "dimensionality",
+          0.16870109547929413
+        ]
+      ],
+      "broadcast_minus": [
+        [
+          "kinetics",
+          -0.27290828344318635
+        ],
+        [
+          "recognition",
+          -0.18749228413088487
+        ],
+        [
+          "stoichiometry",
+          -0.18274186286584623
+        ]
+      ],
+      "is_fork": true
+    },
+    "winding": {
+      "broadcast_plus": [],
+      "broadcast_minus": [],
+      "is_fork": false
+    },
+    "chirality": {
+      "broadcast_plus": [
+        [
+          "recognition",
+          0.28143629746255905
+        ],
+        [
+          "coupling",
+          0.2791467662177637
+        ],
+        [
+          "topology",
+          0.2774962561149572
+        ]
+      ],
+      "broadcast_minus": [
+        [
+          "kinetics",
+          -0.20620956416012914
+        ]
+      ],
+      "is_fork": true
+    },
+    "recognition": {
+      "broadcast_plus": [
+        [
+          "stoichiometry",
+          0.4047403258673083
+        ],
+        [
+          "chirality",
+          0.28143629746255905
+        ],
+        [
+          "kinetics",
+          0.20128788301635903
+        ],
+        [
+          "criticality",
+          0.17045758573261494
+        ]
+      ],
+      "broadcast_minus": [
+        [
+          "dimensionality",
+          -0.4370836521329978
+        ],
+        [
+          "granularity",
+          -0.18749228413088487
+        ]
+      ],
+      "is_fork": true
+    },
+    "fidelity": {
+      "broadcast_plus": [
+        [
+          "topology",
+          0.3050113573273183
+        ]
+      ],
+      "broadcast_minus": [
+        [
+          "dimensionality",
+          -0.15803326512131163
+        ]
+      ],
+      "is_fork": true
+    }
+  },
+  "pc1_share": 0.18492178422515362,
+  "rho_diagonal": [
+    0.07485564555888115,
+    0.0729026741454415,
+    0.10237461183229928,
+    0.1060955015949722,
+    0.08317998299254581,
+    0.06601756886312539,
+    0.0882286742932204,
+    0.06203757676489006,
+    0.10337637273356229,
+    0.11657453804560584,
+    0.04578289824169446,
+    0.0785739549337614
+  ],
+  "purity_full": 0.11540071363307222,
+  "purity_diagonal": 0.08811141056916946
+}
