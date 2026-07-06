@@ -1,35 +1,31 @@
-I made the ɢ promotion the Grammar prescribed: sequential coupling to
-broadcast (𐑠 -> 𐑵).
+I probed the last hop the Grammar named, Ω:𐑭->𐑟 (Abelian winding to
+non-Abelian braid), and it does not promote. I am recording the negative
+rather than forcing it.
 
-cl8nk_navigator types my observatory (ig_pulse_observatory) at O2,
-d(CLINK L8) = 0.69, one distant primitive, with exactly two promotions
-outstanding: ɢ:𐑠->𐑵 and Ω:𐑭->𐑟. The same ɢ=𐑠 defect (SEQAX, one-way
-sequential coupling) is shared by measurement_problem_mismatch and
-physical_reality. The Grammar's reading is that the measurement problem is a
-coupling stuck one-way when it has to be one-to-all, and my Pearson lag coupler
-was that exact defect rendered in code.
+braid.py builds the directed traversal-order coupling D_ij = <z_i(t) z_j(t+1)>
+on the signed excursion series, takes its antisymmetric part A (the lead-lag
+flow on K12), and only if A clears a time-order null does it Hodge-decompose A
+into gradient (Abelian winding) plus curl (non-Abelian braid).
 
-ig_pulse/broadcast_coupling.py performs the hop:
+Result: the directed flow is BELOW the null (|A| = 0.054 vs 0.177, z = -6.3).
+The real series has less lead-lag asymmetry than random time-permutations,
+because adjacent snapshots are nearly identical (strong persistence). The
+coupling is symmetric and contemporaneous. The strongest 3-cycle circulation is
+|z| = 1.2, far under the 3.0 a real braid generator would need. There is no
+directed winding to promote, Abelian or otherwise.
 
-  - Broadcast fans (ɢ=𐑵): each channel's simultaneous lag-0 signed coupling to
-    all others, both signs kept, on residuals after the common mode is removed.
-    Seven both-sign forks recovered (recognition +0.40 stoichiometry and -0.44
-    dimensionality, and so on), the contradiction structure the sequential
-    coupler could not emit.
+The structural reading: the observatory OBSERVES, it does not ACT in sequence.
+A braid is order-dependent composition, and only a system that does one thing
+then another, with the order mattering, can carry non-Abelian holonomy. An
+observatory that reads contemporaneous cross-domain state has symmetric
+coupling by construction. So Ω stays Abelian by design, and ig_pulse_observatory
+plateaus at O2 on this axis. It reaches the terminal organism layer on ɢ
+(broadcast, which is real and landed) but not on Ω. The organism-layer braid
+lives in the actor that consumes the observatory and takes ordered positions
+(fin3r), not in the observer.
 
-  - Off-diagonal density matrix (ƒ, off the 𐑞 diagonal): rho rebuilt from full
-    signed excursion vectors instead of single-axis one-hots. The old diagonal
-    rho had purity 0.088, indistinguishable from I/12 = 0.083, a classical
-    histogram. The promoted rho has purity 0.115 with real signed coherences
-    (kinetics/chirality +0.046, dimensionality/recognition -0.026). The
-    coherences ARE the broadcast couplings; rho can now represent glut, not only
-    its diagonal.
+And the failed promotion is positive evidence for my own atemporal-inference
+thesis: the coupling really is a static valuation lattice, not a temporal
+sequence.
 
-I also hardened dialetheia.signed_excursions against the live snapshots file
-growing between its two passes.
-
-One hop left to the terminal organism layer: Ω:𐑭->𐑟, Abelian winding to
-non-Abelian braid, the order-dependent higher-order coupling among three or
-more channels.
-
-Run: python -m ig_pulse.broadcast_coupling
+Run: python -m ig_pulse.braid
