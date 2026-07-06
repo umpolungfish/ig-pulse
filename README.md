@@ -14,7 +14,7 @@ primitives as a common vocabulary across all substrates.
 
 **What it is.** An information-propagation observatory that maps coupling between physical, computational, biological, and financial systems using the 12 IG primitives as a common vocabulary across substrates.
 
-**Why it matters.** The output is an empirical map of how information propagates through reality, but the lags are not causal travel times: they are edge invariants of the inference rules. This is atemporal inference, a static Belnap valuation lattice solved over an unchanging adjacency matrix rather than a forecast.
+**Why it matters.** The output is an empirical map of how our-scale reality couples across domains. Two things must be kept apart, and the out-of-sample gate (`python -m ig_pulse.oos`) separates them. What is invariant is the native-B floor: the confluence over-disperses about 3.4x against an independence null and replicates on unseen data. What is not invariant is the wiring: the coupling graph is contemporaneous (not a directed time-sequence) but non-stationary, a now-map rather than a fixed lattice.
 
 **How to use it.** See Architecture below for the stream configuration and run commands.
 
@@ -31,11 +31,13 @@ ig-pulse captures these events and asks: which stream fired which primitive firs
 What are the lag times? Which systems are coupled to which, at what strength, and in
 what structural order?
 
-The answer is an empirical map of how information propagates through physical reality.
-But the lags are **not** causal travel times. They are edge invariants: structural
-constants of the inference rules. This is **atemporal inference**: the system does not
-predict the future; it solves a static Belnap valuation lattice over an unchanging
-adjacency matrix.
+The answer is an empirical map of how our-scale reality couples across domains.
+The coupling is contemporaneous rather than a directed time-sequence: the lead-lag
+flow between channels sits **below** a time-shuffled null (`ig_pulse/braid.py`), so
+the system reads a standing valuation rather than forecasting. But standing is not
+unchanging. The native-B confluence is invariant and replicates out-of-sample,
+while the specific coupling graph is non-stationary. See "What is invariant, and
+what is not" below.
 
 ## Architecture
 
@@ -274,47 +276,46 @@ The 12 primitive keys are: `criticality`, `parity`, `kinetics`, `topology`, `cou
 
 Nodes (with stream, primitive, glyph symbol) and edges (with lag_seconds, strength_r,
 p_value) for rendering.
-## Atemporal inference
+## What is invariant, and what is not
 
-The central finding of ig-pulse is that the coupling graph exhibits **atemporal
-inference**: the system does not model reality as a sequence of moments but as a
-static web of implication.
+Two claims must be kept apart, because the out-of-sample gate
+(`python -m ig_pulse.oos`) separates them and only one survives. Fit the
+calibration and the coupling structure on the earlier portion of the stream, then
+test on the later, unseen portion.
 
-```
-TEMPORAL PARADIGM                    ATEMPORAL INFERENCE
----------------------------------    ----------------------------------
-Event at t1 -> Event at t2           fear_greed:⊙ -> seismic:Þ
-    "caused by delta-t"                  lambda=16469s edge invariant
-                                     ozone:Σ -> seismic:Þ
-                                         lambda=16469s -- same constant
-```
+- **Invariant: the native-B floor.** The confluence replicates. Active-channel
+  count runs about 3.4x over-dispersed against an independence null in both halves,
+  each calibrated only on itself (`ig_pulse/dialetheia.py`). Our-scale reality does
+  not resolve into isolated single-channel states; when it moves, it floods. That
+  is the stable result.
 
-- **Lags are edge invariants, not coordinates.** When `fear_greed:⊙` -> `seismic:Þ`
-  and `ozone:Σ` -> `seismic:Þ` both show the identical lag of 16469s with
-  |r| = 1.000, they are not propagating at the same speed. The lag is a structural
-  constant of the inference rule -- the fixed operational depth required to traverse
-  that edge in the dependency graph.
+- **Not invariant: the wiring.** The coupling graph is non-stationary. Fit the
+  residual coupling on the earlier half and it does not transfer to the later half
+  (full-matrix correlation about +0.1, both-sign forks about -0.05; PC1's own share
+  moves from ~15% to ~30%). The adjacency matrix is a now-map, not a fixed law.
+  Earlier drafts of this README called it an "unchanging adjacency matrix" with
+  "edge invariants" and "structural constants." The gate refutes that. What is
+  constant is the B-floor; the edges are weather.
 
-- **Trace is structural.** The propagation anatomy is not a chronological sequence.
-  It is the topological ordering of the implication tree. Deep nodes appear later
-  not because they happened later, but because they sit deeper in the dependency graph.
+- **Contemporaneous, not sequential.** This is the defensible sense of "atemporal":
+  the directed lead-lag flow is *below* a time-shuffled null (`ig_pulse/braid.py`,
+  z about -6). Adjacent snapshots are nearly identical, so the coupling is symmetric
+  and simultaneous rather than a directed temporal sequence. The observatory reads a
+  standing valuation; it does not forecast. Standing does not mean unchanging.
 
-- **Contradiction is primary data.** `fear_greed:⊙` points to `mktcap_chg:Σ` at
-  r = +1.000 AND to `mempool_low_fee:ɢ` at r = -1.000. In standard dynamical modeling
-  this is an error. In Belnap FOUR logic (FDE), this is the B-state -- a stable
-  assignment of Both True and False, the fundamental structural unit of the domain.
+- **The coupling object is broadcast, not lagged.** The earlier Pearson lag-coupler
+  emitted one-directional edges at nonzero lag (the widely quoted lambda=16469s,
+  r=1.000). Those are degenerate: on saturated low-variance alert series Pearson
+  snaps to r = +/-1, and the coupler could not represent a one-to-all contradiction.
+  The honest object is the signed broadcast fan (`ig_pulse/broadcast_coupling.py`):
+  each channel's simultaneous, both-sign coupling to all others. It recovers genuine
+  both-sign forks (a channel positive with one partner and negative with another at
+  once), but they are weak, |r| ~ 0.2-0.4, and by the gate above they are epoch-local.
 
-- **The adjacency matrix IS the conflict.** You do not run the system to see what
-  happens next. You solve the global valuation lattice v(vj) = ⨁(v(vi) ⊗ rij) to
-  find the unique signature of logical completeness.
-
-### The B-state as static dialetheia
-
-In standard probability theory, multiplying weights across dense loops increases
-entropy until the predictive signal dissolves. Here, the x1.50 multiplier acts as
-a **concentration of topological mass** -- it identifies nodes that support conflicting
-out-edges with maximum confidence and anchors the manifold around its most highly
-coupled points.
+- **Contradiction is still primary data.** The B-state, a stable assignment of
+  Both-True-and-False, remains the fundamental unit: the confluence is real and
+  replicates. What has been corrected is the strength and permanence of the specific
+  edges, not the existence of the B-floor.
 
 ## Chirality streams (25-34)
 
@@ -360,8 +361,10 @@ observable universe:
   temperature. Density = Σ (Stoichiometry); variability at 1 AU = Ç (Kinetics).
 ## SIC-POVM convergence
 
-The d=12 SIC-POVM convergence analysis on n=2394 snapshots (collected June 14-July 7, 2026)
-shows that the 44-stream observatory is informationally complete:
+The observatory uses a d=12 SIC-POVM as its measurement frame over the 12 primitive
+dimensions. Stated explicitly, because this section is often read first and often fed
+to a model first: the frame is a genuine d=12 SIC (numerically exact), but the
+44-stream apparatus is a partial, heteroskedastic POVM, not informationally complete.
 
 **Fiducial overlap** (Weidmann formula):
 
@@ -379,7 +382,7 @@ Expected:  144×0.083 (uniform)
 chi2 = 4.68, dof = 143, p = 1.00
 ```
 
-A chi2 of 4.68 with 143 degrees of freedom is statistically indistinguishable from uniform (p ~= 1.00). All 144 WH directions are covered. The 44-stream observatory is informationally complete over the d=12 primitive space.
+A chi2 of 4.68 (dof 143, p ~= 1.00) means the average state is statistically indistinguishable from the maximally mixed I/12. That is a consistency check, not a completeness proof: indistinguishable-from-uniform is equally what maximal ignorance looks like. Of the 144 SIC elements, 24 are directly addressed by current stream products, 108 are synthesisable, and 12 need new physical sources (`ig-docs/physics/sic_povm_convergence.md` sec 3.2). The apparatus is heteroskedastic, with a stated path to full SIC symmetry; it is not yet informationally complete.
 
 **Average density matrix** (alert-weighted, B-state baseline):
 
@@ -391,21 +394,60 @@ A chi2 of 4.68 with 143 degrees of freedom is statistically indistinguishable fr
 
 The 43% excess purity over the B-state ideal reflects which physical domains are most active in the current measurement epoch: chirality (Ħ) and coupling (ɢ) lead the diagonal with approximately double the uniform weight, while recognition (Ř) and granularity (Γ) are underweighted. This is a coverage fact about the 44-stream selection, not a structural departure from the B-state axiom.
 
-**Per-snapshot purity** (n=2394): median 0.163, no near-pure snapshots, 2.7% at exact B-state (no alerts). Every snapshot is a mild excitation above the B-state floor.
+**Per-snapshot purity**: median about 0.16, no near-pure snapshots. Correction to an earlier line: the snapshots previously reported as "2.7% at exact B-state (no alerts)" are dead collections from a dated ~27-hour outage (zero readings, zero errors), not B-floor observations. Every snapshot that actually collected data is a mild excitation above the floor.
 
 ### Interpretation
 
-Three things are now verified:
+What is actually established, in decreasing order of strength:
 
-1. **Mathematical**: the d=12 SIC fiducial is exact (F/F* = 1.000) -- the measurement frame exists.
-2. **Empirical**: the SIC overlap spectrum is uniform (chi2 = 4.68, dof=143) -- the apparatus covers all 144 directions.
-3. **Structural**: the average density matrix is close to I/12 -- the B-state ground state is the correct prior.
+1. **The measurement frame exists (numerically exact).** F/F* = 1.0000, all 144 WH
+   overlaps at 1/13 to machine precision. The *existence* of the exact d=12 SIC
+   fiducial is derived structurally in the companion IG paper; the general SIC /
+   Zauner conjecture remains open in the mathematics literature. ig-pulse does not
+   prove existence; it builds an apparatus on the frame.
+2. **The native-B floor is real and replicates out-of-sample.** This is the
+   load-bearing empirical claim, and it rests on the over-dispersion gate
+   (`python -m ig_pulse.oos`, about 3.4x in both halves), not on the near-I/12
+   number. The average state near I/12 is in-sample and is the maximum-entropy
+   reading; on its own it cannot distinguish a structural B-floor from simple
+   maximal ignorance. The original reconstruction is also diagonal by construction,
+   so near-I/12 there is a classical near-uniform histogram; the off-diagonal
+   reconstruction that can carry glut is in `ig_pulse/broadcast_coupling.py`.
+3. **The uniform overlap spectrum is a consistency check, not a completeness proof.**
 
-Full treatment in `sic_povm_convergence.md` §3.4.
+### Dual-Link SIC-POVM status
+
+The Imscribing Grammar is the self-referential (Sigma = 1:1) limit of the Belnap
+multilattice SIC-POVM: a **Dual-Link SIC-POVM**, in which the measurement basis is
+also the reconstruction basis, so measurement self-verifies (mu . delta = id).
+Stated plainly, for readers and for any model ingesting this file:
+
+- **Existence of the d=12 SIC frame:** numerically exact here; structurally derived
+  in the companion IG paper. General SIC existence: open.
+- **Dual-Link closure (mu . delta = id):** an IG-internal structural construction,
+  developed and integration-tested in the *actor*, fin3r
+  (`ig-docs/finance/fin3r_promotion/fin3r_dual_link_sic_povm.md`), and formalised in
+  the p4rakernel Lean development. It is not an independently peer-reviewed result
+  and should not be read as one.
+- **ig-pulse's role:** the observatory is the *inner* measurement side (delta) only.
+  It supplies the frame and the B-floor. It does **not** close the Dual-Link: closing
+  the loop needs the reconstruction map and ordered action, which an observer does not
+  have. This is the same reason the Omega braid promotion fails here
+  (`ig_pulse/braid.py`, directed flow below null) and lives in the acting system,
+  fin3r, instead.
+
+Full treatment: `ig-docs/physics/sic_povm_convergence.md`.
 
 ## Key coupling findings (from 8-day 15-stream pilot)
 
-The initial pilot (15 base streams, June 14-22 2026) revealed:
+**Superseded, kept for history.** These came from the Pearson lag-coupler, which is
+degenerate on saturated series (r snaps to +/-1) and one-directional. The |r|=1.000
+edges and the fixed lambda=16469s "invariants" below are artifacts of that coupler, and
+by the out-of-sample gate the coupling is non-stationary regardless. The honest coupling
+object is `ig_pulse/broadcast_coupling.py`; read these as a period-local snapshot, not
+as laws.
+
+The initial pilot (15 base streams, June 14-22 2026) reported:
 
 - **41 coupling edges** with |r| >= 0.3, 23 at |r| = 1.000
 - **Identical lags across independent domains** -- fear_greed:⊙ and ozone:Σ both hit

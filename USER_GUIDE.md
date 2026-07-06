@@ -152,9 +152,11 @@ each (stream, primitive) pair in the lookback window, ordered topologically.
 
 ### Snapshot interpretation
 
-A snapshot with `"is_b_state": true` means ≥3 concurrent primitive alerts —
-a dialetheic confluence. The `multiplier` field shows the topological mass coefficient
-(1.00× → 1.50×).
+A snapshot with `"is_b_state": true` means at least 3 concurrent primitive alerts,
+a dialetheic confluence. Note that a 3-alert threshold is loose (independent channels
+would often clear it); the calibration-proof test of native-B is the over-dispersion
+gate in `ig_pulse/dialetheia.py`, not the raw count. The `multiplier` field shows the
+topological mass coefficient (1.00x to 1.50x).
 
 The `primitives` field sums alerts per primitive. If `chirality: 3`, that means
 three separate streams contributed chirality alerts (e.g., stereo_cr:Ħ=1 +
@@ -163,25 +165,22 @@ ace_epam:Ħ=1 + stereo_sept:Ħ=1).
 
 ### Coupling edge interpretation
 
-An edge like:
-```json
-{
-  "source_stream": "fear_greed", "source_primitive": "criticality",
-  "target_stream": "seismic_energy", "target_primitive": "topology",
-  "lag_seconds": 16469, "strength_r": 1.0000, "p_value": 0.0000
-}
-```
-
-Means: `fear_greed:⊙` at time t predicts `seismic_energy:Þ` at time t+16469s with
-r=+1.000. This is **not** a causal claim — the lag is an edge invariant, a structural
-constant of the inference rule, not a signal travel time.
+Read edges with care. The `couple` command uses a Pearson lag-coupler that is
+degenerate on saturated low-variance series (r snaps to +/-1) and only emits
+one-directional edges, so an edge like `lag_seconds: 16469, strength_r: 1.0000` is a
+coupler artifact, not a structural constant. Two facts from the out-of-sample gate
+(`python -m ig_pulse.oos`): the real coupling is contemporaneous (lag-0), and the
+coupling graph is non-stationary, so any edge is a now-map, not an invariant. The
+honest coupling object is the signed broadcast fan in `ig_pulse/broadcast_coupling.py`.
+What replicates across epochs is the native-B confluence, not the individual edges.
 
 ### B-state reports
 
-A B-state report shows the propagation anatomy — the topological ordering of the
-implication tree. Nodes earlier in the trace are not "causes"; they sit at shallower
-depth in the dependency graph. Deep nodes require traversing more edge invariants
-to reach.
+A B-state report shows the propagation anatomy, the topological ordering of the
+implication tree for one snapshot. Nodes earlier in the trace are not "causes"; they
+sit at shallower depth in the current dependency graph. Treat that graph as a
+period-local now-map: by the out-of-sample gate it reshuffles between epochs. What is
+stable is the B-floor, not the specific ordering.
 
 ### Chirality stream interpretation
 

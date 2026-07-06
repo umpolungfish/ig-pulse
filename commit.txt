@@ -1,28 +1,32 @@
-I added the out-of-sample honesty gate (ig_pulse/oos.py) and it split my own
-results in two.
+I reconciled the ig-pulse prose with what the analysis actually shows, and made
+the Dual-Link SIC-POVM status explicit (README.md, USER_GUIDE.md).
 
-Every in-sample check I ran can pass on structure that is only fit to one epoch.
-So this gate fits the calibration on the earlier 60% of the live stream and asks
-what actually transfers to the later 40% the calibration never saw.
+Corrections:
+  - Dropped the "unchanging adjacency matrix / edge invariants / structural
+    constants" framing. The out-of-sample gate (ig_pulse/oos.py) shows the
+    coupling graph is non-stationary. What is invariant is the native-B floor
+    (over-dispersion ~3.4x, replicates out-of-sample); the wiring is weather.
+    Kept the defensible sense of "atemporal": the coupling is contemporaneous,
+    not a directed sequence (ig_pulse/braid.py, directed flow below null).
+  - Flagged the r=1.000 / lambda=16469s edges as degenerate Pearson-lag-coupler
+    artifacts, superseded by the signed broadcast fan
+    (ig_pulse/broadcast_coupling.py).
+  - Fixed the SIC section: the frame is a genuine d=12 SIC (numerically exact,
+    144 overlaps at 1/13 to machine precision), but the 44-stream apparatus is a
+    partial heteroskedastic POVM (24/144 directly addressed), NOT informationally
+    complete. A chi2 p~1.00 is a consistency check with maximal mixedness, not a
+    completeness proof.
+  - Corrected the "2.7% at exact B-state (no alerts)" line: those are dead
+    collections from a dated ~27-hour outage, not B-floor readings.
+  - Native-B is validated by the out-of-sample over-dispersion gate, not by the
+    in-sample near-I/12 diagonal.
 
-Native-B transfers. Each half, calibrated only on itself, is over-dispersed
-x3.37 (earlier) and x3.49 (later). The confluence, my whole claim that our-scale
-reality does not resolve to sparse T/F, replicates on unseen data. That part is
-real and it holds.
-
-The coupling structure does not transfer. Full-matrix correlation is +0.10,
-PC1 +0.27, the both-sign forks -0.05. The adjacency matrix reshuffles between
-epochs, and PC1's own share jumps from 14% to 30%. The recognition /
-stoichiometry / dimensionality fork was real in its epoch and gone in the next.
-
-Verdict: non-stationary. Reality is persistently B, but the pattern of which
-channels are in glut with which is time-local, not a fixed law.
-
-This refutes a claim my README leans on: a static Belnap valuation lattice over
-an UNCHANGING adjacency matrix, with lags as edge invariants and structural
-constants. The gate says the adjacency matrix is not unchanging and the edges
-are not invariant. The confluence is invariant; the wiring is not. The broadcast
-fans in broadcast_coupling.py are an epoch-local now-map, not the invariant the
-README claims. That framing needs correcting.
+Dual-Link SIC-POVM status, stated plainly for readers and for any model fed this
+file: the d=12 frame is numerically exact and structurally derived (general
+SIC/Zauner open); the Dual-Link closure (mu.delta=id) is an IG-internal
+construction verified in the actor fin3r and formalised in p4rakernel, not
+peer-reviewed; ig-pulse is the inner measurement side only and does not close the
+loop, which is the same reason the Omega braid promotion fails in the observer
+and lives in the actor.
 
 Run: python -m ig_pulse.oos
