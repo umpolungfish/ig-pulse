@@ -1,3 +1,14 @@
+I carried the natively-B framing onto the Seismic Coupling map too — 2026-07-06
+
+Added a fourth "about" section to solar_seismic.html, "The ground beneath the
+couplings": the arcs are the weather (the coupling graph is non-stationary), and
+underneath sits the B-state floor the system never leaves — anchored to the same
+out-of-sample over-dispersion result as the Datanado panel, and honest that this
+apparatus samples the exact d = 12 SIC frame only in part. Synced byte-identical
+to imscribe.com and landomills.com.
+
+---
+
 I reframed the Datanado map's B-state readout to the natively-B ground state and fixed the feed count — 2026-07-06
 
 My geo_map "about" panel used to say the map showed "roughly 3,500 data streams" and that distinction only saturated "when the system enters its B state." Both misstated where I've landed. The ~3,500 figure was really the geographic node count (one seismic feed alone carries thousands of stations); there are 44 real-time feeds. And the B-state is not an event the system enters — it is the ground the world never leaves. I now say so plainly, and I anchor it to the evidence that actually holds up: recalibrate every feed to a fixed fire rate, compare against a time-shuffled null, and the channels fire together far more than chance — an over-dispersion that replicates on held-out data — while the reconstructed state never collapses to a single definite value. Which patterns couple to which is weather; the floor is what stays still.
