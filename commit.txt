@@ -1,172 +1,52 @@
-fix: stop the Datanado map API from hanging under concurrent polling — 2026-07-02
+I added an honest, calibration-proof B-state test to ig-pulse
+(ig_pulse/dialetheia.py).
 
-Root cause of the blank geographic maps: /api/all (polled every 5s by every open
-map) hung until requests piled up to Fly's 25-concurrent hard limit, at which
-point the proxy reported "PR01 no known healthy instances" and everything timed
-out. Two compounding causes, both fixed:
+Why I needed it: my old is_b_state rule (three or more raw alerts) and my
+diagonal density matrix could not tell a genuine dialetheia from a stuck
+needle. A few hand-tuned thresholds pinned channels like coupling at their
+ceiling in nearly every snapshot, which both manufactured a constant alert
+floor and degenerated the Pearson coupler into spurious r = +/- 1.000 edges.
+So my headline 98.5% B rate was partly an artifact of my own calibration, and
+I wanted a test that would survive a skeptic recalibrating everything against
+me.
 
-1. Single-threaded server. geo_viz.main() ran app.run() without threaded=True, so
-   the Flask dev server handled one request at a time — any slow request stalled
-   all others. Now runs with threaded=True.
-2. Whole-file re-parse every reload. GeoEngine._load_if_needed() called
-   load_snapshots(), parsing the entire append-only snapshots.jsonl (local copy
-   ~400 MB, each snapshot ~6500 readings) just to take [-1], every 5s. Added
-   schema.load_latest_snapshot(), which seeks backward from EOF and parses only
-   the last non-empty line — constant cost (~0.4s vs a multi-minute, multi-GB
-   full parse). geo_viz now uses it; load_snapshots unchanged (coupler/cli still
-   need full history).
+What the module does: it replays every stored snapshot under data-driven
+thresholds and asks three falsifiable questions.
+  1. Headroom. Recalibrate each channel to a fixed marginal fire rate from its
+     own empirical CDF, two-sided and direction-agnostic, so no channel can be
+     a stuck needle by construction.
+  2. Confluence. Compare the count of simultaneously active channels against a
+     time-shuffled null that keeps each channel's marginal but destroys
+     cross-channel synchrony.
+  3. Glut. Keep the sign of each excursion, remove the leading common mode, and
+     look for residual both-sign forks (a channel positively coupled to one
+     partner and negatively to another at the same time).
 
-Verified: load_latest_snapshot matches `tail -n 1` on the real ~400 MB file and
-handles empty/missing files + missing trailing newline; geo_viz imports clean.
-Remaining optional follow-up: cap/rotate snapshots.jsonl in the collector so the
-file stops growing unbounded. Restart the live server to pick up the change.
+What it found on my current data (4121 functioning snapshots; the 64 empties
+were a dated 27-hour outage, not quiet-world readings):
+  - Every channel recalibrates to about 0.30, coupling included. The needles
+    are unstuck.
+  - Simultaneous activity is over-dispersed by 3.17x against the null. Nine or
+    more channels co-fire 9% of the time where independence gives 0.4%. Reality
+    floods together far beyond chance, and its low tail is thin too: it is
+    quiet or flooded, never a lone channel.
+  - No single common driver. PC1 carries only 18.5% of channel variance and its
+    loadings are mixed sign, so even the leading mode is a contrast, not a
+    global excitation.
+  - Seven both-sign forks survive removing the common mode (recognition is
+    +0.41 with stoichiometry and -0.44 with dimensionality, and so on). Opposed
+    channels are both live, locked in anti-phase.
 
----
+Verdict: my native-B reading survives honest recalibration, sign retention,
+and common-mode removal. It is not saturation, not one common driver, and not
+gappy exclusion. It is multi-factor oppositional confluence, the structural
+signature of Belnap B.
 
-coupler performance + map UX (mobile, collapsible warnings, explainers) — 2026-07-01
+Still to do, and the reason I am keeping this as a separate module first:
+fold this calibration back into the live collector thresholds, replace the
+three-alert is_b_state heuristic with the confluence statistic, swap the
+degenerate Pearson coupler for the signed residual correlation, and give the
+density matrix real off-diagonal coherence so it can represent glut instead of
+only its diagonal.
 
-coupler.py
-- Fixed stream explosion: per-station seismic streams (seismic_{NET}_{STA})
-  collapse to their network (seismic_net_{NET}) for coupling via
-  _coupling_stream_name(). Raw per-station readings untouched, so the geo map's
-  receiver network is unaffected. Active series ~3591 -> 122.
-- Rewrote series building as a single pass (_build_series) with max-alert
-  aggregation per timestamp; replaces the old O(streams*prims*snaps*readings) scan.
-- Vectorized _cross_correlate: r for every lag at once via prefix sums + one
-  FFT-backed cross-correlation; p-value computed only for the winning lag.
-  Validated identical to the naive loop (0 mismatches / 400 trials, tol 1e-6).
-- Full ~2516-snapshot dataset: analyze() ~50 days -> ~18s. Now prints
-  "[coupler] N active series -> M pairs" up front so a run is observable.
-
-geo_viz.py
-- Enabled Jinja TEMPLATES_AUTO_RELOAD so template edits show without a full
-  restart on future runs.
-- Fixed solar-seismic arcs vanishing after the coupler collapse: coupling
-  edges now carry seismic_net_{NET} names, which no longer matched the
-  per-station coordinate map (every seismic arc was silently skipped).
-  api_solar_seismic() now resolves seismic_net_{NET} to that network's station
-  centroid (circular mean longitude so global nets don't wrap wrong) while
-  still supporting legacy per-station names. Arcs 0 -> 599 on current data.
-  Also guard all_stations = [] if the station catalog import fails.
-
-templates/solar_seismic.html
-- Fixed coupling arcs being cut at the date line / map edges. arcSegments()
-  used to force every arc westward, normalize to [-180,180], and split into
-  gapped segments at date-line crossings. Rewrote it to draw one continuous
-  polyline in a Pacific-centred longitude frame (VIEW_CENTER_LON=-160), taking
-  the shorter direction, with no normalization and no splitting. adjLon() now
-  brings lon into that same 360-wide window so nodes and arc endpoints align.
-- Mobile: 100dvh; chain cards scroll horizontally instead of stacking; map keeps
-  a min 45vh slice; warnings bar starts collapsed on mobile.
-- Warnings bar now fully collapsible (header strip + count badge + chevron);
-  collapse persists across the 60s refresh.
-- Added "?" Leaflet control opening an explanation modal (what you are seeing /
-  how this is possible / what it implies).
-
-templates/geo_map.html
-- Added full mobile layout: info panel becomes a collapsible bottom sheet;
-  primitive bar scrolls horizontally; sidebar 82vw; zoom slider/legend/tickbar
-  hidden on mobile; orientation/resize invalidateSize.
-- Added "?" Leaflet control opening the same style of explanation modal.
-
-NOTE: restart the live geo-viz server to pick up these changes (running instance
-has the old templates cached and the old geo_viz.py).
-
----
-
-geo_viz: megalithic reference layer + ley line analysis — 2026-06-29
-
-Option A (azimuth matching): 1803 resolved coupling arcs checked against
-10 proposed ley line great circles. Two lines have significant arc density:
-  - Teotihuacan -> Giza: 591 arcs (DC cluster 2.6 deg off, Cape Canaveral
-    4.4 deg off)
-  - Apollo-Athena axis (Mont-Saint-Michel -> Delos): 391 arcs (DC 0.2 deg
-    off, Cornell 2.2 deg off)
-
-Option B (site proximity): 1803 arcs tested against 13 sites at 300km
-threshold. Above-average (avg 109 arcs/site):
-  Teotihuacan 283, Stonehenge 270, Avebury 270, Carnac 174,
-  Great Pyramid 115. Noteworthy: FDA Enforcement -> GDELT Tone Spread
-  arc passes within 1km of Stonehenge.
-
-Code changes:
-- geo_viz.py: MEGALITHIC_SITES dict (13 ancient sites, lat/lon/region/tier)
-  added after PROJECTION_MAP; get_megalithic_geojson() method returns them
-  as a static GeoJSON FeatureCollection; api_all() now includes
-  "megalithic" key in the response payload
-- templates/geo_map.html: megalithicLayer (L.layerGroup); _megalithicLoaded
-  guard; renderMegalithic() renders gold dot markers with popup showing
-  name + region; wired into main data update loop and Leaflet layer control
-
----
-
-Empirical SIC-POVM density matrix verification — 2026-06-29
-
-Computed the d=12 density matrix and SIC overlap spectrum from 2394
-snapshots (~100 days) of live ig-pulse data. Results documented in
-sic_povm_convergence.md §3.4 and README.md.
-
-Key findings:
-
-1. Fiducial exact: WH frame potential F/F* = 1.0000 (SIC minimum
-   achieved to machine precision). data/sic_fiducial_d12.npy is
-   the true d=12 Zauner fiducial.
-
-2. SIC overlap spectrum uniform: chi2 = 4.68 against uniform null,
-   dof=143, p ~= 1.00. All 144 WH displacement elements covered.
-   Spread ratio 1.67x (ideal 1.0x). The 44-stream apparatus is
-   informationally complete over the d=12 primitive space.
-
-3. Average density matrix near B-state: purity 0.119 vs ideal 0.083,
-   entropy 2.275 vs ideal 2.485, Frobenius dist to I/12 = 0.188.
-   Per-snapshot purity median 0.163; no near-pure snapshots; 2.7%
-   at exact B-state.
-
-Critical interpretive fix: previous reconstruction used raw stream
-values as weights, causing coupling-tagged readings (large numerical
-values) to dominate. Correct construction uses ALERT LEVELS (0/1/2)
-as weights: alert=0 means the primitive is at B-state baseline and
-contributes zero. Alert=0 is not "no information" -- it is the
-B-state itself. Universe is always I/12; alerts are excitations above
-that floor.
-
-Files changed:
-- sic_povm_convergence.md: new §3.4 (Empirical Density Matrix
-  Verification); updated stream count 36->44 in abstract and §2.1;
-  updated discussion to reference three lines of evidence.
-- README.md: new section "SIC-POVM empirical verification" with
-  results table, B-state interpretation, and three-point summary.
-
----
-
-README: comprehensive update to 44 streams — 2026-06-29
-
-README was stale at 33 streams. Updated to reflect the current registry
-of 44 streams across 6 groups:
-
-- Base (1-16): added seismic_network (#9), corrected numbering throughout
-- Fine-grained market/macro (17-24): renumbered from 16-23
-- Biological chirality (25-29): renumbered from 24-28
-- Astrophysical chirality (30-34): renumbered from 29-33; stereo_sept now #34
-- SIC-POVM / fidelity gap fill (35-38): wiki_entropy, bgp_routing,
-  arxiv_ai, btc_spread -- previously undocumented
-- Extraplanetary (39-44): polar_geomag, neutron_monitor, goes_xrs, ligo_gw,
-  fermi_grb, dscovr_plasma -- previously undocumented
-
-Each stream table now includes the key name alongside stream description.
-Primitive assignments updated from reading each _stream_* function directly.
-Architecture diagram redrawn with 44-stream counts and 6-group layout.
-All "33 streams" references updated throughout.
-Old K_/H_ cross-primitive notation replaced with current Ħ_∞ -> Ç_Ù (Axiom A).
-Extraplanetary section added with per-stream structural rationale.
-Installation section: pip -> uv pip.
-
----
-
-geo_viz.py: deduplicate solar-seismic edge display rows — 2026-06-29
-
-api_solar_seismic() builds display rows from coupling.json edges.
-Multiple primitives (e.g. topology and dimensionality) on the same
-(cme_speed, seismic_II_GAR) pair at the same lag and r produce
-duplicate display rows. Added a seen set keyed on (src_stream,
-tgt_stream, lag, r) to emit only the first matching row per edge.
+Run: python -m ig_pulse.dialetheia
