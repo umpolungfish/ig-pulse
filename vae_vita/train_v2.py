@@ -93,24 +93,90 @@ def validate_model(model, num_samples=10000, device='cpu', use_onehot=False):
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="Train VAE-Vita V2")
-    parser.add_argument('--steps', type=int, default=50000)
-    parser.add_argument('--batch-size', type=int, default=2048)
-    parser.add_argument('--lr', type=float, default=3e-4)
-    parser.add_argument('--beta', type=float, default=0.3)
+    
+    EPILOG = (
+        "\u2500" * 60 + "\n"
+        "SUGGESTED COMMANDS\n"
+        "\u2500" * 60 + "\n"
+        "\n"
+        "  # Full train \u2014 50K steps, residual architecture (the standard):\n"
+        "  python3 train_v2.py\n"
+        "\n"
+        "  # Quick prototype on CPU:\n"
+        "  python3 train_v2.py --steps 5000 --batch-size 1024 --hidden-dim 256 \\\n"
+        "      --n-res-blocks 2 --device cpu\n"
+        "\n"
+        "  # Maximum SIC convergence \u2014 high lambda, long warmup:\n"
+        "  python3 train_v2.py --steps 100000 --lambda-sic 200.0 --warmup 10000\n"
+        "\n"
+        "  # One-hot encoding mode (49D input, more expressivity):\n"
+        "  python3 train_v2.py --use-onehot --hidden-dim 512 --batch-size 1024\n"
+        "\n"
+        "  # Resume from checkpoint with new steps:\n"
+        "  python3 train_v2.py --load vae_vita/vae_vita_v2.pt --steps 20000\n"
+        "\n"
+        "  # GPU train with deeper residual stack:\n"
+        "  python3 train_v2.py --steps 30000 --n-res-blocks 6 --device cuda\n"
+        "\n"
+        "  # Custom checkpoint path:\n"
+        "  python3 train_v2.py --checkpoint ./my_vae_vita_v2.pt\n"
+        "\n"
+        "TIPS:\n"
+        "  \u2022 V2 uses residual blocks + AdamW + cosine annealing\n"
+        "  \u2022 SIC weight linearly warms up over --warmup steps\n"
+        "  \u2022 Target SIC overlap: 1/13 \u2248 0.076923\n"
+        "  \u2022 Best checkpoint saved when SIC deviation OR accuracy improves\n"
+        "  \u2022 Log saved alongside checkpoint as .log.v2.json\n"
+        "  \u2022 One-hot mode uses 49D input (sum of primitive cardinalities)\n"
+        "    vs ordinal mode's 12D \u2014 slower but more expressive\n"
+    )
+    
+    parser = argparse.ArgumentParser(
+        description=(
+            "Train VAE-Vita V2 \u2014 12D Hyperspherical VAE with Residual Architecture\n"
+            "V2 adds residual blocks, AdamW optimizer, cosine annealing, and SIC warmup.\n"
+            "Trains the VAE used by the Aqua Vitae bridge (vae_vita \u2194 mOMonadOS \u2194 CLINK L8)."
+        ),
+        epilog=EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument('--steps', type=int, default=50000,
+                        help='Training steps. Each step processes --batch-size random crystal '
+                             'configurations. Default: 50000.')
+    parser.add_argument('--batch-size', type=int, default=2048,
+                        help='Samples per step. Total seen = steps \u00d7 batch-size. '
+                             'Default: 2048.')
+    parser.add_argument('--lr', type=float, default=3e-4,
+                        help='Learning rate (AdamW). Default: 3e-4.')
+    parser.add_argument('--beta', type=float, default=0.3,
+                        help='KL divergence weight. Lower than V1 \u2014 V2 relies more on '
+                             'reconstruction. Default: 0.3.')
     parser.add_argument('--lambda-sic', type=float, default=100.0,
-                        help='SIC equiangularity regularization weight (final)')
+                        help='SIC equiangularity regularization weight (final, after warmup). '
+                             'Default: 100.0.')
     parser.add_argument('--warmup', type=int, default=5000,
-                        help='Steps for SIC regularization warmup')
-    parser.add_argument('--hidden-dim', type=int, default=512)
-    parser.add_argument('--n-res-blocks', type=int, default=4)
+                        help='Steps to linearly warm up SIC weight from 0 to --lambda-sic. '
+                             'Default: 5000.')
+    parser.add_argument('--hidden-dim', type=int, default=512,
+                        help='Hidden dimension of residual blocks. Default: 512.')
+    parser.add_argument('--n-res-blocks', type=int, default=4,
+                        help='Number of residual blocks each in encoder and decoder. '
+                             'Default: 4.')
     parser.add_argument('--use-onehot', action='store_true',
-                        help='Use one-hot input encoding')
-    parser.add_argument('--checkpoint', type=str, default='vae_vita/vae_vita_v2.pt')
-    parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu')
-    parser.add_argument('--log-every', type=int, default=200)
-    parser.add_argument('--validate-every', type=int, default=1000)
-    parser.add_argument('--load', type=str, default=None)
+                        help='Use one-hot input encoding (49D = sum of primitive '
+                             'cardinalities) instead of ordinal (12D). More expressive '
+                             'but larger input.')
+    parser.add_argument('--checkpoint', type=str, default='vae_vita/vae_vita_v2.pt',
+                        help='Path to save best checkpoint. Default: vae_vita/vae_vita_v2.pt.')
+    parser.add_argument('--device', type=str,
+                        default='cuda' if torch.cuda.is_available() else 'cpu',
+                        help='Torch device. Default: auto-detect.')
+    parser.add_argument('--log-every', type=int, default=200,
+                        help='Log training metrics every N steps. Default: 200.')
+    parser.add_argument('--validate-every', type=int, default=1000,
+                        help='Run validation every N steps. Default: 1000.')
+    parser.add_argument('--load', type=str, default=None,
+                        help='Resume from checkpoint. Default: None.')
     args = parser.parse_args()
 
     print("=" * 66)

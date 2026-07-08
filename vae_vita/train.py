@@ -70,19 +70,81 @@ def validate_model(model, num_samples=10000, device='cpu'):
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="Train VAE-Vita")
-    parser.add_argument('--steps', type=int, default=10000)
-    parser.add_argument('--batch-size', type=int, default=4096)
-    parser.add_argument('--lr', type=float, default=3e-4)
-    parser.add_argument('--beta', type=float, default=0.5)
+    
+    EPILOG = (
+        "\u2500" * 60 + "\n"
+        "SUGGESTED COMMANDS\n"
+        "\u2500" * 60 + "\n"
+        "\n"
+        "  # Quick train \u2014 10K steps, batch 4096 (sees ~40M configurations):\n"
+        "  python3 train.py\n"
+        "\n"
+        "  # Deep train \u2014 50K steps for SIC convergence:\n"
+        "  python3 train.py --steps 50000 --lambda-sic 50.0\n"
+        "\n"
+        "  # GPU train with larger model capacity:\n"
+        "  python3 train.py --steps 20000 --hidden-dim 512 --device cuda\n"
+        "\n"
+        "  # Resume from checkpoint:\n"
+        "  python3 train.py --load vae_vita/vae_vita_ckpt.pt --steps 10000\n"
+        "\n"
+        "  # Fine-tune with higher SIC weight (better equiangularity):\n"
+        "  python3 train.py --lambda-sic 100.0 --beta 0.3 --steps 5000\n"
+        "\n"
+        "  # Quick prototype on CPU with small batch:\n"
+        "  python3 train.py --steps 2000 --batch-size 512 --hidden-dim 128 --device cpu\n"
+        "\n"
+        "  # Save to custom path:\n"
+        "  python3 train.py --checkpoint ./my_vae_vita.pt\n"
+        "\n"
+        "TIPS:\n"
+        "  \u2022 Target SIC overlap: 1/13 \u2248 0.076923 (d=12 SIC-POVM)\n"
+        "  \u2022 Monitor SIC deviation \u2014 lower is better\n"
+        "  \u2022 Best checkpoint auto-saved when SIC deviation improves\n"
+        "  \u2022 Metrics saved alongside checkpoint as .metrics.json\n"
+        "  \u2022 The 17.28M crystal of types is sampled uniformly\n"
+    )
+    
+    parser = argparse.ArgumentParser(
+        description=(
+            "Train VAE-Vita \u2014 12D Hyperspherical VAE on 17.28M Crystal Configurations\n"
+            "Learns the latent manifold of all possible structural types for the\n"
+            "Aqua Vitae bridge (vae_vita \u2194 mOMonadOS \u2194 CLINK L8)."
+        ),
+        epilog=EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument('--steps', type=int, default=10000,
+                        help='Training steps. Each step processes --batch-size random crystal '
+                             'configurations. Default: 10000.')
+    parser.add_argument('--batch-size', type=int, default=4096,
+                        help='Samples per step. Total seen = steps \u00d7 batch-size. '
+                             '17.28M total crystal types. Default: 4096.')
+    parser.add_argument('--lr', type=float, default=3e-4,
+                        help='Learning rate (Adam). Default: 3e-4.')
+    parser.add_argument('--beta', type=float, default=0.5,
+                        help='KL divergence weight (\u03b2-VAE). Higher = more regularized latent. '
+                             'Default: 0.5.')
     parser.add_argument('--lambda-sic', type=float, default=10.0,
-                        help='SIC equiangularity regularization weight')
-    parser.add_argument('--hidden-dim', type=int, default=256)
-    parser.add_argument('--checkpoint', type=str, default='vae_vita/vae_vita_ckpt.pt')
-    parser.add_argument('--device', type=str, default='cuda' if torch.cuda.is_available() else 'cpu')
-    parser.add_argument('--log-every', type=int, default=200)
-    parser.add_argument('--validate-every', type=int, default=1000)
-    parser.add_argument('--load', type=str, default=None)
+                        help='SIC equiangularity regularization weight. Encourages the latent '
+                             'space to approach a SIC-POVM. Default: 10.0.')
+    parser.add_argument('--hidden-dim', type=int, default=256,
+                        help='Hidden dimension of the VAE encoder/decoder MLP. Default: 256.')
+    parser.add_argument('--checkpoint', type=str, default='vae_vita/vae_vita_ckpt.pt',
+                        help='Path to save best checkpoint. Directory auto-created. '
+                             'Default: vae_vita/vae_vita_ckpt.pt.')
+    parser.add_argument('--device', type=str,
+                        default='cuda' if torch.cuda.is_available() else 'cpu',
+                        help='Torch device. "cuda", "cuda:0", or "cpu". '
+                             'Default: auto-detect.')
+    parser.add_argument('--log-every', type=int, default=200,
+                        help='Log training metrics every N steps. Default: 200.')
+    parser.add_argument('--validate-every', type=int, default=1000,
+                        help='Run validation (accuracy, SIC overlap, frame potential) '
+                             'every N steps. Default: 1000.')
+    parser.add_argument('--load', type=str, default=None,
+                        help='Resume from checkpoint. Loads model + optimizer state. '
+                             'Default: None (train from scratch).')
     args = parser.parse_args()
 
     print("=" * 60)
