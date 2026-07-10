@@ -10,7 +10,7 @@ ig-pulse observatory.
 ## Quick start
 
 ```bash
-cd /home/mrnob0dy666/imsgct/ig-pulse
+cd ig-pulse
 
 # Install
 pip install -e .
@@ -291,7 +291,7 @@ analysis after 20+ snapshots accumulate.
 ### No snapshots being written
 ```bash
 # Check disk space
-df -h /home/mrnob0dy666/imsgct/ig-pulse/data/
+df -h ig-pulse/data/
 
 # Run once with verbose output
 python -m ig_pulse.cli collect --once
