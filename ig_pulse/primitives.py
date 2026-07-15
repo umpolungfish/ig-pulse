@@ -145,16 +145,16 @@ class Criticality(IntEnum):
     Market criticality state.
     
     Financial interpretation:
-    - Phi_sub: Sub-critical, quiet
-    - Phi_c: Critical, trending (absorbing state)
-    - Phi_c_complex: Complex criticality
-    - Phi_EP: Exceptional point (flash crash)
+    - 𐑢: Sub-critical, quiet
+    - ⊙: Critical, trending (absorbing state)
+    - 𐑮: Complex criticality
+    - 𐑻: Exceptional point (flash crash)
     - Phi_super: Super-critical, bubble
     """
-    Phi_sub = 0
-    Phi_c = 1
-    Phi_c_complex = 2
-    Phi_EP = 3
+    𐑢 = 0
+    ⊙ = 1
+    𐑮 = 2
+    𐑻 = 3
     Phi_super = 4
 
 
@@ -221,7 +221,7 @@ _GLYPH_IDS: dict[str, str] = {
     # ɢ — Interaction Grammar
     "G_and": "𐑝", "G_or": "𐑜", "G_seq": "𐑠", "G_broad": "𐑵",
     # ⊙ — Criticality
-    "Phi_sub": "𐑢", "Phi_c": "⊙", "Phi_c_complex": "𐑮", "Phi_EP": "𐑻", "Phi_super": "𐑣",
+    "𐑢": "𐑢", "⊙": "⊙", "𐑮": "𐑮", "𐑻": "𐑻", "Phi_super": "𐑣",
     # Ħ — Chirality
     "H0": "𐑓", "H1": "𐑒", "H2": "𐑖", "H_inf": "𐑫",
     # Σ — Stoichiometry
@@ -417,7 +417,7 @@ def o_inf_imscription() -> Imscription:
     """
     Return an O_∞ imscription (ouroboric infinity).
     
-    Requires Phi_c AND P_pm_sym — the special Frobenius condition.
+    Requires ⊙ AND P_pm_sym — the special Frobenius condition.
     This IS the self-referential loop perfectly closed.
     """
     return Imscription(
