@@ -205,29 +205,29 @@ class TopologicalProtection(IntEnum):
 # Mapping from old ASCII enum names to phonetic glyph IDs
 _GLYPH_IDS: dict[str, str] = {
     # Ð — Dimensionality
-    "D_wedge": "Ð_ß", "D_triangle": "Ð_C", "D_infty": "Ð_;", "D_holo": "Ð_ω",
+    "D_wedge": "𐑛", "D_triangle": "𐑨", "D_infty": "𐑼", "D_holo": "𐑦",
     # Þ — Topology
-    "T_network": "Þ_6", "T_in": "Þ_K", "T_bowtie": "Þ_ò", "T_box": "Þ_¨", "T_holo": "Þ_O",
+    "T_network": "𐑡", "T_in": "𐑰", "T_bowtie": "𐑥", "T_box": "𐑶", "T_holo": "𐑸",
     # Ř — Relational Mode
-    "R_super": "Ř_¯", "R_cat": "Ř_ý", "R_dagger": "Ř_Ť", "R_lr": "Ř_=",
+    "R_super": "𐑩", "R_cat": "𐑑", "R_dagger": "𐑽", "R_lr": "𐑾",
     # Φ — Parity
-    "P_asym": "Φ_ɐ", "P_psi": "Φ_υ", "P_pm": "Φ_F", "P_sym": "Φ_˙", "P_pm_sym": "Φ_}",
+    "P_asym": "𐑗", "P_psi": "𐑿", "P_pm": "𐑬", "P_sym": "𐑯", "P_pm_sym": "𐑹",
     # ƒ — Fidelity
-    "F_ell": "ƒ_ì", "F_eth": "ƒ_ð", "F_hbar": "ƒ_ż",
+    "F_ell": "𐑱", "F_eth": "𐑞", "F_hbar": "𐑐",
     # Ç — Kinetics
-    "K_fast": "Ç_-", "K_mod": "Ç_W", "K_slow": "Ç_@", "K_trap": "Ç_Ù",
+    "K_fast": "𐑘", "K_mod": "𐑤", "K_slow": "𐑧", "K_trap": "𐑪",
     # Γ — Scope
-    "G_beth": "Γ_β", "G_gimel": "Γ_γ", "G_aleph": "Γ_ʔ",
+    "G_beth": "𐑚", "G_gimel": "𐑔", "G_aleph": "𐑲",
     # ɢ — Interaction Grammar
-    "G_and": "ɢ_^", "G_or": "ɢ_˝", "G_seq": "ɢ_ˌ", "G_broad": "ɢ_Ş",
+    "G_and": "𐑝", "G_or": "𐑜", "G_seq": "𐑠", "G_broad": "𐑵",
     # ⊙ — Criticality
-    "Phi_sub": "⊙_ž", "Phi_c": "⊙_ÿ", "Phi_c_complex": "⊙_Æ", "Phi_EP": "⊙_3", "Phi_super": "⊙_Ţ",
+    "Phi_sub": "𐑢", "Phi_c": "⊙", "Phi_c_complex": "𐑮", "Phi_EP": "𐑻", "Phi_super": "𐑣",
     # Ħ — Chirality
-    "H0": "Ħ_Ñ", "H1": "Ħ_£", "H2": "Ħ_A", "H_inf": "Ħ_!",
+    "H0": "𐑓", "H1": "𐑒", "H2": "𐑖", "H_inf": "𐑫",
     # Σ — Stoichiometry
-    "one_one": "Σ_S", "n_n": "Σ_ő", "n_m": "Σ_ï",
+    "one_one": "𐑙", "n_n": "𐑕", "n_m": "𐑳",
     # Ω — Topological Protection
-    "Omega_0": "Ω_Å", "Omega_Z2": "Ω_2", "Omega_Z": "Ω_z",
+    "Omega_0": "𐑷", "Omega_Z2": "𐑴", "Omega_Z": "𐑭",
 }
 _NAME_FROM_GLYPH: dict[str, str] = {v: k for k, v in _GLYPH_IDS.items()}
 

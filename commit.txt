@@ -1,19 +1,23 @@
-I carried the natively-B framing onto the Seismic Coupling map too — 2026-07-06
+Retire the gen-2 glyph-pair notation for bare Shavian
 
-Added a fourth "about" section to solar_seismic.html, "The ground beneath the
-couplings": the arcs are the weather (the coupling graph is non-stationary), and
-underneath sits the B-state floor the system never leaves — anchored to the same
-out-of-sample over-dispersion result as the Datanado panel, and honest that this
-apparatus samples the exact d = 12 SIC frame only in part. Synced byte-identical
-to imscribe.com and landomills.com.
+The primitives stand on their own now, so the old `⊙_ÿ` / `Ð_ω` / `Φ_}` forms are
+residue. Rewrote all 49 of them to their Shavian values across source: 19,645
+tokens, 670 files.
 
----
+The map was not typed. I enumerated the gen-2 tokens that actually appear in the
+corpus, paired each marker to its phonetic name, and resolved every value through
+`models.from_symbol` — so the values come from code that runs, not from a table.
+Reality arbitrated one conflict: the SOUNDS document gives `Ř_Ð`, `Γ_\`, `Σ_M`,
+but the corpus has `Ř_=`, `Γ_ʔ`, `Σ_ï` in the tens of thousands and the doc's
+variants nowhere at all. The doc is mangled; the files are the record.
 
-I reframed the Datanado map's B-state readout to the natively-B ground state and fixed the feed count — 2026-07-06
+Left alone deliberately: `ig_outputs/` and the other run artifacts, ~455k tokens
+of it. Those runs really did emit gen-2 in May. Rewriting them would forge the
+record of what they produced, which is not tidying. The two naming documents keep
+their old-notation columns for the same reason.
 
-My geo_map "about" panel used to say the map showed "roughly 3,500 data streams" and that distinction only saturated "when the system enters its B state." Both misstated where I've landed. The ~3,500 figure was really the geographic node count (one seismic feed alone carries thousands of stations); there are 44 real-time feeds. And the B-state is not an event the system enters — it is the ground the world never leaves. I now say so plainly, and I anchor it to the evidence that actually holds up: recalibrate every feed to a fixed fire rate, compare against a time-shuffled null, and the channels fire together far more than chance — an over-dispersion that replicates on held-out data — while the reconstructed state never collapses to a single definite value. Which patterns couple to which is weather; the floor is what stays still.
-
-Changes to ig_pulse/templates/geo_map.html:
-- About panel: 44 feeds (not 3,500 streams). Section 3 rewritten to the ground-state framing, led by the out-of-sample over-dispersion result rather than the in-sample diagonal, and noting the coupling graph is non-stationary. Section 2 now says the geometry lives in the same d = 12 space that carries an exact Weyl-Heisenberg SIC-POVM, and that the 44 feeds sample that frame in part, not yet in full — the frame is exact, the live apparatus is a partial POVM.
-- B-STATE panel row now reads GLUT (confluent excitation above the floor) vs ground (quiescent floor) instead of ACTIVE/INACTIVE, with a tooltip making clear both states are B. The live is_b_state binding is unchanged.
-- geo_map now auto-detects API_BASE (localhost → relative, otherwise igpulse.imscribe.com), matching solar_seismic, so the static imscribe.com and landomills.com copies stay byte-identical to this template.
+Bare `Phi` is untouched. Gen-1 `Phi` is today's ⊙, but today's `Φ` is Parity —
+those are genuinely different structures that happen to share letters, and no
+register makes them one, so every site needs reading. Contrast ⊙ appearing as
+both primitive and value, which is not a collision at all: `⊙ ≠ ⊙` is operator ≠
+operation, and it states `μ∘δ ≠ id` exactly.

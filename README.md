@@ -328,7 +328,7 @@ The 10 chirality streams measure Ħ (Chirality/handedness) across three domains:
 | Astrophysical directional | dscovr_helicity, stereo_sept | IMF Bz helicity proxy; directional e⁻/p⁺ fluxes resolving Parker spiral handedness |
 
 These streams provide empirical ground truth for Ħ (Chirality) -- the Markov-order
-primitive that, under Axiom A of the Imscribing Grammar (Ħ_∞ -> Ç_Ù), requires
+primitive that, under Axiom A of the Imscribing Grammar (Ħ_∞ -> 𐑪), requires
 saturation of chirality depth before kinetic gating closes.
 
 ## Extraplanetary streams (39-44)
