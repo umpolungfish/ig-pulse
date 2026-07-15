@@ -398,8 +398,8 @@ def minimal_imscription() -> Imscription:
 def maximal_imscription() -> Imscription:
     """Return the maximal imscription (all primitives at maximum)."""
     return Imscription(
-        D=Dimensionality.D_holo,
-        T=Topology.T_holo,
+        D=Dimensionality.if_,
+        T=Topology.are,
         R=RelationalMode.R_lr,
         P=Parity.P_pm_sym,
         F=Fidelity.F_hbar,
@@ -421,8 +421,8 @@ def o_inf_imscription() -> Imscription:
     This IS the self-referential loop perfectly closed.
     """
     return Imscription(
-        D=Dimensionality.D_holo,
-        T=Topology.T_holo,
+        D=Dimensionality.if_,
+        T=Topology.are,
         R=RelationalMode.R_super,
         P=Parity.P_pm_sym,  # Required for O_∞
         F=Fidelity.F_hbar,
