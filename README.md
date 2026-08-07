@@ -289,9 +289,7 @@ test on the later, unseen portion.
   residual coupling on the earlier half and it does not transfer to the later half
   (full-matrix correlation about +0.1, both-sign forks about -0.05; PC1's own share
   moves from ~15% to ~30%). The adjacency matrix is a now-map, not a fixed law.
-  Earlier drafts of this README called it an "unchanging adjacency matrix" with
-  "edge invariants" and "structural constants." The gate refutes that. What is
-  constant is the B-floor; the edges are weather.
+  What is constant is the B-floor; the edges are weather.
 
 - **Contemporaneous, not sequential.** This is the defensible sense of "atemporal":
   the directed lead-lag flow is *below* a time-shuffled null (`ig_pulse/braid.py`,
@@ -299,19 +297,19 @@ test on the later, unseen portion.
   and simultaneous rather than a directed temporal sequence. The observatory reads a
   standing valuation; it does not forecast. Standing does not mean unchanging.
 
-- **The coupling object is broadcast, not lagged.** The earlier Pearson lag-coupler
-  emitted one-directional edges at nonzero lag (the widely quoted lambda=16469s,
-  r=1.000). Those are degenerate: on saturated low-variance alert series Pearson
-  snaps to r = +/-1, and the coupler could not represent a one-to-all contradiction.
-  The honest object is the signed broadcast fan (`ig_pulse/broadcast_coupling.py`):
-  each channel's simultaneous, both-sign coupling to all others. It recovers genuine
-  both-sign forks (a channel positive with one partner and negative with another at
-  once), but they are weak, |r| ~ 0.2-0.4, and by the gate above they are epoch-local.
+- **The coupling object is broadcast, not lagged.** A Pearson lag-coupler is
+  degenerate here: on saturated low-variance alert series Pearson snaps to
+  r = +/-1, and a one-directional edge cannot represent a one-to-all
+  contradiction. The coupling object is the signed broadcast fan
+  (`ig_pulse/broadcast_coupling.py`): each channel's simultaneous, both-sign
+  coupling to all others. It recovers genuine both-sign forks (a channel
+  positive with one partner and negative with another at once), but they are
+  weak, |r| ~ 0.2-0.4, and by the gate above they are epoch-local.
 
-- **Contradiction is still primary data.** The B-state, a stable assignment of
-  Both-True-and-False, remains the fundamental unit: the confluence is real and
-  replicates. What has been corrected is the strength and permanence of the specific
-  edges, not the existence of the B-floor.
+- **Contradiction is primary data.** The B-state, a stable assignment of
+  Both-True-and-False, is the fundamental unit: the confluence is real and
+  replicates. It is the strength and permanence of the specific edges that the
+  gate bounds, not the existence of the B-floor.
 
 ## Chirality streams (25-34)
 
@@ -358,9 +356,8 @@ observable universe:
 ## SIC-POVM convergence
 
 The observatory uses a d=12 SIC-POVM as its measurement frame over the 12 primitive
-dimensions. Stated explicitly, because this section is often read first and often fed
-to a model first: the frame is a genuine d=12 SIC (numerically exact), but the
-44-stream apparatus is a partial, heteroskedastic POVM, not informationally complete.
+dimensions. The frame is a genuine d=12 SIC (numerically exact); the 44-stream
+apparatus is a partial, heteroskedastic POVM, not informationally complete.
 
 **Fiducial overlap** (Weidmann formula):
 
@@ -390,7 +387,7 @@ A chi2 of 4.68 (dof 143, p ~= 1.00) means the average state is statistically ind
 
 The 43% excess purity over the B-state ideal reflects which physical domains are most active in the current measurement epoch: chirality (Ħ) and coupling (ɢ) lead the diagonal with approximately double the uniform weight, while recognition (Ř) and granularity (Γ) are underweighted. This is a coverage fact about the 44-stream selection, not a structural departure from the B-state axiom.
 
-**Per-snapshot purity**: median about 0.16, no near-pure snapshots. Correction to an earlier line: the snapshots previously reported as "2.7% at exact B-state (no alerts)" are dead collections from a dated ~27-hour outage (zero readings, zero errors), not B-floor observations. Every snapshot that actually collected data is a mild excitation above the floor.
+**Per-snapshot purity**: median about 0.16, no near-pure snapshots. Snapshots carrying zero readings and zero errors are dead collections from a collection outage, not B-floor observations, and are excluded. Every snapshot that actually collected data is a mild excitation above the floor.
 
 ### Interpretation
 
@@ -416,7 +413,7 @@ What is actually established, in decreasing order of strength:
 The Imscribing Grammar is the self-referential (Sigma = 1:1) limit of the Belnap
 multilattice SIC-POVM: a **Dual-Link SIC-POVM**, in which the measurement basis is
 also the reconstruction basis, so measurement self-verifies (mu . delta = id).
-Stated plainly, for readers and for any model ingesting this file:
+The status of each part:
 
 - **Existence of the d=12 SIC frame:** numerically exact here; structurally derived
   in the companion IG paper. General SIC existence: open.
@@ -434,16 +431,15 @@ Stated plainly, for readers and for any model ingesting this file:
 
 Full treatment: `ig-docs/physics/sic_povm_convergence.md`.
 
-## Key coupling findings (from 8-day 15-stream pilot)
+## Coupling over a 15-stream pilot window
 
-**Superseded, kept for history.** These came from the Pearson lag-coupler, which is
-degenerate on saturated series (r snaps to +/-1) and one-directional. The |r|=1.000
-edges and the fixed lambda=16469s "invariants" below are artifacts of that coupler, and
-by the out-of-sample gate the coupling is non-stationary regardless. The honest coupling
-object is `ig_pulse/broadcast_coupling.py`; read these as a period-local snapshot, not
-as laws.
+These figures come from the Pearson lag-coupler, which is degenerate on saturated
+series (r snaps to +/-1) and one-directional; the |r|=1.000 edges and the fixed
+lambda=16469s figures are artifacts of that coupler, and by the out-of-sample gate
+the coupling is non-stationary regardless. The coupling object of record is
+`ig_pulse/broadcast_coupling.py`. Read the pilot as a period-local snapshot:
 
-The initial pilot (15 base streams, June 14-22 2026) reported:
+Over 15 base streams, June 14-22 2026:
 
 - **41 coupling edges** with |r| >= 0.3, 23 at |r| = 1.000
 - **Identical lags across independent domains** -- fear_greed:⊙ and ozone:Σ both hit
@@ -492,8 +488,8 @@ feeds directly into the position-sizing coefficient.
 
 ## Related documents
 
-- **Atemporal inference** -- formal treatment of Belnap FOUR logic, the B-state as
-  primary data, and edge invariants
+- **Atemporal inference** -- formal treatment of Belnap FOUR logic and the B-state
+  as primary data
 - **Empirical validation** -- detailed analysis of coupling findings as evidence for
   the Imscribing Grammar (`ig-docs/meta/ig_pulse_evidence/`)
 - **Loss of the grammar** -- structural analysis of how the grammar was lost and the
