@@ -91,6 +91,24 @@ def validate_model(model, num_samples=10000, device='cpu', use_onehot=False):
     }
 
 
+def _ig_default_device():
+    """The card this run owns, from IG_DEVICES — the one spelling for device
+    selection across every repo here. "0,1" names both cards and the first that
+    is present takes the run (a VAE this size fits either alone; two cards run
+    two trainings, one pinned to each, rather than one training split in half).
+    "cpu" forces the CPU; unset auto-detects.
+    """
+    import os
+    spec = os.environ.get("IG_DEVICES", "").strip().lower()
+    if spec == "cpu" or not torch.cuda.is_available():
+        return "cpu"
+    for part in spec.split(","):
+        part = part.strip()
+        if part.isdigit() and int(part) < torch.cuda.device_count():
+            return f"cuda:{int(part)}"
+    return "cuda"
+
+
 def main():
     import argparse
     
@@ -169,7 +187,7 @@ def main():
     parser.add_argument('--checkpoint', type=str, default='vae_vita/vae_vita_v2.pt',
                         help='Path to save best checkpoint. Default: vae_vita/vae_vita_v2.pt.')
     parser.add_argument('--device', type=str,
-                        default='cuda' if torch.cuda.is_available() else 'cpu',
+                        default=_ig_default_device(),
                         help='Torch device. Default: auto-detect.')
     parser.add_argument('--log-every', type=int, default=200,
                         help='Log training metrics every N steps. Default: 200.')
