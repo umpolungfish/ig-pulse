@@ -8,11 +8,11 @@
 
 ## What it does
 
-44 public-API domain streams (no keys): base 1–16 (fear/greed, mempool, coingecko, onchain, tides, air quality, DONKI, seismic, Kp, HN sentiment, solar wind, lightning, wikipedia, weather…), market/macro 17–24 (options skew, yield curve, VIX, shipping, grid, night lights, GDELT…), chiral bio 25–29 (genbank, pubmed…), chiral astro 30–34, SIC-POVM fill 35–38, extraplanetary 39–44 (geomag, neutron, GOES XRS, LIGO…). Each stream thresholds to primitive alert levels 0/1/2; co-activation across streams is a **B-state event** (Belnap Both — dialetheic confluence).
+44 public-API domain streams (no keys): base 1–16 (fear/greed, mempool, coingecko, onchain, tides, air quality, DONKI, seismic, Kp, HN sentiment, solar wind, lightning, wikipedia, weather…), market/macro 17–24 (options skew, yield curve, VIX, shipping, grid, night lights, GDELT…), chiral bio 25–29 (genbank, pubmed…), chiral astro 30–34, SIC-POVM fill 35–38, extraplanetary 39–44 (geomag, neutron, GOES XRS, LIGO…). Each stream thresholds to primitive alert levels 0/1/2; co-activation across streams is a **B-state event** (Belnap Both - dialetheic confluence).
 
 ## Invariant vs wiring
 
-Out-of-sample gate `python -m ig_pulse.oos` separates the two: **invariant** — native-B confluence over-disperses ~3.4× vs independence null and replicates on unseen data; **not invariant** — the coupling graph is contemporaneous (lead-lag below time-shuffled null in `ig_pulse/braid.py`) and non-stationary: a now-map, not a fixed lattice.
+Out-of-sample gate `python -m ig_pulse.oos` separates the two: **invariant** - native-B confluence over-disperses ~3.4× vs independence null and replicates on unseen data; **not invariant** - the coupling graph is contemporaneous (lead-lag below time-shuffled null in `ig_pulse/braid.py`) and non-stationary: a now-map, not a fixed lattice.
 
 ## Pipeline
 
