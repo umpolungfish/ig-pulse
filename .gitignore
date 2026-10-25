@@ -10,3 +10,17 @@ data/snapshots.jsonl
 data/snapshots.zip
 data/snapshots*.json
 *.log
+
+# --- local build and execution artifacts ---
+*:Zone.Identifier
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+node_modules/
+target/
+*.rlib
+*.rmeta
+.DS_Store
